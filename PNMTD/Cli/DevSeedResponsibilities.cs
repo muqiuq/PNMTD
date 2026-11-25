@@ -53,6 +53,14 @@ internal static class DevSeedResponsibilities
         ["Network"] = "#2f8fd8", ["Backup"] = "#2e9d5b", ["Printers"] = "#d9a400",
     };
 
+    private static readonly (string Text, ResponsibilityNoteColour Colour, ResponsibilityNoteWidth Width, double X, double Y)[] Notes =
+    [
+        ("**Infra team**\nNetwork and Backup: ask Anna before changing the firewall or the backup schedule.", ResponsibilityNoteColour.Yellow,
+            ResponsibilityNoteWidth.Medium, -520, -380),
+        ("Printers have nobody since the move: the global responsible stands in until someone takes them.", ResponsibilityNoteColour.Pink,
+            ResponsibilityNoteWidth.Small, 360, 260),
+    ];
+
     public static string Seed(PnmtdDbContext db, DateTime now)
     {
         if (db.Responsibilities.Any())
@@ -129,7 +137,18 @@ internal static class DevSeedResponsibilities
             settings.UpdatedBy = admin?.Id;
             settings.UpdatedByName = by;
         }
+        // Two notes on the overview (docs/responsibilities-extensions-plan.md §9), away from the middle where the layout starts.
+        foreach (var (text, colour, width, x, y) in Notes)
+        {
+            var at = now.AddDays(-10);
+            db.ResponsibilityMapNotes.Add(new ResponsibilityMapNoteEntity
+            {
+                Id = Guid.NewGuid(), Text = text, Colour = colour.ToString(), Width = width.ToString(), X = x, Y = y, CreatedAt = at, CreatedBy = admin?.Id,
+                CreatedByName = by, UpdatedAt = at, UpdatedBy = admin?.Id, UpdatedByName = by,
+            });
+        }
         db.SaveChanges();
-        return $"Seeded {Plan.Length} responsibilities with {links} links and {Combinations.Length} Redmine combinations, and the global responsible and deputy.";
+        return $"Seeded {Plan.Length} responsibilities with {links} links and {Combinations.Length} Redmine combinations, the global responsible and deputy, "
+            + $"and {Notes.Length} notes on the overview.";
     }
 }

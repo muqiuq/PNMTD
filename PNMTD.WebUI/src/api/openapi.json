@@ -24937,6 +24937,270 @@
         }
       }
     },
+    "/api/v1/responsibilities/map": {
+      "get": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "parameters": [
+          {
+            "name": "hosts",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "locations",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "pages",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMap"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMap"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMap"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/responsibilities/map/positions": {
+      "put": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityMapPositionsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityMapPositionsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityMapPositionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapSaveResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapSaveResult"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapSaveResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/responsibilities/map/notes": {
+      "post": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityNoteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityNoteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapNote"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapNote"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapNote"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/responsibilities/map/notes/{id}": {
+      "put": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityNoteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityNoteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapNote"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapNote"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityMapNote"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/responsibilities/map/positions/{id}": {
+      "delete": {
+        "tags": [
+          "ResponsibilityMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/sensors": {
       "get": {
         "tags": [
@@ -66404,6 +66668,370 @@
           }
         }
       },
+      "ResponsibilityMap": {
+        "required": [
+          "responsibilities",
+          "people",
+          "objects",
+          "notes",
+          "global",
+          "objectsTotal",
+          "truncated",
+          "savedPositions"
+        ],
+        "type": "object",
+        "properties": {
+          "responsibilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapNode"
+            }
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapPerson"
+            }
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapObject"
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapNote"
+            }
+          },
+          "global": {
+            "$ref": "#/components/schemas/ResponsibilityGlobal"
+          },
+          "objectsTotal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "savedPositions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponsibilityMapNode": {
+        "required": [
+          "id",
+          "name",
+          "summary",
+          "color",
+          "x",
+          "y",
+          "position",
+          "responsibleId",
+          "deputyId",
+          "globalStandsIn",
+          "attention",
+          "links",
+          "combinations"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "x": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "y": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "position": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityMapPosition"
+              }
+            ]
+          },
+          "responsibleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "deputyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "globalStandsIn": {
+            "type": "boolean"
+          },
+          "attention": {
+            "type": "boolean"
+          },
+          "links": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "combinations": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponsibilityMapNote": {
+        "required": [
+          "id",
+          "text",
+          "colour",
+          "width",
+          "x",
+          "y",
+          "createdAt",
+          "createdByName",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "colour": {
+            "$ref": "#/components/schemas/ResponsibilityNoteColour"
+          },
+          "width": {
+            "$ref": "#/components/schemas/ResponsibilityNoteWidth"
+          },
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponsibilityMapObject": {
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "number",
+          "links"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/KbLinkKind"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapObjectLink"
+            }
+          }
+        }
+      },
+      "ResponsibilityMapObjectLink": {
+        "required": [
+          "responsibilityId",
+          "linkId"
+        ],
+        "type": "object",
+        "properties": {
+          "responsibilityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "linkId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ResponsibilityMapPerson": {
+        "required": [
+          "id",
+          "name",
+          "code",
+          "color",
+          "active"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponsibilityMapPointInput": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ResponsibilityMapPosition": {
+        "required": [
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponsibilityMapPositionsRequest": {
+        "type": "object",
+        "properties": {
+          "responsibilities": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapPointInput"
+            }
+          },
+          "notes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityMapPointInput"
+            }
+          }
+        }
+      },
+      "ResponsibilityMapSaveResult": {
+        "required": [
+          "saved",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "saved": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skipped": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ResponsibilityMoveLinksRequest": {
         "type": "object",
         "properties": {
@@ -66428,6 +67056,71 @@
             "type": "boolean"
           }
         }
+      },
+      "ResponsibilityNoteColour": {
+        "enum": [
+          "Yellow",
+          "Green",
+          "Blue",
+          "Pink",
+          "Purple",
+          "Grey"
+        ]
+      },
+      "ResponsibilityNoteRequest": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "colour": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityNoteColour"
+              }
+            ]
+          },
+          "width": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponsibilityNoteWidth"
+              }
+            ]
+          },
+          "x": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "y": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "acknowledgeCredentials": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponsibilityNoteWidth": {
+        "enum": [
+          "Small",
+          "Medium",
+          "Large"
+        ]
       },
       "ResponsibilityPeople": {
         "required": [
@@ -76076,6 +76769,9 @@
     },
     {
       "name": "Responsibilities"
+    },
+    {
+      "name": "ResponsibilityMap"
     },
     {
       "name": "Sensors"

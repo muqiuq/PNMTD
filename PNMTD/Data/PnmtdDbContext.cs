@@ -205,6 +205,8 @@ namespace PNMTD.Data
         public DbSet<ResponsibilitySettingsEntity> ResponsibilitySettings { get; set; }
         public DbSet<ResponsibilityHistoryEntity> ResponsibilityHistory { get; set; }
         public DbSet<ResponsibilityRedmineEntity> ResponsibilityRedmine { get; set; }
+        public DbSet<ResponsibilityMapPositionEntity> ResponsibilityMapPositions { get; set; }
+        public DbSet<ResponsibilityMapNoteEntity> ResponsibilityMapNotes { get; set; }
         // Boards (docs/boards-plan.md §11): monitoring dashboards for a wall, at /pnmt-board/<token>.
         public DbSet<BoardEntity> Boards { get; set; }
 
@@ -1122,6 +1124,11 @@ namespace PNMTD.Data
                 e.HasIndex(r => r.NormalizedName).IsUnique();
                 e.HasOne<UserEntity>().WithMany().HasForeignKey(r => r.ResponsibleId).OnDelete(DeleteBehavior.SetNull);
                 e.HasOne<UserEntity>().WithMany().HasForeignKey(r => r.DeputyId).OnDelete(DeleteBehavior.SetNull);
+            });
+            // docs/responsibilities-extensions-plan.md §7.2: a place on the overview goes with its responsibility.
+            modelBuilder.Entity<ResponsibilityMapPositionEntity>(e =>
+            {
+                e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(p => p.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<ResponsibilityLinkEntity>(e =>
             {

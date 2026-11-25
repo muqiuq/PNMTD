@@ -8006,6 +8006,83 @@ namespace PNMTD.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityMapNoteEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Colour")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Width")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("responsibility_map_notes");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityMapPositionEntity", b =>
+                {
+                    b.Property<Guid>("ResponsibilityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("ResponsibilityId");
+
+                    b.ToTable("responsibility_map_positions");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityRedmineEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10614,6 +10691,15 @@ namespace PNMTD.Data.Migrations
                         .HasForeignKey("PageId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("PNMTD.Models.Db.ResponsibilityEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ResponsibilityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.ResponsibilityMapPositionEntity", b =>
+                {
                     b.HasOne("PNMTD.Models.Db.ResponsibilityEntity", null)
                         .WithMany()
                         .HasForeignKey("ResponsibilityId")

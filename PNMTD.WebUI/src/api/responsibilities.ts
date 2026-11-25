@@ -26,6 +26,11 @@ export type ResponsibilityLinkRow = S['ResponsibilityLinkRow']
 export type ResponsibilityUnlinkedRow = S['ResponsibilityUnlinkedRow']
 export type ResponsibilityBrief = S['ResponsibilityBrief']
 export type ResponsibilityBulkResult = S['ResponsibilityBulkResult']
+export type ResponsibilityMap = S['ResponsibilityMap']
+export type ResponsibilityMapNote = S['ResponsibilityMapNote']
+export type ResponsibilityNoteColour = S['ResponsibilityNoteColour']
+export type ResponsibilityNoteWidth = S['ResponsibilityNoteWidth']
+export type ResponsibilityMapQuery = { hosts?: boolean; locations?: boolean; pages?: boolean }
 
 /** The Links tab's filters (docs/responsibilities-extensions-plan.md §5.2). */
 export interface LinkRowsFilters {
@@ -109,6 +114,22 @@ export const responsibilitiesApi = {
   /** The links' objects linked to another responsibility: moved, or with keep also linked there. */
   moveLinks: (linkIds: Id[], responsibilityId: Id, keep: boolean) =>
     call(client.POST('/api/v1/responsibilities/links/move', { body: { linkIds, responsibilityId, keep } })),
+  /** The overview's map: the layers asked for, the people, the saved places (docs/responsibilities-extensions-plan.md §7.3). */
+  map: (query: ResponsibilityMapQuery) => call(client.GET('/api/v1/responsibilities/map', { params: { query } })),
+  /** Places saved for everyone: the moved responsibilities and those never saved, and the moved notes. */
+  savePositions: (
+    responsibilities: { id: Id; x: number; y: number }[],
+    notes: { id: Id; x: number; y: number }[] = [],
+  ) => call(client.PUT('/api/v1/responsibilities/map/positions', { body: { responsibilities, notes } })),
+  /** A note on the overview: 409 too_many_notes, 422 looks_like_credential unless acknowledged. */
+  createNote: (body: S['ResponsibilityNoteRequest']) =>
+    call(client.POST('/api/v1/responsibilities/map/notes', { body })),
+  updateNote: (id: Id, body: S['ResponsibilityNoteRequest']) =>
+    call(client.PUT('/api/v1/responsibilities/map/notes/{id}', { params: { path: { id } }, body })),
+  deleteNote: (id: Id) => call(client.DELETE('/api/v1/responsibilities/map/notes/{id}', { params: { path: { id } } })),
+  resetPositions: () => call(client.DELETE('/api/v1/responsibilities/map/positions')),
+  clearPosition: (id: Id) =>
+    call(client.DELETE('/api/v1/responsibilities/map/positions/{id}', { params: { path: { id } } })),
   /** Pages, locations and hosts by name, for the link picker, without Monitoring: View. */
   targets: (q: string) => call(client.GET('/api/v1/responsibilities/targets', { params: { query: { q } } })),
 }
@@ -122,6 +143,7 @@ export const responsibilityKeys = {
   people: ['responsibilities', 'people'] as const,
   redmine: ['responsibilities', 'redmine'] as const,
   linked: (query: { host?: Id; location?: Id; page?: Id }) => ['responsibilities', 'linked', query] as const,
+  map: (query: ResponsibilityMapQuery) => ['responsibilities', 'map', query] as const,
   combinations: (query: { project?: number; responsibility?: Id; user?: Id }) =>
     ['responsibilities', 'combinations', query] as const,
 }

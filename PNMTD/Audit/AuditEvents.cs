@@ -339,6 +339,12 @@ public static class AuditEvents
     public const string GlobalResponsibleChanged = "GlobalResponsibleChanged";
     public const string ResponsibilityRedmineSaved = "ResponsibilityRedmineSaved";
     public const string ResponsibilityRedmineDeleted = "ResponsibilityRedmineDeleted";
+    // The overview (docs/responsibilities-extensions-plan.md §8.2): saved places, and back to automatic.
+    public const string ResponsibilityMapSaved = "ResponsibilityMapSaved";
+    public const string ResponsibilityMapReset = "ResponsibilityMapReset";
+    public const string ResponsibilityNoteCreated = "ResponsibilityNoteCreated";
+    public const string ResponsibilityNoteChanged = "ResponsibilityNoteChanged";
+    public const string ResponsibilityNoteDeleted = "ResponsibilityNoteDeleted";
     // Boards (docs/boards-plan.md §13.2). Views aren't audited; a refusal by network is, at most once per board and address an hour.
     public const string BoardCreated = "BoardCreated";
     public const string BoardChanged = "BoardChanged";
@@ -408,6 +414,7 @@ public static class AuditTargets
     public const string NetworkRouterPosition = "NetworkRouterPosition";
     public const string OsAdvisorySource = "OsAdvisorySource";
     public const string Responsibility = "Responsibility";
+    public const string ResponsibilityNote = "ResponsibilityNote";
     public const string Board = "Board";
     public const string BoardMessage = "BoardMessage";
 }
@@ -561,8 +568,11 @@ public static class AuditCatalog
             AuditEvents.NetworkPositionsReset);
         Add(AuditCategory.Responsibilities, AuditTargets.Responsibility, AuditEvents.ResponsibilityCreated, AuditEvents.ResponsibilityChanged,
             AuditEvents.ResponsibilityDeleted, AuditEvents.ResponsibilityLinked, AuditEvents.ResponsibilityUnlinked,
-            AuditEvents.ResponsibilityRedmineSaved, AuditEvents.ResponsibilityRedmineDeleted);
+            AuditEvents.ResponsibilityRedmineSaved, AuditEvents.ResponsibilityRedmineDeleted, AuditEvents.ResponsibilityMapSaved,
+            AuditEvents.ResponsibilityMapReset);
         Add(AuditCategory.Responsibilities, null, AuditEvents.GlobalResponsibleChanged);
+        Add(AuditCategory.Responsibilities, AuditTargets.ResponsibilityNote, AuditEvents.ResponsibilityNoteCreated, AuditEvents.ResponsibilityNoteChanged,
+            AuditEvents.ResponsibilityNoteDeleted);
         Add(AuditCategory.Boards, AuditTargets.Board, AuditEvents.BoardCreated, AuditEvents.BoardChanged, AuditEvents.BoardDeleted,
             AuditEvents.BoardUrlShown, AuditEvents.BoardUrlRenewed, AuditEvents.BoardRefused);
         Add(AuditCategory.Boards, AuditTargets.BoardMessage, AuditEvents.BoardMessageSent, AuditEvents.BoardMessageWithdrawn);

@@ -440,7 +440,7 @@ export const routes: RouteRecordRaw[] = [
   },
   // Responsibilities (docs/responsibilities-plan.md §9.1): who owns what; information only.
   {
-    path: '/admin/responsibilities/:tab(list|redmine)?',
+    path: '/admin/responsibilities/:tab(list|links|overview|redmine)?',
     name: 'responsibilities',
     component: () => import('@/views/admin/responsibilities/ResponsibilitiesView.vue'),
     meta: { title: 'Responsibilities', right: ['Responsibilities', 'View'] },

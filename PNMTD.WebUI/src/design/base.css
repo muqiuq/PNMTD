@@ -37,6 +37,14 @@
   --pnmt-none: var(--p-surface-500);
   --pnmt-none-soft: var(--p-surface-100);
 
+  /* Notes on the responsibilities' overview (docs/responsibilities-extensions-plan.md §7.1): stored by name, shaded per theme. */
+  --pnmt-note-yellow: var(--p-yellow-100);
+  --pnmt-note-green: var(--p-green-100);
+  --pnmt-note-blue: var(--p-sky-100);
+  --pnmt-note-pink: var(--p-pink-100);
+  --pnmt-note-purple: var(--p-purple-100);
+  --pnmt-note-grey: var(--p-surface-100);
+
   color-scheme: light;
 }
 
@@ -56,6 +64,13 @@
   --pnmt-warn-soft: color-mix(in srgb, var(--p-amber-500) 20%, transparent);
   --pnmt-none: var(--p-surface-500);
   --pnmt-none-soft: var(--p-surface-800);
+
+  --pnmt-note-yellow: color-mix(in srgb, var(--p-yellow-500) 24%, var(--p-surface-900));
+  --pnmt-note-green: color-mix(in srgb, var(--p-green-500) 24%, var(--p-surface-900));
+  --pnmt-note-blue: color-mix(in srgb, var(--p-sky-500) 24%, var(--p-surface-900));
+  --pnmt-note-pink: color-mix(in srgb, var(--p-pink-500) 24%, var(--p-surface-900));
+  --pnmt-note-purple: color-mix(in srgb, var(--p-purple-500) 24%, var(--p-surface-900));
+  --pnmt-note-grey: var(--p-surface-800);
 
   color-scheme: dark;
 }

@@ -7,6 +7,7 @@ public static class ResponsibilitiesSetup
     {
         services.AddScoped<ResponsibilityQueries>();
         services.AddScoped<ResponsibilityService>();
+        services.AddScoped<ResponsibilityMapService>();
         return services;
     }
 }

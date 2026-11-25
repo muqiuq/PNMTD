@@ -261,12 +261,101 @@ public sealed record ResponsibilitySkipped(KbLinkKind Kind, Guid Id, string Name
 
 public sealed record ResponsibilityBulkResult(int Linked, int Unlinked, IReadOnlyList<ResponsibilitySkipped> Skipped);
 
+// --- the overview (docs/responsibilities-extensions-plan.md §6, §7) ----------------------------------------------------------
+
+/// <summary>The layers asked for besides the responsibilities, the people and the notes: the objects they link.</summary>
+public sealed class ResponsibilityMapQuery
+{
+    public bool Hosts { get; set; }
+
+    public bool Locations { get; set; }
+
+    public bool Pages { get; set; }
+}
+
+/// <summary>
+/// The overview's map (§7.3): every responsibility with its saved place or none (automatic), the people they name and the global
+/// people, the linked objects of the layers asked for (at most 600, the most shared first: <see cref="ObjectsTotal"/> counts them all),
+/// and the notes. <see cref="SavedPositions"/>: how many responsibilities have a saved place.
+/// </summary>
+public sealed record ResponsibilityMap(
+    IReadOnlyList<ResponsibilityMapNode> Responsibilities,
+    IReadOnlyList<ResponsibilityMapPerson> People,
+    IReadOnlyList<ResponsibilityMapObject> Objects,
+    IReadOnlyList<ResponsibilityMapNote> Notes,
+    ResponsibilityGlobal Global,
+    int ObjectsTotal,
+    bool Truncated,
+    int SavedPositions);
+
+/// <summary>A responsibility on the map; <see cref="X"/> and <see cref="Y"/> null: placed automatically.</summary>
+public sealed record ResponsibilityMapNode(Guid Id, string Name, string? Summary, string? Color, double? X, double? Y,
+    ResponsibilityMapPosition? Position, Guid? ResponsibleId, Guid? DeputyId, bool GlobalStandsIn, bool Attention, int Links, int Combinations);
+
+public sealed record ResponsibilityMapPosition(DateTime UpdatedAt, string? UpdatedByName);
+
+/// <summary>A person on the map, with the availability plan's short code and colour (null when not in the plan); no contact details.</summary>
+public sealed record ResponsibilityMapPerson(Guid Id, string Name, string? Code, string? Color, bool Active);
+
+/// <summary>A linked page, location or host, with its links: the responsibilities that link it, and each link's id.</summary>
+public sealed record ResponsibilityMapObject(KbLinkKind Kind, Guid Id, string Name, int? Number, IReadOnlyList<ResponsibilityMapObjectLink> Links);
+
+public sealed record ResponsibilityMapObjectLink(Guid ResponsibilityId, Guid LinkId);
+
+/// <summary>A place to save, in the map's own units.</summary>
+public sealed record ResponsibilityMapPointInput
+{
+    public Guid Id { get; init; }
+
+    public double X { get; init; }
+
+    public double Y { get; init; }
+}
+
+/// <summary>
+/// The places of moved responsibilities, and of those never saved, so that nothing moves afterwards (§6.2); and of moved notes (their
+/// top-left corners).
+/// </summary>
+public sealed class ResponsibilityMapPositionsRequest
+{
+    public List<ResponsibilityMapPointInput>? Responsibilities { get; init; }
+
+    public List<ResponsibilityMapPointInput>? Notes { get; init; }
+}
+
+/// <summary>A note on the overview (§7): its Markdown, colour, width and top-left corner.</summary>
+public sealed record ResponsibilityMapNote(Guid Id, string Text, Models.Db.ResponsibilityNoteColour Colour, Models.Db.ResponsibilityNoteWidth Width,
+    double X, double Y, DateTime CreatedAt, string? CreatedByName, DateTime UpdatedAt, string? UpdatedByName);
+
+/// <summary>
+/// A note's text, colour and width; on creation also its place (the middle of the view). 422 <c>looks_like_credential</c> unless
+/// acknowledged.
+/// </summary>
+public sealed class ResponsibilityNoteRequest
+{
+    public string? Text { get; init; }
+
+    public Models.Db.ResponsibilityNoteColour? Colour { get; init; }
+
+    public Models.Db.ResponsibilityNoteWidth? Width { get; init; }
+
+    public double? X { get; init; }
+
+    public double? Y { get; init; }
+
+    public bool AcknowledgeCredentials { get; init; }
+}
+
+/// <summary>Saved; skipped: deleted between the drag and the save.</summary>
+public sealed record ResponsibilityMapSaveResult(int Saved, int Skipped);
+
 /// <summary>The error codes of responsibilities (§11).</summary>
 public static class ResponsibilityErrors
 {
     public const string DuplicateName = "duplicate_name";
     public const string AlreadyLinked = "already_linked";
     public const string NotFound = "not_found";
+    public const string TooManyNotes = "too_many_notes";
     public const string TooManyLinks = "too_many_links";
     public const string DuplicateCombination = "duplicate_combination";
     public const string RedmineNotConfigured = "redmine_not_configured";

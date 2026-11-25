@@ -190,6 +190,16 @@ async function remove() {
         <template v-if="r.color" #status><ColourDot :colour="r.color" size="0.9rem" /></template>
         <template #actions>
           <Button
+            as="router-link"
+            :to="{ name: 'responsibilities', params: { tab: 'overview' }, query: { focus: `responsibility:${id}` } }"
+            label="Show on the overview"
+            icon="pi pi-sitemap"
+            size="small"
+            severity="secondary"
+            text
+            data-test="show-on-overview"
+          />
+          <Button
             v-if="manage"
             label="Delete…"
             icon="pi pi-trash"

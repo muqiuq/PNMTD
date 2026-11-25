@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import TabNav from '@/components/TabNav.vue'
 import { useSession } from '@/stores/session'
 import LinksTab from './LinksTab.vue'
+import OverviewTab from './overview/OverviewTab.vue'
 import RedmineTab from './RedmineTab.vue'
 import ResponsibilitiesTab from './ResponsibilitiesTab.vue'
 
@@ -22,6 +23,7 @@ const item = (key: string, label: string) => ({ key, label, to: { name: 'respons
 const tabs = computed(() => [
   item('list', 'Responsibilities'),
   item('links', 'Links'),
+  item('overview', 'Overview'),
   ...(session.info?.redmine ? [item('redmine', 'Redmine')] : []),
 ])
 const tab = computed(() => {
@@ -36,6 +38,7 @@ const tab = computed(() => {
     <TabNav :items="tabs" :active="tab" label="Responsibilities" />
     <ResponsibilitiesTab v-if="tab === 'list'" :edit="edit" :manage="manage" />
     <LinksTab v-else-if="tab === 'links'" :edit="edit" />
+    <OverviewTab v-else-if="tab === 'overview'" :edit="edit" />
     <RedmineTab v-else-if="tab === 'redmine'" :edit="edit" />
   </div>
 </template>

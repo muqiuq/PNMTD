@@ -19588,6 +19588,249 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/responsibilities/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    hosts?: boolean;
+                    locations?: boolean;
+                    pages?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityMap"];
+                        "text/json": components["schemas"]["ResponsibilityMap"];
+                        "text/plain": components["schemas"]["ResponsibilityMap"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/map/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityMapPositionsRequest"];
+                    "text/json": components["schemas"]["ResponsibilityMapPositionsRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityMapPositionsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityMapSaveResult"];
+                        "text/json": components["schemas"]["ResponsibilityMapSaveResult"];
+                        "text/plain": components["schemas"]["ResponsibilityMapSaveResult"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/map/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityNoteRequest"];
+                    "text/json": components["schemas"]["ResponsibilityNoteRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityMapNote"];
+                        "text/json": components["schemas"]["ResponsibilityMapNote"];
+                        "text/plain": components["schemas"]["ResponsibilityMapNote"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/map/notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityNoteRequest"];
+                    "text/json": components["schemas"]["ResponsibilityNoteRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityMapNote"];
+                        "text/json": components["schemas"]["ResponsibilityMapNote"];
+                        "text/plain": components["schemas"]["ResponsibilityMapNote"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/map/positions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors": {
         parameters: {
             query?: never;
@@ -32508,12 +32751,123 @@ export interface components {
             items: components["schemas"]["ResponsibilityItem"][];
             redmineConfigured: boolean;
         };
+        ResponsibilityMap: {
+            responsibilities: components["schemas"]["ResponsibilityMapNode"][];
+            people: components["schemas"]["ResponsibilityMapPerson"][];
+            objects: components["schemas"]["ResponsibilityMapObject"][];
+            notes: components["schemas"]["ResponsibilityMapNote"][];
+            global: components["schemas"]["ResponsibilityGlobal"];
+            /** Format: int32 */
+            objectsTotal: number;
+            truncated: boolean;
+            /** Format: int32 */
+            savedPositions: number;
+        };
+        ResponsibilityMapNode: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            summary: null | string;
+            color: null | string;
+            /** Format: double */
+            x: null | number;
+            /** Format: double */
+            y: null | number;
+            position: null | components["schemas"]["ResponsibilityMapPosition"];
+            /** Format: uuid */
+            responsibleId: null | string;
+            /** Format: uuid */
+            deputyId: null | string;
+            globalStandsIn: boolean;
+            attention: boolean;
+            /** Format: int32 */
+            links: number;
+            /** Format: int32 */
+            combinations: number;
+        };
+        ResponsibilityMapNote: {
+            /** Format: uuid */
+            id: string;
+            text: string;
+            colour: components["schemas"]["ResponsibilityNoteColour"];
+            width: components["schemas"]["ResponsibilityNoteWidth"];
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        ResponsibilityMapObject: {
+            kind: components["schemas"]["KbLinkKind"];
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            number: null | number;
+            links: components["schemas"]["ResponsibilityMapObjectLink"][];
+        };
+        ResponsibilityMapObjectLink: {
+            /** Format: uuid */
+            responsibilityId: string;
+            /** Format: uuid */
+            linkId: string;
+        };
+        ResponsibilityMapPerson: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            code: null | string;
+            color: null | string;
+            active: boolean;
+        };
+        ResponsibilityMapPointInput: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: double */
+            x?: number;
+            /** Format: double */
+            y?: number;
+        };
+        ResponsibilityMapPosition: {
+            /** Format: date-time */
+            updatedAt: string;
+            updatedByName: null | string;
+        };
+        ResponsibilityMapPositionsRequest: {
+            responsibilities?: null | components["schemas"]["ResponsibilityMapPointInput"][];
+            notes?: null | components["schemas"]["ResponsibilityMapPointInput"][];
+        };
+        ResponsibilityMapSaveResult: {
+            /** Format: int32 */
+            saved: number;
+            /** Format: int32 */
+            skipped: number;
+        };
         ResponsibilityMoveLinksRequest: {
             linkIds?: null | string[];
             /** Format: uuid */
             responsibilityId?: null | string;
             keep?: boolean;
         };
+        /** @enum {unknown} */
+        ResponsibilityNoteColour: "Yellow" | "Green" | "Blue" | "Pink" | "Purple" | "Grey";
+        ResponsibilityNoteRequest: {
+            text?: null | string;
+            colour?: null | components["schemas"]["ResponsibilityNoteColour"];
+            width?: null | components["schemas"]["ResponsibilityNoteWidth"];
+            /** Format: double */
+            x?: null | number;
+            /** Format: double */
+            y?: null | number;
+            acknowledgeCredentials?: boolean;
+        };
+        /** @enum {unknown} */
+        ResponsibilityNoteWidth: "Small" | "Medium" | "Large";
         ResponsibilityPeople: {
             users: components["schemas"]["ResponsibilityPersonOption"][];
         };

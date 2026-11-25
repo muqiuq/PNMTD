@@ -149,6 +149,7 @@ public sealed class DevSeedTests
         Assert.IsNotNull((await db.ResponsibilitySettings.SingleAsync()).GlobalResponsibleId);
         Assert.AreEqual(2, await db.ResponsibilityRedmine.CountAsync(c => c.UserId != null), "Network's and Printers' Redmine projects");
         Assert.AreEqual(3, await db.Responsibilities.CountAsync(r => r.Color != null), "each a colour (docs/responsibilities-extensions-plan.md §9)");
+        Assert.AreEqual(2, await db.ResponsibilityMapNotes.CountAsync(), "two notes on the overview");
         // Boards (docs/boards-plan.md §15): NOC from anywhere, Helpdesk TV from private networks only; layouts that read back.
         var boards = await db.Boards.AsNoTracking().OrderBy(b => b.Name).ToListAsync();
         CollectionAssert.AreEqual(new[] { "Helpdesk TV", "NOC" }, boards.Select(b => b.Name).ToArray());

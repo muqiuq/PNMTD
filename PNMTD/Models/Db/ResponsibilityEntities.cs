@@ -175,6 +175,91 @@ public class ResponsibilityRedmineEntity
     public string? UpdatedByName { get; set; }
 }
 
+/// <summary>
+/// A responsibility's place on the overview (docs/responsibilities-extensions-plan.md §7.2): one layout for everyone, saved by hand, in the
+/// map's own units (before zoom and pan). No row: placed automatically. It goes with the responsibility.
+/// </summary>
+[Table("responsibility_map_positions")]
+[Audited]
+public class ResponsibilityMapPositionEntity
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public Guid ResponsibilityId { get; set; }
+
+    public double X { get; set; }
+
+    public double Y { get; set; }
+
+    [AuditIgnore]
+    public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
+    public Guid? UpdatedBy { get; set; }
+
+    [MaxLength(200)]
+    [AuditIgnore]
+    public string? UpdatedByName { get; set; }
+}
+
+/// <summary>
+/// A note on the overview (docs/responsibilities-extensions-plan.md §7): short Markdown, as a board's note, free on the map. Its text is
+/// saved by its dialog, its place by <i>Save layout</i>. Checked for credentials; its changes are in the audit log.
+/// </summary>
+[Table("responsibility_map_notes")]
+[Audited]
+public class ResponsibilityMapNoteEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    /// <summary>1 to 2,000 characters of Markdown, without images or HTML.</summary>
+    [AuditText]
+    public string Text { get; set; } = "";
+
+    /// <summary>A name, so that each theme draws it in its own shade.</summary>
+    [MaxLength(10)]
+    public string Colour { get; set; } = nameof(ResponsibilityNoteColour.Yellow);
+
+    [MaxLength(10)]
+    public string Width { get; set; } = nameof(ResponsibilityNoteWidth.Medium);
+
+    /// <summary>The note's top-left corner, in the map's units; a move is part of ResponsibilityMapSaved.</summary>
+    [AuditIgnore]
+    public double X { get; set; }
+
+    [AuditIgnore]
+    public double Y { get; set; }
+
+    [AuditIgnore]
+    public DateTime CreatedAt { get; set; }
+
+    [AuditIgnore]
+    public Guid? CreatedBy { get; set; }
+
+    [MaxLength(200)]
+    [AuditIgnore]
+    public string? CreatedByName { get; set; }
+
+    [AuditIgnore]
+    public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
+    public Guid? UpdatedBy { get; set; }
+
+    [MaxLength(200)]
+    [AuditIgnore]
+    public string? UpdatedByName { get; set; }
+}
+
+/// <summary>A note's colour (§7.1); each theme has its own shade of it.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<ResponsibilityNoteColour>))]
+public enum ResponsibilityNoteColour { Yellow, Green, Blue, Pink, Purple, Grey }
+
+/// <summary>A note's width: 160, 240 or 360 units; its height follows the text.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<ResponsibilityNoteWidth>))]
+public enum ResponsibilityNoteWidth { Small, Medium, Large }
+
 /// <summary>What a responsibility's history row records (§10.5). Stored as its number: append, never reorder.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ResponsibilityHistoryKind>))]
 public enum ResponsibilityHistoryKind
