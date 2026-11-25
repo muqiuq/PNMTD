@@ -20,6 +20,11 @@ interface Options<T, P extends Paged<T>> {
   filters?: Ref<Record<string, unknown>>
   /** Keep page, sort and search in the URL (?page=2&sort=-name&q=web), so a list can be linked. */
   syncUrl?: boolean
+  /**
+   * With syncUrl: more keys the list keeps in the URL (its filters), written with the page, sort and search in one replace, so the
+   * two never race; undefined removes a key.
+   */
+  urlQuery?: Ref<Record<string, string | undefined>>
   /** Default 30 s; a ref to change it (Live: 10 s). */
   refetchInterval?: number | Ref<number>
   /** Off: nothing is fetched (a tab not shown); on again, a stale page is fetched at once. */
@@ -65,8 +70,12 @@ export function useServerTable<T, P extends Paged<T> = Paged<T>>(options: Option
   })
 
   if (options.syncUrl) {
-    watch(params, (p) => {
+    watch([params, () => options.urlQuery?.value], ([p]) => {
       const query = { ...route.query }
+      for (const [k, v] of Object.entries(options.urlQuery?.value ?? {})) {
+        if (v === undefined) delete query[k]
+        else query[k] = v
+      }
       const set = (k: string, v: unknown, empty: unknown) => {
         if (v === undefined || v === empty || v === '') delete query[k]
         else query[k] = String(v)

@@ -16,7 +16,7 @@ namespace PNMTD.Responsibilities;
 /// What responsibilities say (docs/responsibilities-plan.md §10.6): the list, one in full, and the global people. The page,
 /// the panels of linked objects and the tools for MCP and Cookie read through here. Nothing here depends on HTTP.
 /// </summary>
-public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, RedmineWorker redmine, IOptionsMonitor<RedmineOptions> redmineOptions)
+public sealed partial class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, RedmineWorker redmine, IOptionsMonitor<RedmineOptions> redmineOptions)
 {
     /// <summary>Whether the Redmine parts are shown at all (§6.1): without Redmine configured, combinations stay but aren't shown.</summary>
     public bool RedmineConfigured => redmineOptions.CurrentValue.Enabled;

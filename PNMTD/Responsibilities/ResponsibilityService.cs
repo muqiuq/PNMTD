@@ -18,7 +18,7 @@ namespace PNMTD.Responsibilities;
 /// Changing responsibilities (docs/responsibilities-plan.md §4, §5, §9): the fields and people, links, the global people, and the
 /// pickers' lists. Each change writes a history row and is in the audit log. Information only: nothing is sent to anyone.
 /// </summary>
-public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueries queries, SearchService search, LocationTree tree,
+public sealed partial class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueries queries, SearchService search, LocationTree tree,
     IOptionsMonitor<KnowledgeBaseOptions> options, IServiceProvider services, IHttpContextAccessor accessor)
 {
     /// <summary>A responsibility links at most this many pages, locations and hosts (§4.1).</summary>

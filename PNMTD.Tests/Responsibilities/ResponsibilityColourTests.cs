@@ -106,8 +106,9 @@ public sealed class ResponsibilityColourTests
         var entries = await db.AuditLog.AsNoTracking()
             .Where(a => a.EventType == AuditEvents.ResponsibilityChanged && a.TargetId == r.Id.ToString() && a.Outcome == AuditOutcome.Succeeded)
             .Select(a => a.Detail).ToListAsync();
-        Assert.IsTrue(entries.Any(d => d!.Contains("colour none → #d94f4f")), string.Join(" | ", entries));
-        Assert.IsTrue(entries.Any(d => d!.Contains("colour #d94f4f → #2e9d5b")), string.Join(" | ", entries));
+        // The same colour again saves nothing; its request's entry has no detail.
+        Assert.IsTrue(entries.Any(d => d != null && d.Contains("colour none → #d94f4f")), string.Join(" | ", entries));
+        Assert.IsTrue(entries.Any(d => d != null && d.Contains("colour #d94f4f → #2e9d5b")), string.Join(" | ", entries));
     }
 
     [TestMethod]

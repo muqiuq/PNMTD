@@ -184,11 +184,89 @@ public sealed class RedmineCombinationRequest
     public Guid? ResponsibilityId { get; init; }
 }
 
+// --- the Links tab (docs/responsibilities-extensions-plan.md §5) -------------------------------------------------------------
+
+/// <summary>A responsibility as a row names it: its name and colour.</summary>
+public sealed record ResponsibilityBrief(Guid Id, string Name, string? Color);
+
+/// <summary>
+/// A link on the Links tab (§5.1); <see cref="Id"/> is the link's. The object by name, with <see cref="Detail"/> where it is: a host's
+/// location path, a location's parent's path. A page has its <see cref="Number"/> instead.
+/// </summary>
+public sealed record ResponsibilityLinkRow(Guid Id, ResponsibilityBrief Responsibility, KbLinkKind Kind, Guid TargetId, string Name, string? Detail,
+    int? Number, bool Archived, DateTime CreatedAt, string? CreatedByName);
+
+/// <summary>
+/// A host or a location that no responsibility links itself (§5.1); <see cref="Id"/> is the object's. <see cref="ThroughLocation"/>: the
+/// responsibilities that link its location or a parent of it, which it doesn't inherit.
+/// </summary>
+public sealed record ResponsibilityUnlinkedRow(Guid Id, KbLinkKind Kind, string Name, string? Detail, IReadOnlyList<ResponsibilityBrief> ThroughLocation);
+
+/// <summary>The Links tab's filters (§5.1). Sort: <c>responsibility</c> (the default), <c>object</c>, <c>kind</c>, <c>linked</c>.</summary>
+public sealed class ResponsibilityLinksQuery : PageQuery
+{
+    /// <summary>Only these responsibilities' links.</summary>
+    public List<Guid>? Responsibility { get; set; }
+
+    /// <summary>The links of the responsibilities where this user is the responsible or the deputy.</summary>
+    public Guid? Person { get; set; }
+
+    public List<KbLinkKind>? Kind { get; set; }
+
+    /// <summary>The hosts in it and the location itself, with <see cref="Below"/> its sub-locations too. Pages have no location.</summary>
+    public Guid? Location { get; set; }
+
+    public bool Below { get; set; } = true;
+}
+
+/// <summary>The hosts or locations no responsibility links (§5.1). Sort: <c>object</c> (the default), <c>where</c>.</summary>
+public sealed class ResponsibilityUnlinkedQuery : PageQuery
+{
+    public Guid? Location { get; set; }
+
+    public bool Below { get; set; } = true;
+
+    /// <summary>Leaves out those whose location or a parent of it is linked: covered, in this view only.</summary>
+    public bool Covered { get; set; }
+}
+
+/// <summary>Pages, locations and hosts linked to one responsibility at once (§5.2), 1 to 500.</summary>
+public sealed class ResponsibilityBulkLinkRequest
+{
+    public Guid? ResponsibilityId { get; init; }
+
+    public List<ResponsibilityLinkRequest>? Targets { get; init; }
+}
+
+/// <summary>Links unlinked at once, of any responsibilities (§5.2), 1 to 500.</summary>
+public sealed class ResponsibilityBulkUnlinkRequest
+{
+    public List<Guid>? LinkIds { get; init; }
+}
+
+/// <summary>
+/// The links' objects linked to another responsibility (§5.2): <i>Move to…</i>, or with <see cref="Keep"/> <i>Also link to…</i>.
+/// </summary>
+public sealed class ResponsibilityMoveLinksRequest
+{
+    public List<Guid>? LinkIds { get; init; }
+
+    public Guid? ResponsibilityId { get; init; }
+
+    public bool Keep { get; init; }
+}
+
+/// <summary>An object a bulk change left alone: <c>already_linked</c>, or <c>not_found</c> when it is gone.</summary>
+public sealed record ResponsibilitySkipped(KbLinkKind Kind, Guid Id, string Name, string Reason);
+
+public sealed record ResponsibilityBulkResult(int Linked, int Unlinked, IReadOnlyList<ResponsibilitySkipped> Skipped);
+
 /// <summary>The error codes of responsibilities (§11).</summary>
 public static class ResponsibilityErrors
 {
     public const string DuplicateName = "duplicate_name";
     public const string AlreadyLinked = "already_linked";
+    public const string NotFound = "not_found";
     public const string TooManyLinks = "too_many_links";
     public const string DuplicateCombination = "duplicate_combination";
     public const string RedmineNotConfigured = "redmine_not_configured";

@@ -315,6 +315,13 @@ async function remove() {
                   />
                 </li>
               </ul>
+              <RouterLink
+                v-if="r.links.length"
+                :to="{ name: 'responsibilities', params: { tab: 'links' }, query: { r: id } }"
+                class="all-links"
+                data-test="show-in-links"
+                >Show in the Links tab</RouterLink
+              >
               <LinkPicker
                 v-if="edit"
                 class="picker"
@@ -453,6 +460,12 @@ async function remove() {
 
 .picker {
   margin-top: var(--pnmt-space-2);
+}
+
+.all-links {
+  display: inline-block;
+  margin-top: var(--pnmt-space-2);
+  font-size: 0.857rem;
 }
 
 .center {

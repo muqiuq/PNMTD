@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TabNav from '@/components/TabNav.vue'
 import { useSession } from '@/stores/session'
+import LinksTab from './LinksTab.vue'
 import RedmineTab from './RedmineTab.vue'
 import ResponsibilitiesTab from './ResponsibilitiesTab.vue'
 
@@ -20,6 +21,7 @@ const item = (key: string, label: string) => ({ key, label, to: { name: 'respons
 // The Redmine tab only while Redmine is configured (§6.1); combinations made before stay and come back with it.
 const tabs = computed(() => [
   item('list', 'Responsibilities'),
+  item('links', 'Links'),
   ...(session.info?.redmine ? [item('redmine', 'Redmine')] : []),
 ])
 const tab = computed(() => {
@@ -31,8 +33,9 @@ const tab = computed(() => {
 <template>
   <div class="page">
     <PageHeader title="Responsibilities" :crumbs="[{ label: 'Admin' }]" />
-    <TabNav v-if="tabs.length > 1" :items="tabs" :active="tab" label="Responsibilities" />
+    <TabNav :items="tabs" :active="tab" label="Responsibilities" />
     <ResponsibilitiesTab v-if="tab === 'list'" :edit="edit" :manage="manage" />
+    <LinksTab v-else-if="tab === 'links'" :edit="edit" />
     <RedmineTab v-else-if="tab === 'redmine'" :edit="edit" />
   </div>
 </template>

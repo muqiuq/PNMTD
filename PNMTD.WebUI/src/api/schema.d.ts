@@ -18861,6 +18861,256 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/responsibilities/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    responsibility?: string[];
+                    person?: string;
+                    kind?: components["schemas"]["KbLinkKind"][];
+                    location?: string;
+                    below?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfResponsibilityLinkRow"];
+                        "text/json": components["schemas"]["PagedOfResponsibilityLinkRow"];
+                        "text/plain": components["schemas"]["PagedOfResponsibilityLinkRow"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityBulkLinkRequest"];
+                    "text/json": components["schemas"]["ResponsibilityBulkLinkRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityBulkLinkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityBulkResult"];
+                        "text/json": components["schemas"]["ResponsibilityBulkResult"];
+                        "text/plain": components["schemas"]["ResponsibilityBulkResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/unlinked/hosts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    location?: string;
+                    below?: boolean;
+                    covered?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfResponsibilityUnlinkedRow"];
+                        "text/json": components["schemas"]["PagedOfResponsibilityUnlinkedRow"];
+                        "text/plain": components["schemas"]["PagedOfResponsibilityUnlinkedRow"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/unlinked/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    location?: string;
+                    below?: boolean;
+                    covered?: boolean;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfResponsibilityUnlinkedRow"];
+                        "text/json": components["schemas"]["PagedOfResponsibilityUnlinkedRow"];
+                        "text/plain": components["schemas"]["PagedOfResponsibilityUnlinkedRow"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/links/unlink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityBulkUnlinkRequest"];
+                    "text/json": components["schemas"]["ResponsibilityBulkUnlinkRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityBulkUnlinkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityBulkResult"];
+                        "text/json": components["schemas"]["ResponsibilityBulkResult"];
+                        "text/plain": components["schemas"]["ResponsibilityBulkResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/responsibilities/links/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityMoveLinksRequest"];
+                    "text/json": components["schemas"]["ResponsibilityMoveLinksRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityMoveLinksRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityBulkResult"];
+                        "text/json": components["schemas"]["ResponsibilityBulkResult"];
+                        "text/plain": components["schemas"]["ResponsibilityBulkResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/responsibilities/linked": {
         parameters: {
             query?: never;
@@ -31401,6 +31651,24 @@ export interface components {
             /** Format: int32 */
             totalCount: number;
         };
+        PagedOfResponsibilityLinkRow: {
+            items: components["schemas"]["ResponsibilityLinkRow"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
+        PagedOfResponsibilityUnlinkedRow: {
+            items: components["schemas"]["ResponsibilityUnlinkedRow"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+        };
         PagedOfSensorListItem: {
             items: components["schemas"]["SensorListItem"][];
             /** Format: int32 */
@@ -32091,6 +32359,27 @@ export interface components {
             firewallProfiles: string[];
             notes: string[];
         };
+        ResponsibilityBrief: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            color: null | string;
+        };
+        ResponsibilityBulkLinkRequest: {
+            /** Format: uuid */
+            responsibilityId?: null | string;
+            targets?: null | components["schemas"]["ResponsibilityLinkRequest"][];
+        };
+        ResponsibilityBulkResult: {
+            /** Format: int32 */
+            linked: number;
+            /** Format: int32 */
+            unlinked: number;
+            skipped: components["schemas"]["ResponsibilitySkipped"][];
+        };
+        ResponsibilityBulkUnlinkRequest: {
+            linkIds?: null | string[];
+        };
         ResponsibilityColorRequest: {
             color?: null | string;
         };
@@ -32198,10 +32487,32 @@ export interface components {
             /** Format: uuid */
             id?: null | string;
         };
+        ResponsibilityLinkRow: {
+            /** Format: uuid */
+            id: string;
+            responsibility: components["schemas"]["ResponsibilityBrief"];
+            kind: components["schemas"]["KbLinkKind"];
+            /** Format: uuid */
+            targetId: string;
+            name: string;
+            detail: null | string;
+            /** Format: int32 */
+            number: null | number;
+            archived: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+        };
         ResponsibilityList: {
             global: components["schemas"]["ResponsibilityGlobal"];
             items: components["schemas"]["ResponsibilityItem"][];
             redmineConfigured: boolean;
+        };
+        ResponsibilityMoveLinksRequest: {
+            linkIds?: null | string[];
+            /** Format: uuid */
+            responsibilityId?: null | string;
+            keep?: boolean;
         };
         ResponsibilityPeople: {
             users: components["schemas"]["ResponsibilityPersonOption"][];
@@ -32245,6 +32556,21 @@ export interface components {
             responsibleId?: null | string;
             /** Format: uuid */
             deputyId?: null | string;
+        };
+        ResponsibilitySkipped: {
+            kind: components["schemas"]["KbLinkKind"];
+            /** Format: uuid */
+            id: string;
+            name: string;
+            reason: string;
+        };
+        ResponsibilityUnlinkedRow: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["KbLinkKind"];
+            name: string;
+            detail: null | string;
+            throughLocation: components["schemas"]["ResponsibilityBrief"][];
         };
         RightsAreaItem: {
             area: components["schemas"]["Area"];

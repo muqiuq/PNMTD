@@ -600,6 +600,13 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/responsibilities"] = ("Responsibilities:Edit", Roles.Admin),
         ["PUT /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:Edit", Roles.Admin),
         ["PUT /api/v1/responsibilities/{id:guid}/color"] = ("Responsibilities:Edit", Roles.Admin),
+        // The Links tab (docs/responsibilities-extensions-plan.md §5.2).
+        ["GET /api/v1/responsibilities/links"] = ("Responsibilities:View", Roles.Admin),
+        ["GET /api/v1/responsibilities/unlinked/hosts"] = ("Responsibilities:View&Monitoring:View", Roles.Admin),
+        ["GET /api/v1/responsibilities/unlinked/locations"] = ("Responsibilities:View&Locations:View", Roles.Admin),
+        ["POST /api/v1/responsibilities/links"] = ("Responsibilities:Edit", Roles.Admin),
+        ["POST /api/v1/responsibilities/links/unlink"] = ("Responsibilities:Edit", Roles.Admin),
+        ["POST /api/v1/responsibilities/links/move"] = ("Responsibilities:Edit", Roles.Admin),
         ["DELETE /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:Manage", Roles.Admin),
         ["POST /api/v1/responsibilities/{id:guid}/links"] = ("Responsibilities:Edit", Roles.Admin),
         ["DELETE /api/v1/responsibilities/{id:guid}/links/{linkId:guid}"] = ("Responsibilities:Edit", Roles.Admin),

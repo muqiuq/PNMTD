@@ -1,4 +1,5 @@
 import { call, client, type Schemas } from './client'
+import type { ListQuery } from './resources'
 
 /**
  * Responsibilities' calls (docs/responsibilities-plan.md §11): who owns what, with a deputy, its links and the global people.
@@ -21,6 +22,25 @@ export type ResponsibilityPersonOption = S['ResponsibilityPersonOption']
 export type RedmineCombination = S['RedmineCombinationItem']
 export type RedmineCombinationRequest = S['RedmineCombinationRequest']
 export type RedmineCombinationProject = S['RedmineCombinationProject']
+export type ResponsibilityLinkRow = S['ResponsibilityLinkRow']
+export type ResponsibilityUnlinkedRow = S['ResponsibilityUnlinkedRow']
+export type ResponsibilityBrief = S['ResponsibilityBrief']
+export type ResponsibilityBulkResult = S['ResponsibilityBulkResult']
+
+/** The Links tab's filters (docs/responsibilities-extensions-plan.md §5.2). */
+export interface LinkRowsFilters {
+  responsibility?: Id[]
+  person?: Id
+  kind?: S['KbLinkKind'][]
+  location?: Id
+  below?: boolean
+}
+
+export interface UnlinkedFilters {
+  location?: Id
+  below?: boolean
+  covered?: boolean
+}
 
 export const responsibilitiesApi = {
   list: (query: { q?: string; attention?: boolean } = {}) =>
@@ -74,6 +94,21 @@ export const responsibilitiesApi = {
   /** The responsibilities that link one host, location or page, for its panel (docs/responsibilities-plan.md §8). */
   linked: (query: { host?: Id; location?: Id; page?: Id }) =>
     call(client.GET('/api/v1/responsibilities/linked', { params: { query } })),
+  /** Every link of every responsibility, paged (docs/responsibilities-extensions-plan.md §5.2). */
+  linkRows: (query: ListQuery & LinkRowsFilters) =>
+    call(client.GET('/api/v1/responsibilities/links', { params: { query } })),
+  /** The hosts (Monitoring: View) or locations (Locations: View) no responsibility links itself. */
+  unlinked: (kind: 'Host' | 'Location', query: ListQuery & UnlinkedFilters) =>
+    kind === 'Host'
+      ? call(client.GET('/api/v1/responsibilities/unlinked/hosts', { params: { query } }))
+      : call(client.GET('/api/v1/responsibilities/unlinked/locations', { params: { query } })),
+  /** Pages, locations and hosts linked to one responsibility at once; those linked already are skipped. */
+  linkMany: (responsibilityId: Id, targets: { kind: S['KbLinkKind']; id: Id }[]) =>
+    call(client.POST('/api/v1/responsibilities/links', { body: { responsibilityId, targets } })),
+  unlinkMany: (linkIds: Id[]) => call(client.POST('/api/v1/responsibilities/links/unlink', { body: { linkIds } })),
+  /** The links' objects linked to another responsibility: moved, or with keep also linked there. */
+  moveLinks: (linkIds: Id[], responsibilityId: Id, keep: boolean) =>
+    call(client.POST('/api/v1/responsibilities/links/move', { body: { linkIds, responsibilityId, keep } })),
   /** Pages, locations and hosts by name, for the link picker, without Monitoring: View. */
   targets: (q: string) => call(client.GET('/api/v1/responsibilities/targets', { params: { query: { q } } })),
 }
@@ -89,6 +124,37 @@ export const responsibilityKeys = {
   linked: (query: { host?: Id; location?: Id; page?: Id }) => ['responsibilities', 'linked', query] as const,
   combinations: (query: { project?: number; responsibility?: Id; user?: Id }) =>
     ['responsibilities', 'combinations', query] as const,
+}
+
+export const linkKindLabel: Record<'Page' | 'Location' | 'Host', string> = {
+  Page: 'Page',
+  Location: 'Location',
+  Host: 'Host',
+}
+
+/** A linked object as the Links tab names it: "KB-42 Printer setup" for a page, else its name. */
+export function linkObjectLabel(row: { kind: string; name: string; number?: number | null }): string {
+  return row.kind === 'Page' && row.number != null ? `KB-${row.number} ${row.name}` : row.name
+}
+
+/**
+ * What a bulk change did, for its toast: "Linked 5 objects to Network; 2 were linked there already", or for a move "Moved 3 links to
+ * Network".
+ */
+export function bulkSummary(result: ResponsibilityBulkResult, to: string, move = false): string {
+  const n = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
+  const head = move
+    ? `Moved ${n(result.unlinked, 'link', 'links')} to ${to}`
+    : `Linked ${n(result.linked, 'object', 'objects')} to ${to}`
+  const already = result.skipped.filter((s) => s.reason === 'already_linked').length
+  const gone = result.skipped.length - already
+  return [
+    head,
+    already ? `${n(already, 'was', 'were')} linked there already` : null,
+    gone ? `${n(gone, 'is', 'are')} gone` : null,
+  ]
+    .filter(Boolean)
+    .join('; ')
 }
 
 /** "IT Support › Printers · every tracker". */

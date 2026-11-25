@@ -76,6 +76,45 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
     [Audit(AuditEvents.ResponsibilityUnlinked)]
     public async Task<ResponsibilityDetail> Unlink(Guid id, Guid linkId, CancellationToken ct) => await responsibilities.UnlinkAsync(id, linkId, ct);
 
+    // --- the Links tab (docs/responsibilities-extensions-plan.md §5) ---------------------------------------------------------
+
+    /// <summary>Every link of every responsibility, one row each, filtered and paged.</summary>
+    [HttpGet("links")]
+    public async Task<Paged<ResponsibilityLinkRow>> Links([FromQuery] ResponsibilityLinksQuery query, CancellationToken ct) =>
+        await queries.LinkRowsAsync(query, ct);
+
+    /// <summary>The hosts no responsibility links itself: all of them, so it needs Monitoring: View, which lists hosts.</summary>
+    [HttpGet("unlinked/hosts")]
+    [RequireRight(Area.Monitoring, Level.View)]
+    public async Task<Paged<ResponsibilityUnlinkedRow>> UnlinkedHosts([FromQuery] ResponsibilityUnlinkedQuery query, CancellationToken ct) =>
+        await queries.UnlinkedAsync(KbLinkKind.Host, query, ct);
+
+    /// <summary>The locations no responsibility links itself: all of them, so it needs Locations: View, which lists locations.</summary>
+    [HttpGet("unlinked/locations")]
+    [RequireRight(Area.Locations, Level.View)]
+    public async Task<Paged<ResponsibilityUnlinkedRow>> UnlinkedLocations([FromQuery] ResponsibilityUnlinkedQuery query, CancellationToken ct) =>
+        await queries.UnlinkedAsync(KbLinkKind.Location, query, ct);
+
+    /// <summary>Pages, locations and hosts linked to one responsibility; those linked already are skipped. 409 <c>too_many_links</c>.</summary>
+    [HttpPost("links")]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
+    [Audit(AuditEvents.ResponsibilityLinked)]
+    public async Task<ResponsibilityBulkResult> LinkMany(ResponsibilityBulkLinkRequest request, CancellationToken ct) =>
+        await responsibilities.LinkManyAsync(request, ct);
+
+    [HttpPost("links/unlink")]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
+    [Audit(AuditEvents.ResponsibilityUnlinked)]
+    public async Task<ResponsibilityBulkResult> UnlinkMany(ResponsibilityBulkUnlinkRequest request, CancellationToken ct) =>
+        await responsibilities.UnlinkManyAsync(request, ct);
+
+    /// <summary>The links' objects linked to another responsibility: moved, or with <c>keep</c> also linked there.</summary>
+    [HttpPost("links/move")]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
+    [Audit(AuditEvents.ResponsibilityLinked, AuditEvents.ResponsibilityUnlinked)]
+    public async Task<ResponsibilityBulkResult> MoveLinks(ResponsibilityMoveLinksRequest request, CancellationToken ct) =>
+        await responsibilities.MoveLinksAsync(request, ct);
+
     /// <summary>
     /// The responsibilities that link one host, location or page (exactly one of the three), for its panel: its own links only,
     /// and an empty list when none does.
