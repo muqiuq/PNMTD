@@ -11,6 +11,7 @@ using PNMTD.Auth.Rights;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Models.Db;
+using PNMTD.Services.Domain;
 
 namespace PNMTD.Availability;
 
@@ -333,7 +334,7 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
             var field = $"types.{i}";
             v.Check(t.Name.Trim().Length is > 0 and <= 60, field, "A name of 1 to 60 characters.");
             v.Check(TypeCode().IsMatch(t.Code.Trim().ToUpperInvariant()), field, "A code of 2 to 4 letters or digits.");
-            v.Check(Colour().IsMatch(t.Color.Trim().ToLowerInvariant()), field, "A colour as #rrggbb.");
+            v.Check(Colours.IsHex(Colours.Normalize(t.Color)), field, Colours.Hint);
         }
         v.ThrowIfInvalid();
         await using var db = await dbs.CreateDbContextAsync(ct);
@@ -396,7 +397,4 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
 
     [GeneratedRegex("^[A-Z0-9]{2,4}$")]
     private static partial Regex TypeCode();
-
-    [GeneratedRegex("^#[0-9a-f]{6}$")]
-    private static partial Regex Colour();
 }

@@ -8,7 +8,7 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   personLabel,
   responsibilitiesApi,
@@ -16,17 +16,24 @@ import {
   standsInLabel,
   type ResponsibilityItem,
 } from '@/api/responsibilities'
+import ColourDot from '@/components/ColourDot.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
+import { useNow } from '@/composables/useNow'
+import { formatAbsolute, formatRelative } from '@/format'
 import GlobalPanel from './GlobalPanel.vue'
+import { formatSort, parseSort, sortItems, type ListSort } from './listSort'
 import NewResponsibilityDialog from './NewResponsibilityDialog.vue'
 
 /**
  * The list (docs/responsibilities-plan.md §9.2): the global people on top, then every responsibility by name, with a search
- * over names, descriptions and people, and *Needs attention* for those with nobody set or a person inactive.
+ * over names, descriptions and people, and *Needs attention* for those with nobody set or a person inactive. A click on a
+ * column's header sorts it (docs/responsibilities-extensions-plan.md §3), in the browser and kept in the URL.
  */
 defineProps<{ edit: boolean; manage: boolean }>()
+const route = useRoute()
 const router = useRouter()
+const now = useNow()
 
 const search = ref('')
 const q = ref('')
@@ -43,7 +50,23 @@ const list = useQuery({
   queryFn: () => responsibilitiesApi.list(query.value),
   placeholderData: keepPreviousData,
 })
-const items = computed(() => list.data.value?.items ?? [])
+
+// The sort: ?sort=responsible, ?sort=-changed; none is the server's order, by name.
+const sort = ref<ListSort | null>(parseSort(route.query.sort))
+watch(sort, (value) => {
+  const query = { ...route.query }
+  const text = formatSort(value)
+  if (text) query.sort = text
+  else delete query.sort
+  void router.replace({ query })
+})
+function onSort(event: { sortField?: unknown; sortOrder?: number | null }) {
+  const field = typeof event.sortField === 'string' ? event.sortField : ''
+  sort.value = field && event.sortOrder ? parseSort(`${event.sortOrder === -1 ? '-' : ''}${field}`) : null
+}
+const items = computed(() =>
+  list.data.value ? sortItems(list.data.value.items, sort.value, list.data.value.global) : [],
+)
 const filtered = computed(() => !!query.value.q || !!query.value.attention)
 
 const creating = ref(false)
@@ -89,10 +112,17 @@ const open = (r: ResponsibilityItem) => router.push({ name: 'responsibility', pa
       class="panel"
       data-key="id"
       row-hover
+      lazy
+      removable-sort
+      :sort-field="sort?.field"
+      :sort-order="sort?.order ?? 0"
+      data-test="responsibilities-table"
+      @sort="onSort"
       @row-click="(e) => open(e.data)"
     >
-      <Column header="Name">
+      <Column header="Name" field="name" sortable>
         <template #body="{ data }">
+          <ColourDot :colour="data.color" class="dot" />
           <RouterLink :to="{ name: 'responsibility', params: { id: data.id } }" class="strong">{{
             data.name
           }}</RouterLink>
@@ -109,7 +139,7 @@ const open = (r: ResponsibilityItem) => router.push({ name: 'responsibility', pa
           ><span class="muted">{{ data.summary }}</span></template
         >
       </Column>
-      <Column header="Responsible">
+      <Column header="Responsible" field="responsible" sortable>
         <template #body="{ data }">
           <span v-if="data.globalStandsIn && list.data.value" class="muted">{{
             standsInLabel(list.data.value.global)
@@ -117,18 +147,27 @@ const open = (r: ResponsibilityItem) => router.push({ name: 'responsibility', pa
           <span v-else :class="{ muted: !data.responsible?.active }">{{ personLabel(data.responsible) }}</span>
         </template>
       </Column>
-      <Column header="Deputy">
+      <Column header="Deputy" field="deputy" sortable>
         <template #body="{ data }">
           <span v-if="!data.globalStandsIn" :class="{ muted: !data.deputy?.active }">{{
             personLabel(data.deputy)
           }}</span>
         </template>
       </Column>
-      <Column header="Links" style="width: 5rem">
+      <Column header="Links" field="links" sortable style="width: 6rem">
         <template #body="{ data }">{{ data.links }}</template>
       </Column>
-      <Column v-if="list.data.value?.redmineConfigured" header="Redmine" style="width: 6rem">
+      <Column v-if="list.data.value?.redmineConfigured" header="Redmine" field="redmine" sortable style="width: 7rem">
         <template #body="{ data }">{{ data.combinations }}</template>
+      </Column>
+      <Column header="Changed" field="changed" sortable style="width: 8rem">
+        <template #body="{ data }">
+          <span
+            class="muted"
+            :title="`${formatAbsolute(data.updatedAt)}${data.updatedByName ? ` by ${data.updatedByName}` : ''}`"
+            >{{ formatRelative(data.updatedAt, now) }}</span
+          >
+        </template>
       </Column>
       <template #empty>
         <EmptyState
@@ -175,6 +214,10 @@ const open = (r: ResponsibilityItem) => router.push({ name: 'responsibility', pa
 
 .new {
   margin-left: auto;
+}
+
+.dot {
+  margin-right: var(--pnmt-space-2);
 }
 
 .warn {

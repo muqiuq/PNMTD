@@ -3,28 +3,56 @@ import { useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
 import { responsibilitiesApi, responsibilityKeys } from '@/api/responsibilities'
+import { firstUnused } from '@/components/colours'
 import { useNotify } from '@/composables/useNotify'
+import ColourPicker from './ColourPicker.vue'
 import PersonPicker from './PersonPicker.vue'
 
-/** A new responsibility (docs/responsibilities-plan.md §9.2): its name, short description and people; then its page. */
+/**
+ * A new responsibility (docs/responsibilities-plan.md §9.2): its name, short description, colour and people; then its page. The
+ * colour starts as the first swatch nobody uses yet, which can be changed or cleared (docs/responsibilities-extensions-plan.md §4.1).
+ */
 const visible = defineModel<boolean>('visible', { required: true })
 const router = useRouter()
 const queryClient = useQueryClient()
 const notify = useNotify()
 
-const empty = () => ({ name: '', summary: '', responsibleId: null as string | null, deputyId: null as string | null })
+const empty = () => ({
+  name: '',
+  summary: '',
+  color: null as string | null,
+  responsibleId: null as string | null,
+  deputyId: null as string | null,
+})
 const draft = ref(empty())
 const errors = ref<Record<string, string | undefined>>({})
 const saving = ref(false)
-watch(visible, (open) => {
-  if (open) {
-    draft.value = empty()
-    errors.value = {}
-  }
+// Whether the person chose a colour (or none): the suggestion never overwrites that.
+const picked = ref(false)
+const colour = computed({
+  get: () => draft.value.color,
+  set: (value) => {
+    picked.value = true
+    draft.value.color = value
+  },
+})
+watch(visible, async (open) => {
+  if (!open) return
+  draft.value = empty()
+  errors.value = {}
+  picked.value = false
+  const list = await queryClient
+    .fetchQuery({
+      queryKey: responsibilityKeys.list({}),
+      queryFn: () => responsibilitiesApi.list({}),
+      staleTime: 30_000,
+    })
+    .catch(() => null)
+  if (list && visible.value && !picked.value) draft.value.color = firstUnused(list.items.map((i) => i.color))
 })
 
 async function create() {
@@ -35,6 +63,7 @@ async function create() {
     const created = await responsibilitiesApi.create({
       name: draft.value.name.trim(),
       summary: draft.value.summary.trim() || null,
+      color: draft.value.color,
       responsibleId: draft.value.responsibleId,
       deputyId: draft.value.deputyId,
     })
@@ -46,6 +75,7 @@ async function create() {
       errors.value = {
         name: e.field('name') ?? (e.code === 'duplicate_name' ? e.message : undefined),
         summary: e.field('summary'),
+        color: e.field('color'),
         responsibleId: e.field('responsibleId'),
         deputyId: e.field('deputyId'),
       }
@@ -75,6 +105,11 @@ async function create() {
           placeholder="Switches, routers, the firewalls and the WAN links"
         />
         <small v-if="errors.summary" class="field-error">{{ errors.summary }}</small>
+      </div>
+      <div class="field">
+        <label for="nr-colour">Colour</label>
+        <ColourPicker v-model="colour" input-id="nr-colour" :invalid="!!errors.color" />
+        <small v-if="errors.color" class="field-error">{{ errors.color }}</small>
       </div>
       <div class="field">
         <label for="nr-responsible">Responsible</label>

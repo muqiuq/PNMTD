@@ -18686,6 +18686,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/responsibilities/{id}/color": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityColorRequest"];
+                    "text/json": components["schemas"]["ResponsibilityColorRequest"];
+                    "application/*+json": components["schemas"]["ResponsibilityColorRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/json": components["schemas"]["ResponsibilityDetail"];
+                        "text/plain": components["schemas"]["ResponsibilityDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/responsibilities/{id}/description": {
         parameters: {
             query?: never;
@@ -31642,6 +31687,7 @@ export interface components {
             /** Format: uuid */
             responsibilityId: string;
             responsibilityName: string;
+            responsibilityColor: null | string;
             /** Format: int32 */
             projectId: number;
             projectName: string;
@@ -32045,6 +32091,9 @@ export interface components {
             firewallProfiles: string[];
             notes: string[];
         };
+        ResponsibilityColorRequest: {
+            color?: null | string;
+        };
         ResponsibilityDescriptionRequest: {
             content?: null | string;
             /** Format: int32 */
@@ -32056,6 +32105,7 @@ export interface components {
             id: string;
             name: string;
             summary: null | string;
+            color: null | string;
             description: string;
             /** Format: int32 */
             revision: number;
@@ -32111,12 +32161,13 @@ export interface components {
             via: null | string;
         };
         /** @enum {unknown} */
-        ResponsibilityHistoryKind: "Created" | "Renamed" | "SummaryChanged" | "PeopleChanged" | "DescriptionChanged" | "LinkAdded" | "LinkRemoved" | "RedmineAdded" | "RedmineChanged" | "RedmineRemoved";
+        ResponsibilityHistoryKind: "Created" | "Renamed" | "SummaryChanged" | "PeopleChanged" | "DescriptionChanged" | "LinkAdded" | "LinkRemoved" | "RedmineAdded" | "RedmineChanged" | "RedmineRemoved" | "ColorChanged";
         ResponsibilityItem: {
             /** Format: uuid */
             id: string;
             name: string;
             summary: null | string;
+            color: null | string;
             responsible: null | components["schemas"]["ResponsibilityPerson"];
             deputy: null | components["schemas"]["ResponsibilityPerson"];
             globalStandsIn: boolean;
@@ -32127,6 +32178,7 @@ export interface components {
             combinations: number;
             /** Format: date-time */
             updatedAt: string;
+            updatedByName: null | string;
         };
         ResponsibilityLinkItem: {
             /** Format: uuid */
@@ -32178,6 +32230,7 @@ export interface components {
             id: string;
             name: string;
             summary: null | string;
+            color: null | string;
             responsible: null | components["schemas"]["ResponsibilityPerson"];
             deputy: null | components["schemas"]["ResponsibilityPerson"];
             globalStandsIn: boolean;
@@ -32187,6 +32240,7 @@ export interface components {
         ResponsibilityRequest: {
             name?: null | string;
             summary?: null | string;
+            color?: null | string;
             /** Format: uuid */
             responsibleId?: null | string;
             /** Format: uuid */

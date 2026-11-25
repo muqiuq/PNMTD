@@ -47,6 +47,12 @@ internal static class DevSeedResponsibilities
             "Nobody owns the printers right now, so the global responsible stands in."),
     ];
 
+    /// <summary>Their colours (docs/responsibilities-extensions-plan.md §9), swatches of the page's palette.</summary>
+    private static readonly Dictionary<string, string> Colors = new(StringComparer.Ordinal)
+    {
+        ["Network"] = "#2f8fd8", ["Backup"] = "#2e9d5b", ["Printers"] = "#d9a400",
+    };
+
     public static string Seed(PnmtdDbContext db, DateTime now)
     {
         if (db.Responsibilities.Any())
@@ -67,8 +73,8 @@ internal static class DevSeedResponsibilities
             var at = now.AddDays(-20);
             var r = new ResponsibilityEntity
             {
-                Id = Guid.NewGuid(), Name = name, NormalizedName = ResponsibilityService.Normalize(name), Summary = summary, Description = description,
-                PlainText = Knowledge.MarkdownText.Read(description).PlainText, Revision = 1, ResponsibleId = User(responsible), DeputyId = User(deputy),
+                Id = Guid.NewGuid(), Name = name, NormalizedName = ResponsibilityService.Normalize(name), Summary = summary, Color = Colors.GetValueOrDefault(name),
+                Description = description, PlainText = Knowledge.MarkdownText.Read(description).PlainText, Revision = 1, ResponsibleId = User(responsible), DeputyId = User(deputy),
                 CreatedAt = at, CreatedBy = admin?.Id, CreatedByName = by, UpdatedAt = at, UpdatedBy = admin?.Id, UpdatedByName = by,
             };
             db.Responsibilities.Add(r);

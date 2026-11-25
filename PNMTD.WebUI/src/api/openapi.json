@@ -23684,6 +23684,66 @@
         }
       }
     },
+    "/api/v1/responsibilities/{id}/color": {
+      "put": {
+        "tags": [
+          "Responsibilities"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityColorRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityColorRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsibilityColorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityDetail"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityDetail"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsibilityDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/responsibilities/{id}/description": {
       "put": {
         "tags": [
@@ -63592,6 +63652,7 @@
           "id",
           "responsibilityId",
           "responsibilityName",
+          "responsibilityColor",
           "projectId",
           "projectName",
           "projectPath",
@@ -63615,6 +63676,12 @@
           },
           "responsibilityName": {
             "type": "string"
+          },
+          "responsibilityColor": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "projectId": {
             "type": "integer",
@@ -65228,6 +65295,17 @@
           }
         }
       },
+      "ResponsibilityColorRequest": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ResponsibilityDescriptionRequest": {
         "type": "object",
         "properties": {
@@ -65251,6 +65329,7 @@
           "id",
           "name",
           "summary",
+          "color",
           "description",
           "revision",
           "responsible",
@@ -65277,6 +65356,12 @@
             "type": "string"
           },
           "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
             "type": [
               "null",
               "string"
@@ -65524,7 +65609,8 @@
           "LinkRemoved",
           "RedmineAdded",
           "RedmineChanged",
-          "RedmineRemoved"
+          "RedmineRemoved",
+          "ColorChanged"
         ]
       },
       "ResponsibilityItem": {
@@ -65532,13 +65618,15 @@
           "id",
           "name",
           "summary",
+          "color",
           "responsible",
           "deputy",
           "globalStandsIn",
           "attention",
           "links",
           "combinations",
-          "updatedAt"
+          "updatedAt",
+          "updatedByName"
         ],
         "type": "object",
         "properties": {
@@ -65550,6 +65638,12 @@
             "type": "string"
           },
           "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
             "type": [
               "null",
               "string"
@@ -65592,6 +65686,12 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -65782,6 +65882,7 @@
           "id",
           "name",
           "summary",
+          "color",
           "responsible",
           "deputy",
           "globalStandsIn",
@@ -65798,6 +65899,12 @@
             "type": "string"
           },
           "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
             "type": [
               "null",
               "string"
@@ -65858,6 +65965,12 @@
             ]
           },
           "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "color": {
             "type": [
               "null",
               "string"

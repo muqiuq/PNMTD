@@ -122,6 +122,8 @@ public static class ResponsibilityWriteTools
             {
                 Name = OptionalText(args, "name", 100) ?? current.Name,
                 Summary = summary is null ? current.Summary : summary.Length == 0 ? null : summary,
+                // The whole form: the colour stays as the page set it (docs/responsibilities-extensions-plan.md §8.4).
+                Color = current.Color,
                 ResponsibleId = OptionalBool(args, "clearResponsible") == true ? null : OptionalId(args, "responsibleId") ?? current.Responsible?.Id,
                 DeputyId = OptionalBool(args, "clearDeputy") == true ? null : OptionalId(args, "deputyId") ?? current.Deputy?.Id,
             }, ct);

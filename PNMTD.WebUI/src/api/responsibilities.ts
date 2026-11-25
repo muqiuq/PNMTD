@@ -29,6 +29,9 @@ export const responsibilitiesApi = {
   create: (body: ResponsibilityRequest) => call(client.POST('/api/v1/responsibilities', { body })),
   update: (id: Id, body: ResponsibilityRequest) =>
     call(client.PUT('/api/v1/responsibilities/{id}', { params: { path: { id } }, body })),
+  /** The colour alone, #rrggbb or null: the overview's side panel (docs/responsibilities-extensions-plan.md §4.2). */
+  setColor: (id: Id, color: string | null) =>
+    call(client.PUT('/api/v1/responsibilities/{id}/color', { params: { path: { id } }, body: { color } })),
   remove: (id: Id) => call(client.DELETE('/api/v1/responsibilities/{id}', { params: { path: { id } } })),
   /** The long description, saved as a page's text: 409 edit_conflict, 422 looks_like_credential. */
   describe: (id: Id, body: S['ResponsibilityDescriptionRequest']) =>
@@ -127,4 +130,5 @@ export const historyKindLabel: Record<ResponsibilityHistoryKind, string> = {
   RedmineAdded: 'Redmine combination added',
   RedmineChanged: 'Redmine combination changed',
   RedmineRemoved: 'Redmine combination removed',
+  ColorChanged: 'Colour changed',
 }

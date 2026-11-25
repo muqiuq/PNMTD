@@ -6,6 +6,7 @@ import DataTable from 'primevue/datatable'
 import Select from 'primevue/select'
 import { computed, ref } from 'vue'
 import { personLabel, responsibilitiesApi, responsibilityKeys, type RedmineCombination } from '@/api/responsibilities'
+import ColourDot from '@/components/ColourDot.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import MoreMenu from '@/components/MoreMenu.vue'
@@ -152,6 +153,7 @@ async function remove(c: RedmineCombination) {
     </Column>
     <Column header="Responsibility">
       <template #body="{ data }">
+        <ColourDot :colour="data.responsibilityColor" class="dot" />
         <RouterLink :to="{ name: 'responsibility', params: { id: data.responsibilityId } }" @click.stop>{{
           data.responsibilityName
         }}</RouterLink>
@@ -194,6 +196,10 @@ async function remove(c: RedmineCombination) {
 </template>
 
 <style scoped>
+.dot {
+  margin-right: var(--pnmt-space-2);
+}
+
 .intro {
   margin: var(--pnmt-space-3) 0;
 }

@@ -46,7 +46,7 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
         var rows = await query.OrderBy(r => r.NormalizedName)
             .Select(r => new
             {
-                r.Id, r.Name, r.Summary, r.ResponsibleId, r.DeputyId, r.UpdatedAt,
+                r.Id, r.Name, r.Summary, r.Color, r.ResponsibleId, r.DeputyId, r.UpdatedAt, r.UpdatedByName,
                 Links = db.ResponsibilityLinks.Count(l => l.ResponsibilityId == r.Id),
                 Combinations = db.ResponsibilityRedmine.Count(c => c.ResponsibilityId == r.Id),
                 // A combination whose user was removed or deactivated (§6.5).
@@ -60,8 +60,8 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
             {
                 var responsible = Person(people, r.ResponsibleId);
                 var deputy = Person(people, r.DeputyId);
-                return new ResponsibilityItem(r.Id, r.Name, r.Summary, responsible, deputy, StandsIn(responsible, deputy),
-                    NeedsAttention(responsible, deputy) || (withRedmine && r.Unhandled), r.Links, withRedmine ? r.Combinations : 0, r.UpdatedAt);
+                return new ResponsibilityItem(r.Id, r.Name, r.Summary, r.Color, responsible, deputy, StandsIn(responsible, deputy),
+                    NeedsAttention(responsible, deputy) || (withRedmine && r.Unhandled), r.Links, withRedmine ? r.Combinations : 0, r.UpdatedAt, r.UpdatedByName);
             })
             .Where(i => !attention || i.Attention)
             .ToList();
@@ -75,7 +75,7 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
         var responsible = Person(people, r.ResponsibleId);
         var deputy = Person(people, r.DeputyId);
         var combinations = RedmineConfigured ? await CombinationsAsync(id, null, null, ct) : [];
-        return new ResponsibilityDetail(r.Id, r.Name, r.Summary, r.Description, r.Revision, responsible, deputy, StandsIn(responsible, deputy),
+        return new ResponsibilityDetail(r.Id, r.Name, r.Summary, r.Color, r.Description, r.Revision, responsible, deputy, StandsIn(responsible, deputy),
             NeedsAttention(responsible, deputy) || combinations.Any(c => c.User is not { Active: true }), await GlobalAsync(ct),
             await LinksAsync(id, ct), await FilesAsync(r.Description, ct), RedmineConfigured, combinations, r.CreatedAt, r.CreatedByName,
             r.UpdatedAt, r.UpdatedByName);
@@ -100,7 +100,7 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
         {
             query = query.Where(c => c.UserId == u);
         }
-        var rows = await (from c in query join x in db.Responsibilities on c.ResponsibilityId equals x.Id select new { Row = c, x.Name }).ToListAsync(ct);
+        var rows = await (from c in query join x in db.Responsibilities on c.ResponsibilityId equals x.Id select new { Row = c, x.Name, x.Color }).ToListAsync(ct);
         var people = await PeopleAsync(rows.Select(x => x.Row.UserId), ct);
         var ids = people.Keys.ToList();
         var linked = ids.Count == 0 ? [] : await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id) && x.RedmineUserId != null).Select(x => x.Id).ToListAsync(ct);
@@ -115,7 +115,7 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
                     : known is null || !lookups.Allowed.Contains(c.ProjectId) ? "Not a project PNMT reads"
                     : c.TrackerId is { } missing && tracker is null ? $"Unknown tracker #{missing}"
                     : null;
-                return new RedmineCombinationItem(c.Id, c.ResponsibilityId, x.Name, c.ProjectId, known?.Name ?? c.ProjectName,
+                return new RedmineCombinationItem(c.Id, c.ResponsibilityId, x.Name, x.Color, c.ProjectId, known?.Name ?? c.ProjectName,
                     known?.Path ?? c.ProjectName, c.TrackerId, tracker?.Name ?? c.TrackerName, Person(people, c.UserId),
                     c.UserId is { } id && linked.Contains(id), c.Note, warning, c.UpdatedAt);
             })
@@ -173,7 +173,7 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
             _ => links.Where(l => l.HostId == id),
         };
         var rows = await db.Responsibilities.AsNoTracking().Where(r => ids.Any(l => l.ResponsibilityId == r.Id)).OrderBy(r => r.NormalizedName)
-            .Select(r => new { r.Id, r.Name, r.Summary, r.ResponsibleId, r.DeputyId }).ToListAsync(ct);
+            .Select(r => new { r.Id, r.Name, r.Summary, r.Color, r.ResponsibleId, r.DeputyId }).ToListAsync(ct);
         if (rows.Count == 0)
         {
             return [];
@@ -184,7 +184,7 @@ public sealed class ResponsibilityQueries(PnmtdDbContext db, LocationTree tree, 
             {
                 var responsible = Person(people, r.ResponsibleId);
                 var deputy = Person(people, r.DeputyId);
-                return new ResponsibilityRef(r.Id, r.Name, r.Summary, responsible, deputy, StandsIn(responsible, deputy), global.Responsible, global.Deputy);
+                return new ResponsibilityRef(r.Id, r.Name, r.Summary, r.Color, responsible, deputy, StandsIn(responsible, deputy), global.Responsible, global.Deputy);
             })
             .ToList();
     }

@@ -436,7 +436,16 @@ public sealed class McpExtensionsTests
             var rid = created.GetProperty("id").GetGuid();
             Assert.AreEqual(id, created.GetProperty("responsible").GetProperty("id").GetGuid());
             var revision = (await OkAsync(client, "responsibility_get", new { id = rid })).GetProperty("editing").GetProperty("revision").GetInt32();
+            await using (var colours = app.NewDb())
+            {
+                // Set on the page: the tool sends the whole form, which keeps it (docs/responsibilities-extensions-plan.md §8.4).
+                await colours.Responsibilities.Where(r => r.Id == rid).ExecuteUpdateAsync(r => r.SetProperty(x => x.Color, "#2f8fd8"));
+            }
             await OkAsync(client, "responsibility_update", new { id = rid, summary = "Switches and routers", description = "# Network\n\nThe core switches.", baseRevision = revision });
+            await using (var colours = app.NewDb())
+            {
+                Assert.AreEqual("#2f8fd8", await colours.Responsibilities.Where(r => r.Id == rid).Select(r => r.Color).SingleAsync());
+            }
             Assert.AreEqual("edit_conflict", await ErrorAsync(client, "responsibility_update", new { id = rid, description = "late", baseRevision = revision }));
             var current = (await OkAsync(client, "responsibility_get", new { id = rid })).GetProperty("editing").GetProperty("revision").GetInt32();
             Assert.AreEqual("looks_like_credential", await ErrorAsync(client, "responsibility_update", new { id = rid, description = "password: Sup3rS3cret!x9", baseRevision = current }));

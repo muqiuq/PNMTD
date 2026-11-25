@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { personLabel, responsibilitiesApi, responsibilityKeys, standsInLabel } from '@/api/responsibilities'
+import ColourDot from '@/components/ColourDot.vue'
 import { useSession } from '@/stores/session'
 
 /**
@@ -36,7 +37,10 @@ const items = computed(() => linked.data.value ?? [])
     <ul class="panel-body list">
       <li v-for="r in items" :key="r.id">
         <div class="head">
-          <RouterLink :to="{ name: 'responsibility', params: { id: r.id } }" class="strong">{{ r.name }}</RouterLink>
+          <span class="name">
+            <ColourDot :colour="r.color" />
+            <RouterLink :to="{ name: 'responsibility', params: { id: r.id } }" class="strong">{{ r.name }}</RouterLink>
+          </span>
           <span v-if="r.summary" class="muted detail">{{ r.summary }}</span>
         </div>
         <div class="people">
@@ -72,6 +76,12 @@ const items = computed(() => linked.data.value ?? [])
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
 }
 
 .detail,

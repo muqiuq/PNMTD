@@ -37,6 +37,13 @@ public sealed class ResponsibilitiesController(ResponsibilityQueries queries, Re
     public async Task<ResponsibilityDetail> Update(Guid id, ResponsibilityRequest request, CancellationToken ct) =>
         await responsibilities.UpdateAsync(id, request, ct);
 
+    /// <summary>The colour alone, <c>#rrggbb</c> or null (docs/responsibilities-extensions-plan.md §4.2): the overview's side panel.</summary>
+    [HttpPut("{id:guid}/color")]
+    [RequireRight(Area.Responsibilities, Level.Edit)]
+    [Audit(AuditEvents.ResponsibilityChanged)]
+    public async Task<ResponsibilityDetail> Color(Guid id, ResponsibilityColorRequest request, CancellationToken ct) =>
+        await responsibilities.SetColorAsync(id, request, ct);
+
     /// <summary>At once, with its links and history; the audit log keeps what it was.</summary>
     [HttpDelete("{id:guid}")]
     [RequireRight(Area.Responsibilities, Level.Manage)]

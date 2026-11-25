@@ -599,6 +599,7 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:View", Roles.Admin),
         ["POST /api/v1/responsibilities"] = ("Responsibilities:Edit", Roles.Admin),
         ["PUT /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:Edit", Roles.Admin),
+        ["PUT /api/v1/responsibilities/{id:guid}/color"] = ("Responsibilities:Edit", Roles.Admin),
         ["DELETE /api/v1/responsibilities/{id:guid}"] = ("Responsibilities:Manage", Roles.Admin),
         ["POST /api/v1/responsibilities/{id:guid}/links"] = ("Responsibilities:Edit", Roles.Admin),
         ["DELETE /api/v1/responsibilities/{id:guid}/links/{linkId:guid}"] = ("Responsibilities:Edit", Roles.Admin),

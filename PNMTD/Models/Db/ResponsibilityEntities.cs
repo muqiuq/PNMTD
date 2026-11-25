@@ -42,6 +42,13 @@ public class ResponsibilityEntity
     [AuditIgnore]
     public int Revision { get; set; }
 
+    /// <summary>
+    /// <c>#rrggbb</c>, lower-case, or null for none (docs/responsibilities-extensions-plan.md §4): the dot next to its name and its
+    /// fill on the overview.
+    /// </summary>
+    [MaxLength(7)]
+    public string? Color { get; set; }
+
     /// <summary>A deleted user's place becomes empty (SET NULL).</summary>
     public Guid? ResponsibleId { get; set; }
 
@@ -183,6 +190,8 @@ public enum ResponsibilityHistoryKind
     RedmineAdded = 7,
     RedmineChanged = 8,
     RedmineRemoved = 9,
+    /// <summary>docs/responsibilities-extensions-plan.md §4.2: "none → #2f8fd8".</summary>
+    ColorChanged = 10,
 }
 
 /// <summary>One change to a responsibility (§10.5), newest first, with the description's full texts.</summary>

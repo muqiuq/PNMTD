@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import { isColour } from './plan'
+import { isColour } from './colours'
 
 /** A colour as #rrggbb: the browser's picker and the text, which the server checks; optional when clearable. */
 const props = withDefaults(defineProps<{ label: string; clearable?: boolean; invalid?: boolean; inputId?: string }>(), {

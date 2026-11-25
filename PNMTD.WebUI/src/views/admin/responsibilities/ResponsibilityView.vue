@@ -16,6 +16,7 @@ import {
   type RedmineCombination,
   type ResponsibilityLink,
 } from '@/api/responsibilities'
+import ColourDot from '@/components/ColourDot.vue'
 import ErrorState from '@/components/ErrorState.vue'
 import MarkdownView from '@/components/markdown/MarkdownView.vue'
 import PageHeader from '@/components/PageHeader.vue'
@@ -23,6 +24,7 @@ import TabNav from '@/components/TabNav.vue'
 import { useActions } from '@/composables/useActions'
 import { useSession } from '@/stores/session'
 import LinkPicker, { type LinkTarget } from '@/views/kb/LinkPicker.vue'
+import ColourPicker from './ColourPicker.vue'
 import CombinationDialog from './CombinationDialog.vue'
 import PersonPicker from './PersonPicker.vue'
 import ResponsibilityHistory from './ResponsibilityHistory.vue'
@@ -56,7 +58,13 @@ const tabs = [tabItem('overview', 'Overview'), tabItem('history', 'History')]
 const tab = computed(() => (route.query.tab === 'history' ? 'history' : 'overview'))
 
 // --- details ------------------------------------------------------------------------------------------------------------
-const form = ref({ name: '', summary: '', responsibleId: null as string | null, deputyId: null as string | null })
+const form = ref({
+  name: '',
+  summary: '',
+  color: null as string | null,
+  responsibleId: null as string | null,
+  deputyId: null as string | null,
+})
 const errors = ref<Record<string, string | undefined>>({})
 watch(
   r,
@@ -65,6 +73,7 @@ watch(
       form.value = {
         name: value.name,
         summary: value.summary ?? '',
+        color: value.color ?? null,
         responsibleId: value.responsible?.id ?? null,
         deputyId: value.deputy?.id ?? null,
       }
@@ -77,6 +86,7 @@ const dirty = computed(() => {
     !!value &&
     (value.name !== form.value.name ||
       (value.summary ?? '') !== form.value.summary ||
+      (value.color ?? null) !== form.value.color ||
       (value.responsible?.id ?? null) !== form.value.responsibleId ||
       (value.deputy?.id ?? null) !== form.value.deputyId)
   )
@@ -89,6 +99,7 @@ async function save() {
     await responsibilitiesApi.update(props.id, {
       name: form.value.name.trim(),
       summary: form.value.summary.trim() || null,
+      color: form.value.color,
       responsibleId: form.value.responsibleId,
       deputyId: form.value.deputyId,
     })
@@ -99,6 +110,7 @@ async function save() {
       errors.value = {
         name: e.field('name') ?? (e.code === 'duplicate_name' ? e.message : undefined),
         summary: e.field('summary'),
+        color: e.field('color'),
         responsibleId: e.field('responsibleId'),
         deputyId: e.field('deputyId'),
       }
@@ -175,6 +187,7 @@ async function remove() {
         :title="r.name"
         :crumbs="[{ label: 'Admin' }, { label: 'Responsibilities', to: { name: 'responsibilities' } }]"
       >
+        <template v-if="r.color" #status><ColourDot :colour="r.color" size="0.9rem" /></template>
         <template #actions>
           <Button
             v-if="manage"
@@ -228,6 +241,11 @@ async function remove() {
                 <label for="r-summary">Short description</label>
                 <InputText id="r-summary" v-model="form.summary" :invalid="!!errors.summary" />
                 <small v-if="errors.summary" class="field-error">{{ errors.summary }}</small>
+              </div>
+              <div class="field">
+                <label for="r-colour">Colour</label>
+                <ColourPicker v-model="form.color" input-id="r-colour" :invalid="!!errors.color" />
+                <small v-if="errors.color" class="field-error">{{ errors.color }}</small>
               </div>
               <div class="field">
                 <label for="r-responsible">Responsible</label>

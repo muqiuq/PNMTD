@@ -7,6 +7,7 @@ using PNMTD.Data;
 using PNMTD.Lib.Models.Enum;
 using PNMTD.Models.Db;
 using PNMTD.Notifications;
+using PNMTD.Services.Domain;
 
 namespace PNMTD.Auth;
 
@@ -104,8 +105,8 @@ public static partial class People
         {
             v.Add("shortCode", $"{code} is taken.");
         }
-        var colour = string.IsNullOrWhiteSpace(color) ? null : color.Trim().ToLowerInvariant();
-        v.Check(colour is null || ColorPattern().IsMatch(colour), "color", "A colour as #rrggbb.");
+        var colour = Colours.Normalize(color);
+        v.Check(colour is null || Colours.IsHex(colour), "color", Colours.Hint);
         var days = week ?? WeekOf(user.DefaultWeek);
         v.Check(days.Select(d => d.Day).Distinct().Count() == days.Count, "defaultWeek", "Each weekday once.");
         var typeIds = days.Where(d => d.TypeId is not null).Select(d => d.TypeId!.Value).Distinct().ToList();
@@ -146,7 +147,4 @@ public static partial class People
 
     [GeneratedRegex("^[A-Z]{3}$")]
     private static partial Regex CodePattern();
-
-    [GeneratedRegex("^#[0-9a-f]{6}$")]
-    private static partial Regex ColorPattern();
 }

@@ -147,28 +147,8 @@ export function planRows(days: readonly PlanDay[]): PlanRow[] {
 
 // --- colours --------------------------------------------------------------------------------------------------------
 
-export const isColour = (value: string | null | undefined): value is string => !!value && /^#[0-9a-f]{6}$/i.test(value)
-
-/** WCAG's relative luminance of #rrggbb. */
-function luminance(hex: string): number {
-  const channel = (i: number) => {
-    const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
-  }
-  return 0.2126 * channel(1) + 0.7152 * channel(3) + 0.0722 * channel(5)
-}
-
-/** Black or white, whichever reads better on the colour (the higher contrast); black when it isn't a colour. */
-export function textOn(background: string | null | undefined): '#000000' | '#ffffff' {
-  if (!isColour(background)) return '#000000'
-  const l = luminance(background)
-  return (l + 0.05) / 0.05 >= 1.05 / (l + 0.05) ? '#000000' : '#ffffff'
-}
-
-/** A code shown on its colour (a type's, a person's): the background and a text colour that reads on it. */
-export function chipStyle(colour: string | null | undefined): Record<string, string> {
-  return isColour(colour) ? { background: colour, color: textOn(colour) } : {}
-}
+// The colour check and contrast are shared with responsibilities (docs/responsibilities-extensions-plan.md §4.3).
+export { chipStyle, isColour, textOn } from '@/components/colours'
 
 // --- what a type means ----------------------------------------------------------------------------------------------
 

@@ -14,19 +14,22 @@ public sealed record ResponsibilityGlobal(ResponsibilityPerson? Responsible, Res
 
 /// <summary>
 /// A row of the list (§9.2). <see cref="GlobalStandsIn"/>: neither its responsible nor its deputy is set and active.
-/// <see cref="Attention"/>: nobody set, or a person inactive.
+/// <see cref="Attention"/>: nobody set, or a person inactive. <see cref="Color"/>: <c>#rrggbb</c> or null
+/// (docs/responsibilities-extensions-plan.md §4).
 /// </summary>
 public sealed record ResponsibilityItem(
     Guid Id,
     string Name,
     string? Summary,
+    string? Color,
     ResponsibilityPerson? Responsible,
     ResponsibilityPerson? Deputy,
     bool GlobalStandsIn,
     bool Attention,
     int Links,
     int Combinations,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? UpdatedByName);
 
 /// <summary>The page's list, with the global people on top (§9.2). Without Redmine configured, no combination counts.</summary>
 public sealed record ResponsibilityList(ResponsibilityGlobal Global, IReadOnlyList<ResponsibilityItem> Items, bool RedmineConfigured);
@@ -42,6 +45,7 @@ public sealed record ResponsibilityDetail(
     Guid Id,
     string Name,
     string? Summary,
+    string? Color,
     string Description,
     int Revision,
     ResponsibilityPerson? Responsible,
@@ -62,15 +66,21 @@ public sealed record ResponsibilityDetail(
 /// A responsibility as a linked host, location or page shows it (§8): only when one links it, and only with
 /// <i>Responsibilities: View</i>.
 /// </summary>
-public sealed record ResponsibilityRef(Guid Id, string Name, string? Summary, ResponsibilityPerson? Responsible, ResponsibilityPerson? Deputy,
+public sealed record ResponsibilityRef(Guid Id, string Name, string? Summary, string? Color, ResponsibilityPerson? Responsible, ResponsibilityPerson? Deputy,
     bool GlobalStandsIn, ResponsibilityPerson? GlobalResponsible, ResponsibilityPerson? GlobalDeputy);
 
-/// <summary>Create and change (§11): the whole form. A null person means nobody.</summary>
+/// <summary>
+/// Create and change (§11): the whole form. A null person means nobody; a null <see cref="Color"/> no colour
+/// (docs/responsibilities-extensions-plan.md §4.2).
+/// </summary>
 public sealed class ResponsibilityRequest
 {
     public string? Name { get; init; }
 
     public string? Summary { get; init; }
+
+    /// <summary><c>#rrggbb</c>, or null for none.</summary>
+    public string? Color { get; init; }
 
     public Guid? ResponsibleId { get; init; }
 
@@ -88,6 +98,12 @@ public sealed class ResponsibilityDescriptionRequest
     public int Revision { get; init; }
 
     public bool AcknowledgeCredentials { get; init; }
+}
+
+/// <summary>The colour alone, from the overview's side panel (docs/responsibilities-extensions-plan.md §4.2): <c>#rrggbb</c> or null.</summary>
+public sealed class ResponsibilityColorRequest
+{
+    public string? Color { get; init; }
 }
 
 /// <summary>The global responsible and deputy: both, a null meaning nobody.</summary>
@@ -129,6 +145,7 @@ public sealed record RedmineCombinationItem(
     Guid Id,
     Guid ResponsibilityId,
     string ResponsibilityName,
+    string? ResponsibilityColor,
     int ProjectId,
     string ProjectName,
     string ProjectPath,

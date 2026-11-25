@@ -26,12 +26,12 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
 
     public async Task<ResponsibilityDetail> CreateAsync(ResponsibilityRequest request, CancellationToken ct)
     {
-        var (name, summary) = await ValidateAsync(request, null, null, null, ct);
+        var (name, summary, color) = await ValidateAsync(request, null, null, null, ct);
         var by = LocationActor.Of(accessor);
         var now = Clock.UtcNow;
         var r = new ResponsibilityEntity
         {
-            Id = Guid.NewGuid(), Name = name, NormalizedName = Normalize(name), Summary = summary, ResponsibleId = request.ResponsibleId,
+            Id = Guid.NewGuid(), Name = name, NormalizedName = Normalize(name), Summary = summary, Color = color, ResponsibleId = request.ResponsibleId,
             DeputyId = request.DeputyId, CreatedAt = now, CreatedBy = by.Id, CreatedByName = by.Name, UpdatedAt = now, UpdatedBy = by.Id,
             UpdatedByName = by.Name,
         };
@@ -44,11 +44,14 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
         return await queries.GetAsync(r.Id, ct);
     }
 
-    /// <summary>The whole form (§9.3): name, short description, responsible and deputy. A null person means nobody.</summary>
+    /// <summary>
+    /// The whole form (§9.3): name, short description, colour, responsible and deputy. A null person means nobody, a null colour
+    /// none.
+    /// </summary>
     public async Task<ResponsibilityDetail> UpdateAsync(Guid id, ResponsibilityRequest request, CancellationToken ct)
     {
         var r = await db.Responsibilities.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("Responsibility");
-        var (name, summary) = await ValidateAsync(request, id, r.ResponsibleId, r.DeputyId, ct);
+        var (name, summary, color) = await ValidateAsync(request, id, r.ResponsibleId, r.DeputyId, ct);
         var by = LocationActor.Of(accessor);
         var now = Clock.UtcNow;
         var before = r.Name;
@@ -65,6 +68,10 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
             History(id, now, by, ResponsibilityHistoryKind.SummaryChanged, summary ?? "(none)");
             parts.Add("short description changed");
             r.Summary = summary;
+        }
+        if (ColorChange(r, color, now, by) is { } colour)
+        {
+            parts.Add(colour);
         }
         if (r.ResponsibleId != request.ResponsibleId || r.DeputyId != request.DeputyId)
         {
@@ -92,6 +99,43 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
             await db.SaveChangesAsync(ct);
         }
         return await queries.GetAsync(id, ct);
+    }
+
+    /// <summary>The colour alone (docs/responsibilities-extensions-plan.md §4.2), from the overview's side panel: <c>#rrggbb</c> or null.</summary>
+    public async Task<ResponsibilityDetail> SetColorAsync(Guid id, ResponsibilityColorRequest request, CancellationToken ct)
+    {
+        var r = await db.Responsibilities.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("Responsibility");
+        var color = ValidColor(request.Color);
+        var by = LocationActor.Of(accessor);
+        var now = Clock.UtcNow;
+        if (ColorChange(r, color, now, by) is { } change)
+        {
+            Touch(r, now, by);
+            AuditLog.Target(Target(r));
+            AuditLog.Summary($"{r.Name}: {change}");
+            await db.SaveChangesAsync(ct);
+        }
+        return await queries.GetAsync(id, ct);
+    }
+
+    /// <summary>A new colour, with its history row: "colour none → #2f8fd8"; null when it stays.</summary>
+    private string? ColorChange(ResponsibilityEntity r, string? color, DateTime now, LocationActor by)
+    {
+        if (r.Color == color)
+        {
+            return null;
+        }
+        var detail = $"{r.Color ?? "none"} → {color ?? "none"}";
+        History(r.Id, now, by, ResponsibilityHistoryKind.ColorChanged, detail);
+        r.Color = color;
+        return $"colour {detail}";
+    }
+
+    private static string? ValidColor(string? value)
+    {
+        var color = Colours.Normalize(value);
+        new ApiValidator().Check(color is null || Colours.IsHex(color), "color", Colours.Hint).ThrowIfInvalid();
+        return color;
     }
 
     /// <summary>At once (decision 12): its links and history go with it; the audit log keeps what it was.</summary>
@@ -491,16 +535,18 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
 
     // --- Rules -------------------------------------------------------------------------------------------------------------
 
-    private async Task<(string Name, string? Summary)> ValidateAsync(ResponsibilityRequest request, Guid? id, Guid? responsible, Guid? deputy,
-        CancellationToken ct)
+    private async Task<(string Name, string? Summary, string? Color)> ValidateAsync(ResponsibilityRequest request, Guid? id, Guid? responsible,
+        Guid? deputy, CancellationToken ct)
     {
         var name = Text.Trimmed(request.Name) ?? "";
         var summary = Text.Trimmed(request.Summary);
+        var color = Colours.Normalize(request.Color);
         var v = new ApiValidator()
             .Check(name.Length is >= 1 and <= 100, "name", "1 to 100 characters.")
             .Check(!name.Contains('\n') && !name.Contains('\r'), "name", "One line.")
             .Check(summary is null || summary.Length <= 300, "summary", "At most 300 characters.")
-            .Check(summary is null || (!summary.Contains('\n') && !summary.Contains('\r')), "summary", "One line.");
+            .Check(summary is null || (!summary.Contains('\n') && !summary.Contains('\r')), "summary", "One line.")
+            .Check(color is null || Colours.IsHex(color), "color", Colours.Hint);
         await CheckPeopleAsync(v, request.ResponsibleId, request.DeputyId, responsible, deputy, ct);
         v.ThrowIfInvalid();
         var normalized = Normalize(name);
@@ -508,7 +554,7 @@ public sealed class ResponsibilityService(PnmtdDbContext db, ResponsibilityQueri
         {
             throw ApiException.Conflict(ResponsibilityErrors.DuplicateName, $"A responsibility named {name} exists already.");
         }
-        return (name, summary);
+        return (name, summary, color);
     }
 
     /// <summary>
