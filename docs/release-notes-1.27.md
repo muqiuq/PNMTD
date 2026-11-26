@@ -28,6 +28,8 @@
   - *Grid*: rows and columns by name, about as wide as a screen.
 - **The result is moves, as a drag's:** *Save layout* keeps it for everyone, *Discard* takes it back. Moves made by hand are replaced
   only after asking. People and linked objects settle around the new places at once.
+- **The bar on top says what was arranged,** clear of the map's controls in the bottom-right corner. Without *Edit* it says the
+  arrangement is only yours, until you leave the page, and its *Discard* goes back to the automatic layout.
 
 ### Responsibilities in full over MCP
 

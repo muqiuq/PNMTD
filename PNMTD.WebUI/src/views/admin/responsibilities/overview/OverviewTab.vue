@@ -15,7 +15,6 @@ import ErrorState from '@/components/ErrorState.vue'
 import type { Point } from '@/components/graph/forceLayout'
 import MoreMenu from '@/components/MoreMenu.vue'
 import { useActions } from '@/composables/useActions'
-import { useNotify } from '@/composables/useNotify'
 import { arrange, place, type Form } from './arrange'
 import NoteDialog from './NoteDialog.vue'
 import OverviewCanvas, { type CanvasNote } from './OverviewCanvas.vue'
@@ -226,9 +225,18 @@ async function automatic(id: string) {
 }
 
 // --- arranging (§5) ------------------------------------------------------------------------------------------------------
-const notify = useNotify()
 /** Arranged places not saved yet: fixed for the automatic layout, so people settle around them at once (§5.4). */
 const anchors = ref(new Map<string, Point>())
+/**
+ * The last Arrange, said in the bar on top while its places stand. Not a toast: toasts sit in the bottom-right corner, on the
+ * map's controls, just when another form is tried.
+ */
+const arranged = ref<{ form: Form; clear: boolean } | null>(null)
+const arrangedNote = computed(() =>
+  arranged.value && anchors.value.size
+    ? `arranged as ${formLabel[arranged.value.form]}${arranged.value.clear ? '' : ', some under notes'}`
+    : '',
+)
 const arrangeMenu = ref<InstanceType<typeof Menu> | null>(null)
 const formLabel: Record<Form, string> = {
   circle: 'a circle',
@@ -278,12 +286,9 @@ async function arrangeAs(form: Form) {
   for (const [id, p] of points) next.set(id, p)
   moved.value = next
   anchors.value = points
+  arranged.value = { form, clear }
   await nextTick()
   canvas.value?.fit()
-  notify.info(
-    `Arranged ${plural(points.size, 'responsibility', 'responsibilities')} as ${formLabel[form]}`,
-    `${props.edit ? 'Not saved yet: Save layout keeps it.' : 'Only for you, until you leave the page.'}${clear ? '' : ' Some responsibilities are under notes.'}`,
-  )
 }
 const arrangeItems = computed<MenuItem[]>(() => [
   { label: 'Circle', icon: 'pi pi-circle', command: () => void arrangeAs('circle') },
@@ -435,8 +440,15 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       <template #bar>
         <div v-if="dirty" class="save-bar" role="status" data-test="overview-save-bar">
           <span>{{ counted(movedSavable.length - movedNotes.length, movedNotes.length) }} moved</span>
+          <span v-if="arrangedNote" class="muted" data-test="overview-arranged">{{ arrangedNote }}</span>
           <Button label="Discard" size="small" severity="secondary" text :disabled="busy" @click="discard" />
           <Button label="Save layout" icon="pi pi-save" size="small" :loading="busy" @click="save" />
+        </div>
+        <!-- Without Edit nothing is saved: the bar says so, and Discard is the way back to the automatic layout. -->
+        <div v-else-if="arrangedNote" class="save-bar" role="status" data-test="overview-save-bar">
+          <span>{{ plural(anchors.size, 'responsibility', 'responsibilities') }} {{ arrangedNote }}</span>
+          <span class="muted">only for you, until you leave the page</span>
+          <Button label="Discard" size="small" severity="secondary" text @click="discard" />
         </div>
       </template>
       <template #controls>

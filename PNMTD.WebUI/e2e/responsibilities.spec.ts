@@ -318,8 +318,11 @@ test('the overview: the lines follow the escalation order, and Arrange places ev
   }
   await choose('Responsible')
   await arrangeAs('Circle')
-  await expect(page.getByText('Arranged 3 responsibilities as a circle')).toBeVisible()
-  await expect(page.getByText('3 responsibilities moved')).toBeVisible()
+  // Said in the bar on top, not in a toast: those sit on the map's controls in the bottom-right corner.
+  const bar = page.locator('[data-test="overview-save-bar"]')
+  await expect(bar).toContainText('3 responsibilities moved')
+  await expect(bar.locator('[data-test="overview-arranged"]')).toHaveText('arranged as a circle')
+  await expect(page.locator('.p-toast-message')).toHaveCount(0)
   await expect(map.locator('[data-unsaved="true"]')).toHaveCount(3)
   await shot(page, 'responsibilities-overview-circle')
   await page.getByRole('button', { name: 'Discard' }).click()

@@ -457,9 +457,11 @@ No questions are open.
    nothing left the answer is `not_found`.
 7. **No test pins 131 tools** (§10). `McpResponsibilitiesTests` checks the six new ones by name, kind and token, so later tools don't
    touch it.
-8. ***Arrange* is a labelled button with its own menu,** not in the ⋯ *Layout* menu, since everyone may arrange (decision 6). Its toast
-   is *Arranged 3 responsibilities as a circle* with *Not saved yet: Save layout keeps it.*, or without *Edit* *Only for you, until you
-   leave the page.*
+8. ***Arrange* is a labelled button with its own menu,** not in the ⋯ *Layout* menu, since everyone may arrange (decision 6). **It says
+   what it did in the bar on top, not in a toast** (§5.1, §5.3): toasts sit in the bottom-right corner, on the map's controls, just when
+   another form is tried. The bar reads *3 responsibilities moved · arranged as a circle* (*, some under notes* when the spiral found no
+   free place) while the arranged places stand. Without *Edit* there is a bar too, *3 responsibilities arranged as a circle · only for
+   you, until you leave the page · [Discard]*, as the way back to the automatic layout.
 9. **The page's escalation line also names who was skipped,** as the side panel does.
 10. **The history tool's rows say `restorable`** (a description change) and `viaMcp`.
 11. **The notes browser test selects its note from the keyboard.** With fewer lines by default, the automatic layout changed and the
