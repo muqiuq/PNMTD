@@ -164,21 +164,48 @@ export function buildGraph(
   return { nodes, edges }
 }
 
-/** The layout: saved responsibilities fixed where they were saved, notes fixed bodies; everything else around them. */
+/**
+ * The layout: saved responsibilities fixed where they were saved, notes fixed bodies; everything else around them. `anchors` are
+ * places arranged but not saved yet (docs/responsibilities-mcp-and-map-plan.md §5.4), fixed as saved ones are. A free node starts at
+ * the middle of its fixed neighbours, so a person settles next to their responsibilities, the same after a reload.
+ */
 export function layoutOverview(
   nodes: readonly OverviewNode[],
   edges: readonly OverviewEdge[],
   obstacles: readonly Obstacle[] = [],
+  anchors: ReadonlyMap<string, Point> = new Map(),
 ): Layout {
-  const saved = new Map<string, Point>()
-  for (const n of nodes) if (n.saved) saved.set(n.id, n.saved)
-  for (const o of obstacles) saved.set(o.id, { x: o.x, y: o.y })
+  const fixed = new Map<string, Point>()
+  for (const n of nodes) {
+    const p = anchors.get(n.id) ?? n.saved
+    if (p) fixed.set(n.id, p)
+  }
+  for (const o of obstacles) fixed.set(o.id, { x: o.x, y: o.y })
+  const near = new Map<string, Point[]>()
+  for (const e of edges)
+    for (const [free, other] of [
+      [e.source, e.target],
+      [e.target, e.source],
+    ] as const) {
+      const p = fixed.get(other)
+      if (p && !fixed.has(free)) near.set(free, [...(near.get(free) ?? []), p])
+    }
+  const starts = new Map(
+    [...near].map(([id, points]) => [
+      id,
+      {
+        x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
+        y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
+      },
+    ]),
+  )
   return layoutGraph(
     [
       ...nodes.map((n) => ({ id: n.id, group: null, r: bodyRadius(n.kind) })),
       ...obstacles.map((o) => ({ id: o.id, group: null, r: o.r })),
     ],
     edges.map((e) => ({ source: e.source, target: e.target })),
-    saved,
+    fixed,
+    starts,
   )
 }

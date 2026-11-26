@@ -249,12 +249,109 @@ test('notes on the overview: added, changed, moved with the layout, and deleted'
     })
     .toBe(true)
 
-  // Deleted, and the layout back to automatic, as the seed had it.
-  await note.click()
+  // Deleted, and the layout back to automatic, as the seed had it. Selected from the keyboard: a saved responsibility may lie on it.
+  await note.focus()
+  await page.keyboard.press('Enter')
   await panel.locator('[data-test="note-delete"]').click()
   await page.getByRole('alertdialog', { name: 'Delete the note?' }).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByText('Note deleted')).toBeVisible()
   await expect(note).toBeHidden()
+  await page.getByRole('button', { name: 'Layout' }).click()
+  await page.getByRole('menuitem', { name: 'Back to automatic for all responsibilities…' }).click()
+  await page.getByRole('button', { name: 'Back to automatic', exact: true }).click()
+  await expect(page.getByText('Every responsibility is placed automatically again')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+test('the overview: the lines follow the escalation order, and Arrange places every responsibility in a form', async ({
+  page,
+}) => {
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+
+  // A responsibility's page: whom to ask, in order (docs/responsibilities-mcp-and-map-plan.md §3.2).
+  await openList(page)
+  await page.locator('[data-test="responsibilities-table"]').getByRole('link', { name: 'Network' }).click()
+  await expect(page.locator('[data-test="escalation-order"]')).toContainText(
+    /Anna Muster \(responsible\) → Ben Keller \(deputy\) → .+ \(global responsible\)/,
+  )
+
+  await page.goto(`${list}/overview`)
+  const map = page.getByTestId('responsibilities-map')
+  await expect(map.getByRole('button', { name: /^Responsibility Network/ })).toBeVisible()
+  const lines = (kind: string) => map.locator(`g.edge.kind-${kind}`)
+  const choose = (name: string) => page.locator('[data-test="overview-lines"]').getByRole('button', { name }).click()
+
+  // By default the first in each order: Anna for Network, Ben for Backup, the global responsible for Printers.
+  await expect(lines('responsible')).toHaveCount(2)
+  await expect(lines('deputy')).toHaveCount(0)
+  await expect(lines('global')).toHaveCount(1)
+  await expect(page.locator('[data-test="overview-lines-note"]')).toHaveText(
+    'Lines: the first in each escalation order',
+  )
+  // Both: Ben as Network's deputy, and the global people next in Backup's and Printers' queues.
+  await choose('Both')
+  await expect(page).toHaveURL(/lines=both/)
+  await expect(lines('responsible')).toHaveCount(2)
+  await expect(lines('deputy')).toHaveCount(1)
+  await expect(lines('global')).toHaveCount(3)
+  await choose('Deputy')
+  await expect(lines('responsible')).toHaveCount(0)
+  await expect(lines('deputy')).toHaveCount(1)
+  await expect(lines('global')).toHaveCount(2)
+  await shot(page, 'responsibilities-overview-deputy-lines')
+
+  // The side panel lists Backup's queue: Ben, then the global people.
+  await map.getByRole('button', { name: /^Responsibility Backup/ }).click()
+  const panel = page.getByRole('complementary', { name: 'Details' })
+  const order = panel.locator('[data-test="overview-escalation"] li')
+  await expect(order).toHaveCount(3)
+  await expect(order.first()).toContainText('Ben Keller')
+  await expect(order.first()).toContainText('responsible')
+  await panel.getByRole('button', { name: 'Close' }).click()
+
+  // Arrange: unsaved moves, which Discard takes back.
+  const arrangeAs = async (form: string) => {
+    await page.getByRole('button', { name: 'Arrange', exact: true }).click()
+    await page.getByRole('menuitem', { name: form }).click()
+  }
+  await choose('Responsible')
+  await arrangeAs('Circle')
+  await expect(page.getByText('Arranged 3 responsibilities as a circle')).toBeVisible()
+  await expect(page.getByText('3 responsibilities moved')).toBeVisible()
+  await expect(map.locator('[data-unsaved="true"]')).toHaveCount(3)
+  await shot(page, 'responsibilities-overview-circle')
+  await page.getByRole('button', { name: 'Discard' }).click()
+  await expect(page.getByText('3 responsibilities moved')).toBeHidden()
+
+  // Around their responsible, saved: the same places after a reload.
+  await arrangeAs('Around their responsible')
+  await expect(page.getByText('3 responsibilities moved')).toBeVisible()
+  await shot(page, 'responsibilities-overview-clusters')
+  await page.getByRole('button', { name: 'Save layout' }).click()
+  await expect(page.getByText('Saved the places of 3 responsibilities')).toBeVisible()
+  await expect(page.getByText('3 responsibilities moved')).toBeHidden()
+  const where = async (name: string) => {
+    const b = (await map
+      .getByRole('button', { name: new RegExp(`^Responsibility ${name}`) })
+      .locator('circle.body')
+      .boundingBox())!
+    const m = (await map.boundingBox())!
+    return { x: Math.round(b.x + b.width / 2 - m.x), y: Math.round(b.y + b.height / 2 - m.y) }
+  }
+  await page.getByRole('button', { name: 'Fit' }).click()
+  const before = [await where('Network'), await where('Backup'), await where('Printers')]
+  await page.reload()
+  await expect(map.getByRole('button', { name: /^Responsibility Network/ })).toBeVisible()
+  await expect
+    .poll(async () => {
+      const after = [await where('Network'), await where('Backup'), await where('Printers')]
+      return after.every((p, i) => Math.abs(p.x - before[i]!.x) <= 1 && Math.abs(p.y - before[i]!.y) <= 1)
+    })
+    .toBe(true)
+
+  // Back to automatic, as the seed had it.
   await page.getByRole('button', { name: 'Layout' }).click()
   await page.getByRole('menuitem', { name: 'Back to automatic for all responsibilities…' }).click()
   await page.getByRole('button', { name: 'Back to automatic', exact: true }).click()

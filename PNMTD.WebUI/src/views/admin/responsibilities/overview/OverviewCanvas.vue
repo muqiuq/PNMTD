@@ -50,6 +50,8 @@ const props = defineProps<{
   editable?: boolean
   /** Which of the escalation order the people's lines show, for the legend. */
   lineView?: Lines
+  /** Arranged places not saved yet (docs/responsibilities-mcp-and-map-plan.md §5.4): fixed for the layout, as saved ones. */
+  anchors?: ReadonlyMap<string, Point>
 }>()
 const linesNote: Record<Lines, string> = {
   responsible: 'Lines: the first in each escalation order',
@@ -67,7 +69,7 @@ const notePlaces = computed(
   () => new Map((props.notes ?? []).map((n) => [n.id, { ...noteSize(n.text, n.width), x: n.x, y: n.y }])),
 )
 const obstacles = computed(() => [...notePlaces.value].map(([id, n]) => noteObstacle({ id, ...n })))
-const computedLayout = computed(() => layoutOverview(props.nodes, props.edges, obstacles.value))
+const computedLayout = computed(() => layoutOverview(props.nodes, props.edges, obstacles.value, props.anchors))
 // Only another set of nodes fits anew (the map refreshes every minute); the moves stay until saved or discarded.
 const nodeSet = computed(() => props.nodes.map((n) => n.id).join(','))
 /** Where a node is now, or a note's top-left corner: its move, its saved place, or the layout's. */

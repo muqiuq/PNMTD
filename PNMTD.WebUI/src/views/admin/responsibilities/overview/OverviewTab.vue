@@ -3,10 +3,11 @@ import { keepPreviousData, useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Drawer from 'primevue/drawer'
+import Menu from 'primevue/menu'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import type { MenuItem } from 'primevue/menuitem'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { responsibilitiesApi, responsibilityKeys } from '@/api/responsibilities'
 import EmptyState from '@/components/EmptyState.vue'
@@ -14,9 +15,11 @@ import ErrorState from '@/components/ErrorState.vue'
 import type { Point } from '@/components/graph/forceLayout'
 import MoreMenu from '@/components/MoreMenu.vue'
 import { useActions } from '@/composables/useActions'
+import { useNotify } from '@/composables/useNotify'
+import { arrange, place, type Form } from './arrange'
 import NoteDialog from './NoteDialog.vue'
 import OverviewCanvas, { type CanvasNote } from './OverviewCanvas.vue'
-import { buildGraph, type Layer, type Lines } from './overviewLayout'
+import { buildGraph, nodeId, noteSize, type Layer, type Lines } from './overviewLayout'
 import OverviewPanel from './OverviewPanel.vue'
 import { focusFromQuery, layersFromQuery, layersToQuery, linesFromQuery, linesToQuery } from './overviewState'
 
@@ -24,7 +27,8 @@ import { focusFromQuery, layersFromQuery, layersToQuery, linesFromQuery, linesTo
  * The Overview tab (docs/responsibilities-extensions-plan.md §6): the responsibilities on a map with their people and, as layers, the
  * objects they link. The layers, the people's lines (docs/responsibilities-mcp-and-map-plan.md §4) and the focus are in the URL. Arranging works as on the network map (§6.2): the moves are kept here,
  * across layers and refreshes; with Edit, a bar offers Save layout and Discard. Saving writes the moved responsibilities and the
- * shown ones never saved, so nothing moves afterwards. Leaving with unsaved moves asks first.
+ * shown ones never saved, so nothing moves afterwards. Leaving with unsaved moves asks first. *Arrange* (docs/responsibilities-mcp-and-map-plan.md
+ * §5) places every responsibility in a form, as moves of their own: the people settle around them at once (the anchors).
  */
 const props = defineProps<{ edit: boolean }>()
 const route = useRoute()
@@ -171,16 +175,18 @@ async function save() {
       invalidate: [responsibilityKeys.all],
     },
   )
-  // The map has the saved places now: the moves can go without anything jumping.
+  // The map has the saved places now: the moves and the arranged anchors can go without anything jumping.
   if (ok) {
     const next = new Map(moved.value)
     for (const id of points.keys()) next.delete(id)
     for (const [id] of noteMoves) next.delete(id)
     moved.value = next
+    anchors.value = new Map()
   }
 }
 function discard() {
   moved.value = new Map()
+  anchors.value = new Map()
 }
 async function reset() {
   const count = map.data.value?.savedPositions ?? 0
@@ -199,6 +205,7 @@ async function reset() {
     const next = new Map(moved.value)
     for (const id of [...next.keys()]) if (id.startsWith('responsibility:')) next.delete(id)
     moved.value = next
+    anchors.value = new Map()
   }
 }
 async function automatic(id: string) {
@@ -212,8 +219,77 @@ async function automatic(id: string) {
     const next = new Map(moved.value)
     next.delete(`responsibility:${id}`)
     moved.value = next
+    const kept = new Map(anchors.value)
+    kept.delete(`responsibility:${id}`)
+    anchors.value = kept
   }
 }
+
+// --- arranging (§5) ------------------------------------------------------------------------------------------------------
+const notify = useNotify()
+/** Arranged places not saved yet: fixed for the automatic layout, so people settle around them at once (§5.4). */
+const anchors = ref(new Map<string, Point>())
+const arrangeMenu = ref<InstanceType<typeof Menu> | null>(null)
+const formLabel: Record<Form, string> = {
+  circle: 'a circle',
+  clusters: 'clusters around their responsible',
+  grid: 'a grid',
+}
+async function arrangeAs(form: Form) {
+  const data = map.data.value
+  if (!data?.responsibilities.length) return
+  // Moved by hand since (not where an earlier Arrange put them): asks first.
+  const byHand = [...moved.value].filter(([id, p]) => {
+    const a = anchors.value.get(id)
+    return id.startsWith('responsibility:') && (!a || a.x !== p.x || a.y !== p.y)
+  })
+  if (
+    props.edit &&
+    byHand.length &&
+    !(await ask(
+      'Replace your unsaved moves?',
+      `${plural(byHand.length, 'responsibility moved by hand is', 'responsibilities moved by hand are')} placed anew. Moved notes stay where they are.`,
+      'Arrange',
+    ))
+  )
+    return
+  const items = data.responsibilities.map((r) => ({
+    id: nodeId('responsibility', r.id),
+    name: r.name,
+    escalation: r.escalation,
+  }))
+  // Centred where the responsibilities are now, clear of every note, shown or not.
+  const now = canvas.value?.positions() ?? new Map<string, Point>()
+  const here = items.map((i) => now.get(i.id)).filter((p): p is Point => !!p)
+  const centre = here.length
+    ? { x: here.reduce((s, p) => s + p.x, 0) / here.length, y: here.reduce((s, p) => s + p.y, 0) / here.length }
+    : { x: 0, y: 0 }
+  const boxes = data.notes.map((n) => {
+    const at = moved.value.get(`note:${n.id}`) ?? { x: n.x, y: n.y }
+    return { ...at, ...noteSize(n.text, n.width) }
+  })
+  const { points, clear } = place(
+    arrange(form, items),
+    centre,
+    boxes,
+    items.map((i) => i.name),
+  )
+  const next = new Map(moved.value)
+  for (const [id, p] of points) next.set(id, p)
+  moved.value = next
+  anchors.value = points
+  await nextTick()
+  canvas.value?.fit()
+  notify.info(
+    `Arranged ${plural(points.size, 'responsibility', 'responsibilities')} as ${formLabel[form]}`,
+    `${props.edit ? 'Not saved yet: Save layout keeps it.' : 'Only for you, until you leave the page.'}${clear ? '' : ' Some responsibilities are under notes.'}`,
+  )
+}
+const arrangeItems = computed<MenuItem[]>(() => [
+  { label: 'Circle', icon: 'pi pi-circle', command: () => void arrangeAs('circle') },
+  { label: 'Around their responsible', icon: 'pi pi-sitemap', command: () => void arrangeAs('clusters') },
+  { label: 'Grid', icon: 'pi pi-th-large', command: () => void arrangeAs('grid') },
+])
 // --- notes (§7) ----------------------------------------------------------------------------------------------------------
 const noteOpen = ref(false)
 const editingNote = ref<NonNullable<typeof map.data.value>['notes'][number] | null>(null)
@@ -352,6 +428,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       :focus="findFocus ?? focus"
       :editable="edit"
       :line-view="layers.has('people') ? lines : undefined"
+      :anchors="anchors"
       @open="openPage"
       @edit-note="editNote"
     >
@@ -363,6 +440,17 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
         </div>
       </template>
       <template #controls>
+        <Button
+          label="Arrange"
+          icon="pi pi-objects-column"
+          size="small"
+          severity="secondary"
+          aria-haspopup="true"
+          aria-controls="overview-arrange"
+          data-test="overview-arrange"
+          @click="(e: Event) => arrangeMenu?.toggle(e)"
+        />
+        <Menu id="overview-arrange" ref="arrangeMenu" :model="arrangeItems" popup />
         <MoreMenu v-if="edit" :items="layoutItems" label="Layout" />
       </template>
     </OverviewCanvas>

@@ -180,3 +180,24 @@ describe("a note's size (§7.1)", () => {
     expect(noteObstacle({ id: 'note:n', x: 0, y: 0, w: 60, h: 80 })).toEqual({ id: 'note:n', x: 30, y: 40, r: 50 })
   })
 })
+
+describe('the layout after arranging (docs/responsibilities-mcp-and-map-plan.md §5.4)', () => {
+  it('keeps arranged places fixed, as saved ones', () => {
+    const { nodes, edges } = buildGraph(map({ network: { x: 0, y: 0 } }), layers('people'), 'both')
+    const anchors = new Map([
+      ['responsibility:network', { x: 900, y: 900 }],
+      ['responsibility:backup', { x: 1200, y: 900 }],
+    ])
+    const layout = layoutOverview(nodes, edges, [], anchors)
+    expect(layout.nodes.get('responsibility:network')).toEqual({ x: 900, y: 900 })
+    expect(layout.nodes.get('responsibility:backup')).toEqual({ x: 1200, y: 900 })
+  })
+
+  it('starts a person next to their fixed responsibilities, so they settle there', () => {
+    // Anna's two far from the middle, on a ring around (2000, 2000): she ends up near its middle, not near (0, 0).
+    const saved = { network: { x: 2000, y: 1850 }, backup: { x: 2000, y: 2150 }, printers: { x: -2000, y: -2000 } }
+    const { nodes, edges } = buildGraph(map(saved), layers('people'))
+    const anna = layoutOverview(nodes, edges).nodes.get('person:a1')!
+    expect(distance(anna, { x: 2000, y: 2000 })).toBeLessThan(250)
+  })
+})

@@ -22,6 +22,10 @@ import { packEnclose } from 'd3-hierarchy'
  * Saved routers (docs/network-map-positions-plan.md §4) stay exactly where they were saved. A group with one is anchored:
  * its other members are laid out around the saved ones, and the group never moves. The free groups are placed around the
  * anchored ones and pushed off them; two anchored circles stay as the person put them, even overlapping.
+ *
+ * `starts` (the responsibilities' overview, docs/responsibilities-mcp-and-map-plan.md §5.4) gives a free node its own starting point
+ * instead of the spiral around the anchored ones, and pulls it there rather than to the middle of everything; only nodes outside
+ * every group use it. Without it, nothing changes.
  */
 
 export interface GraphNode {
@@ -74,6 +78,9 @@ export function seeded(seed = 0x2f6b3a1): () => number {
 interface Body extends SimulationNodeDatum {
   id: string
   r: number
+  /** Where it is pulled to instead of the centre: its own start (`starts`). */
+  hx?: number
+  hy?: number
 }
 
 /** Where a free body starts beside fixed ones: around their centre, on a sunflower spiral (deterministic). */
@@ -111,8 +118,8 @@ function settle(
         .strength(0.4),
     )
     .force('collide', forceCollide<Body>(collide).iterations(2))
-    .force('x', forceX<Body>(centre.x).strength(0.06))
-    .force('y', forceY<Body>(centre.y).strength(0.06))
+    .force('x', forceX<Body>((b) => b.hx ?? centre.x).strength(0.06))
+    .force('y', forceY<Body>((b) => b.hy ?? centre.y).strength(0.06))
     .stop()
   for (let i = 0; i < ticks; i++) {
     simulation.tick()
@@ -167,6 +174,7 @@ export function layoutGraph(
   nodes: GraphNode[],
   edges: LayoutEdge[],
   saved: ReadonlyMap<string, Point> = new Map(),
+  starts: ReadonlyMap<string, Point> = new Map(),
 ): Layout {
   const sorted = [...nodes].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   const byId = new Map(sorted.map((n) => [n.id, n]))
@@ -226,6 +234,9 @@ export function layoutGraph(
   const groupBodies: Body[] = groupIds.map((g) => {
     const anchor = anchors.get(g)
     if (anchor) return { id: g, r: sizes.get(g)!, x: anchor.x, y: anchor.y, fx: anchor.x, fy: anchor.y }
+    // A node of its own with a start of its own: there, a little apart from others starting at the same place.
+    const start = g.startsWith('node:') ? starts.get(g.slice('node:'.length)) : undefined
+    if (start) return { id: g, r: sizes.get(g)!, ...spiral(start, freeGroups++), hx: start.x, hy: start.y }
     return anchors.size
       ? { id: g, r: sizes.get(g)!, ...spiral(anchorCentre, freeGroups++) }
       : { id: g, r: sizes.get(g)! }
