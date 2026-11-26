@@ -75,11 +75,34 @@ public sealed class TopologyAnalyzerTests
             }
         }
 
-        public void Neighbor(Guid router, string port, string identity, string? mac, string? theirPort, string by = "mndp") =>
+        public void Neighbor(Guid router, string port, string identity, string? mac, string? theirPort, string by = "mndp", string? via = null) =>
             Seen.Add(new Observation(router, ObservationSource.Neighbor)
             {
-                Interface = port, Identity = identity, Mac = mac, RemoteInterface = theirPort, DiscoveredBy = by, SeenAt = At,
+                Interface = port, Bridge = via, Identity = identity, Mac = mac, RemoteInterface = theirPort, DiscoveredBy = by, SeenAt = At,
             });
+
+        /// <summary>VLAN interfaces on a parent port or bridge, with the parent's MAC, as RouterOS gives them.</summary>
+        public void Vlans(Guid router, string parent, params int[] ids)
+        {
+            var mac = MacOf(router, parent);
+            foreach (var id in ids)
+            {
+                Ports.Add(new RouterPort(router, $"vlan{id}") { Type = "vlan", Mac = mac, VlanParent = parent, VlanId = id });
+            }
+        }
+
+        /// <summary>A bridge with its first member's MAC (RouterOS' auto-mac).</summary>
+        public void BridgeOn(Guid router, string name, string member) =>
+            Ports.Add(new RouterPort(router, name) { Type = "bridge", Mac = MacOf(router, member) });
+
+        public TopologyAdapter Adapter(Guid host, string mac, string adapter, bool isVirtual, string? kind = null, long? bps = 10_000_000_000)
+        {
+            var a = new TopologyAdapter(host, Guid.NewGuid(), mac, adapter, bps, isVirtual, kind);
+            Adapters.Add(a);
+            return a;
+        }
+
+        public readonly List<TopologyRule> Rules = [];
 
         public void Connect(ConnectionEnd a, ConnectionEnd b, string type = "baset-1g") => Connections.Add(new TopologyConnection(Guid.NewGuid(), a, b, type));
 
@@ -88,7 +111,7 @@ public sealed class TopologyAnalyzerTests
         public TopologyResult Analyze() => TopologyAnalyzer.Analyze(new TopologyInput
         {
             Routers = Routers, Hosts = Hosts, Ports = Ports, Observations = Seen, Adapters = Adapters, Assignments = Assignments,
-            Connections = Connections, Ignored = Ignored,
+            Connections = Connections, Ignored = Ignored, Rules = Rules,
         });
     }
 
@@ -347,10 +370,361 @@ public sealed class TopologyAnalyzerTests
         Assert.AreEqual(Run(), Run());
     }
 
+    // --- ends on the wire (docs/network-suggestion-rules-plan.md §3) -------------------------------------------------------
+
+    private static readonly int[] NineVlans = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+
     [TestMethod]
-    public void Five_hundred_routers_are_analysed_in_seconds()
+    public void Nine_VLANs_on_one_trunk_are_one_suggestion_on_the_physical_ports()
     {
         var w = new World();
+        var a = w.Router("office-gw", ("ether1", null, 1000));
+        var b = w.Router("core-gw", ("sfp-sfpplus1", null, 1000));
+        w.Vlans(a, "ether1", NineVlans);
+        w.Vlans(b, "sfp-sfpplus1", NineVlans);
+        var (macA, macB) = (w.MacOf(a, "ether1"), w.MacOf(b, "sfp-sfpplus1"));
+        w.Neighbor(a, "ether1", "core-gw", macB, "sfp-sfpplus1");
+        w.Neighbor(b, "sfp-sfpplus1", "office-gw", macA, "ether1");
+        foreach (var id in NineVlans)
+        {
+            w.Neighbor(a, $"vlan{id}", "core-gw", macB, $"vlan{id}");
+            w.Neighbor(b, $"vlan{id}", "office-gw", macA, $"vlan{id}");
+        }
+        var s = w.Analyze().Suggestions.Single();
+        Assert.AreEqual((Confidence.High, "baset-1g"), (s.Confidence, s.Type), "the type comes from the physical ports");
+        CollectionAssert.AreEquivalent(new[] { "ether1", "sfp-sfpplus1" }, new[] { s.A.Interface, s.B.Interface });
+        Assert.AreEqual(2, s.Evidence.Count, string.Join("\n", s.Evidence.Select(e => e.Text)));
+        var joined = s.Evidence.Single(e => e.Vlans is not null);
+        StringAssert.Contains(joined.Text, "and on 9 VLANs on that port: vlan10, vlan20, vlan30 and 6 more");
+        Assert.AreEqual(9, joined.Vlans!.Count);
+        Assert.AreEqual("mndp", joined.By);
+    }
+
+    [TestMethod]
+    [DataRow("vlan alone", DisplayName = "the neighbor names only the VLAN")]
+    [DataRow("port then vlan", DisplayName = "the neighbor names the port, then the VLAN")]
+    public void VLANs_on_a_vlan_filtering_bridge_are_one_suggestion(string shape)
+    {
+        var w = new World();
+        var a = w.Router("office-gw", ("ether1", null, 1000));
+        var b = w.Router("core-gw", ("sfp-sfpplus1", null, 1000));
+        w.BridgeOn(a, "bridge", "ether1");
+        w.BridgeOn(b, "bridge", "sfp-sfpplus1");
+        w.Vlans(a, "bridge", NineVlans);
+        w.Vlans(b, "bridge", NineVlans);
+        var (macA, macB) = (w.MacOf(a, "ether1"), w.MacOf(b, "sfp-sfpplus1"));
+        // A port in a bridge: its far side names it as bridge/port.
+        w.Neighbor(a, "ether1", "core-gw", macB, "bridge/sfp-sfpplus1", via: "bridge");
+        w.Neighbor(b, "sfp-sfpplus1", "office-gw", macA, "bridge/ether1", via: "bridge");
+        foreach (var id in NineVlans)
+        {
+            if (shape == "vlan alone")
+            {
+                w.Neighbor(a, $"vlan{id}", "core-gw", macB, $"vlan{id}");
+                w.Neighbor(b, $"vlan{id}", "office-gw", macA, $"vlan{id}");
+            }
+            else
+            {
+                w.Neighbor(a, "ether1", "core-gw", macB, $"vlan{id}", via: $"vlan{id}");
+                w.Neighbor(b, "sfp-sfpplus1", "office-gw", macA, $"vlan{id}", via: $"vlan{id}");
+            }
+        }
+        var s = w.Analyze().Suggestions.Single();
+        Assert.AreEqual(Confidence.High, s.Confidence);
+        CollectionAssert.AreEquivalent(new[] { "ether1", "sfp-sfpplus1" }, new[] { s.A.Interface, s.B.Interface });
+        Assert.IsTrue(s.Evidence.Any(e => e.Text.Contains("9 VLANs")), string.Join("\n", s.Evidence.Select(e => e.Text)));
+    }
+
+    [TestMethod]
+    public void One_bridge_per_VLAN_counts_for_the_trunk_and_attaches_the_hosts_behind_it()
+    {
+        var w = new World();
+        var a = w.Router("office-gw", ("ether1", null, 1000), ("ether3", null, 1000));
+        var b = w.Router("core-gw", ("sfp-sfpplus1", null, 1000));
+        w.Vlans(a, "ether1", 10, 20);
+        w.Vlans(a, "ether3", 30);
+        w.Vlans(b, "sfp-sfpplus1", 10, 20);
+        // The VLAN interfaces are the bridges' ports, so the MAC table names them.
+        w.Learns(a, "vlan10", w.MacOf(b, "sfp-sfpplus1"));
+        w.Learns(a, "vlan20", w.MacOf(b, "sfp-sfpplus1"));
+        w.Learns(b, "sfp-sfpplus1", w.MacOf(a, "ether1"));
+        var (server, mac) = w.Server("srv-db");
+        w.Learns(a, "vlan30", mac);
+        var result = w.Analyze();
+        var link = result.Suggestions.Single(s => s.A.SensorId is not null && s.B.SensorId is not null);
+        CollectionAssert.AreEquivalent(new[] { "ether1", "sfp-sfpplus1" }, new[] { link.A.Interface, link.B.Interface });
+        var host = result.Suggestions.Single(s => s.A.SensorId is null || s.B.SensorId is null);
+        Assert.AreEqual(Confidence.High, host.Confidence);
+        Assert.IsTrue(new[] { host.A, host.B }.Any(e => e.SensorId == a && e.Interface == "ether3") && new[] { host.A, host.B }.Any(e => e.HostId == server));
+        var item = result.Interfaces.Single(i => i.Mac == mac);
+        Assert.AreEqual(("ether3", 30), (item.AttachedPort, item.AttachedVlan!.Value));
+    }
+
+    [TestMethod]
+    public void A_server_whose_adapters_share_a_MAC_is_suggested_on_its_physical_adapter()
+    {
+        var w = new World();
+        var r = w.Router("gw", ("ether5", null, 10_000), ("ether6", null, 10_000));
+        var hv = w.Host("hv01");
+        var mac = w.NextMac();
+        w.Adapter(hv, mac, "eno1", false, "Ethernet");
+        w.Adapter(hv, mac, "eno1.10", true, "VLAN");
+        w.Adapter(hv, mac, "vmbr0", true, "Bridge", null);
+        var nas = w.Host("nas02");
+        var bondMac = w.NextMac();
+        w.Adapter(nas, bondMac, "bond0", true, "Bond");
+        w.Adapter(nas, bondMac, "eno1", false, "Ethernet");
+        w.Adapter(nas, bondMac, "eno2", false, "Ethernet");
+        w.Learns(r, "ether5", mac);
+        w.Learns(r, "ether6", bondMac);
+        var result = w.Analyze();
+        Assert.AreEqual(2, result.Suggestions.Count, "today a MAC with several adapters gave none");
+        string HostSide(Guid host) => result.Suggestions.Select(s => s.A.HostId == host ? s.A : s.B.HostId == host ? s.B : null).OfType<ConnectionEnd>().Single().Interface!;
+        Assert.AreEqual("eno1", HostSide(hv));
+        Assert.AreEqual("bond0", HostSide(nas), "a bond's members carry its MAC");
+        Assert.AreEqual(("eno1", MatchKind.ServerAdapter), (result.Interfaces.Single(i => i.Mac == mac).MatchInterface, result.Interfaces.Single(i => i.Mac == mac).Match));
+    }
+
+    [TestMethod]
+    public void Two_vNICs_of_one_host_on_one_port_are_one_cable()
+    {
+        var w = new World();
+        var r = w.Router("gw", ("ether5", null, 10_000));
+        var hv = w.Host("hv02");
+        var (mgmt, backup) = ("00:15:5D:00:00:01", "00:15:5D:00:00:02");
+        w.Adapter(hv, mgmt, "vEthernet (Mgmt)", true);
+        w.Adapter(hv, backup, "vEthernet (Backup)", true);
+        w.Learns(r, "ether5", mgmt, backup);
+        var s = w.Analyze().Suggestions.Single();
+        var hostEnd = s.A.SensorId is null ? s.A : s.B;
+        Assert.AreEqual((hv, (string?)null), (hostEnd.HostId, hostEnd.Interface), "no physical adapter seen: the person picks");
+        Assert.AreEqual(2, s.Evidence.Count, "both vNICs are named");
+    }
+
+    [TestMethod]
+    public void Two_real_cables_stay_two_and_two_tunnels_stay_two()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000), ("ether2", null, 1000), ("wg-b1", "wg", null), ("wg-b2", "wg", null));
+        var b = w.Router("b", ("ether1", null, 1000), ("ether2", null, 1000), ("wg-a1", "wg", null), ("wg-a2", "wg", null));
+        foreach (var port in new[] { "ether1", "ether2" })
+        {
+            w.Neighbor(a, port, "b", w.MacOf(b, port), port);
+            w.Neighbor(b, port, "a", w.MacOf(a, port), port);
+        }
+        foreach (var n in new[] { "1", "2" })
+        {
+            w.Seen.Add(new Observation(a, ObservationSource.WireGuardInterface) { Interface = $"wg-b{n}", RemoteKey = $"KEY-A{n}", SeenAt = At });
+            w.Seen.Add(new Observation(b, ObservationSource.WireGuardInterface) { Interface = $"wg-a{n}", RemoteKey = $"KEY-B{n}", SeenAt = At });
+            w.Seen.Add(new Observation(a, ObservationSource.WireGuardPeer) { Interface = $"wg-b{n}", RemoteKey = $"KEY-B{n}", SeenAt = At });
+            w.Seen.Add(new Observation(b, ObservationSource.WireGuardPeer) { Interface = $"wg-a{n}", RemoteKey = $"KEY-A{n}", SeenAt = At });
+        }
+        var result = w.Analyze();
+        Assert.AreEqual(2, result.Suggestions.Count(s => s.Type != ConnectionTypes.WireGuard));
+        Assert.AreEqual(2, result.Suggestions.Count(s => s.Type == ConnectionTypes.WireGuard));
+    }
+
+    [TestMethod]
+    public void A_VLAN_seen_across_two_cables_adds_no_third_suggestion()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000), ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000), ("ether2", null, 1000));
+        w.Vlans(a, "ether1", 20);
+        w.Vlans(b, "ether2", 20);
+        foreach (var port in new[] { "ether1", "ether2" })
+        {
+            w.Neighbor(a, port, "b", w.MacOf(b, port), port);
+            w.Neighbor(b, port, "a", w.MacOf(a, port), port);
+        }
+        w.Neighbor(a, "vlan20", "b", w.MacOf(b, "ether2"), "vlan20");
+        w.Neighbor(b, "vlan20", "a", w.MacOf(a, "ether1"), "vlan20");
+        var result = w.Analyze();
+        Assert.AreEqual(2, result.Suggestions.Count, string.Join("\n", result.Suggestions.Select(Ends)));
+        Assert.IsTrue(result.Suggestions.All(s => s.Evidence.Any(e => e.Text.Contains("vlan20"))), "each side names the VLAN on its cable");
+    }
+
+    [TestMethod]
+    public void A_second_path_that_only_the_MAC_table_shows_is_low()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000), ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        w.Neighbor(a, "ether1", "b", w.MacOf(b, "ether1"), "ether1");
+        w.Neighbor(b, "ether1", "a", w.MacOf(a, "ether1"), "ether1");
+        // A switch on ether2 carries a VLAN to b by another way.
+        w.Learns(a, "ether2", w.MacOf(b, "ether1"));
+        var result = w.Analyze();
+        Assert.AreEqual(2, result.Suggestions.Count);
+        var second = result.Suggestions.Single(s => s.A.Interface == "ether2" || s.B.Interface == "ether2");
+        Assert.AreEqual(Confidence.Low, second.Confidence);
+        Assert.IsTrue(second.Evidence.Any(e => e.Rule == "second-path" && e.Text.Contains("by neighbor discovery")), second.Evidence[^1].Text);
+        Assert.AreEqual(Confidence.High, result.Suggestions.Single(s => s != second).Confidence);
+    }
+
+    [TestMethod]
+    public void A_VRRP_MAC_makes_no_link()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        const string vrrp = "00:00:5E:00:01:0A";
+        w.Ports.Add(new RouterPort(a, "vrrp10") { Type = "vrrp", Mac = vrrp });
+        w.Ports.Add(new RouterPort(b, "vrrp10") { Type = "vrrp", Mac = vrrp });
+        // a is the backup: its bridge learns the group's MAC from b, the master.
+        w.Learns(a, "ether2", vrrp);
+        var result = w.Analyze();
+        Assert.AreEqual(0, result.Suggestions.Count, string.Join("; ", result.Suggestions.Select(s => s.Evidence[0].Text)));
+        Assert.AreEqual(PortRole.Edge, result.Roles.Single(r => r.RouterId == a && r.Port == "ether2").Role);
+    }
+
+    [TestMethod]
+    public void A_connection_made_on_a_VLAN_is_confirmed_by_its_port()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000));
+        var b = w.Router("b", ("sfp-sfpplus1", null, 1000));
+        w.Vlans(a, "ether1", 10);
+        w.Vlans(b, "sfp-sfpplus1", 10);
+        w.Neighbor(a, "ether1", "b", w.MacOf(b, "sfp-sfpplus1"), "sfp-sfpplus1");
+        w.Neighbor(b, "sfp-sfpplus1", "a", w.MacOf(a, "ether1"), "ether1");
+        w.Connect(w.End(a, "vlan10"), w.End(b, "vlan10"));
+        var result = w.Analyze();
+        Assert.AreEqual(0, result.Suggestions.Count, "the VLAN connection covers its port's cable");
+        Assert.IsTrue(result.Checks.Single().Evidenced);
+    }
+
+    [TestMethod]
+    public void A_switch_seen_on_its_VLANs_is_one_suggestion_with_its_own_port()
+    {
+        var w = new World();
+        var r = w.Router("gw", ("sfp-sfpplus1", null, 10_000));
+        w.Vlans(r, "sfp-sfpplus1", 10, 20, 30);
+        var sw = w.Host("core-sw");
+        const string swMac = "64:D1:54:00:00:09";
+        w.Assignments.Add(new TopologyAssignment(swMac, sw, null));
+        w.Neighbor(r, "sfp-sfpplus1", "core-sw", swMac, "sfp1");
+        foreach (var id in new[] { 10, 20, 30 })
+        {
+            w.Neighbor(r, $"vlan{id}", "core-sw", swMac, $"vlan{id}");
+        }
+        var s = w.Analyze().Suggestions.Single();
+        var hostEnd = s.A.SensorId is null ? s.A : s.B;
+        var routerEnd = s.A.SensorId is null ? s.B : s.A;
+        Assert.AreEqual(("sfp1", "sfp-sfpplus1"), (hostEnd.Interface, routerEnd.Interface));
+        StringAssert.Contains(s.Evidence.Single().Text, "and on 3 VLANs on that port: vlan10, vlan20, vlan30");
+    }
+
+    // --- skip rules (docs/network-suggestion-rules-plan.md §4) ---------------------------------------------------------------
+
+    [TestMethod]
+    public void A_VLAN_rule_removes_the_second_path_and_keeps_the_interface()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000), ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        w.Neighbor(a, "ether1", "b", w.MacOf(b, "ether1"), "ether1");
+        w.Neighbor(b, "ether1", "a", w.MacOf(a, "ether1"), "ether1");
+        w.Seen.Add(new Observation(a, ObservationSource.BridgeHost) { Interface = "ether2", Bridge = "bridge", VlanId = 20, Mac = w.MacOf(b, "ether1"), SeenAt = At });
+        var (_, guest) = w.Server("guest-laptop");
+        w.Seen.Add(new Observation(a, ObservationSource.BridgeHost) { Interface = "ether2", Bridge = "bridge", VlanId = 20, Mac = guest, SeenAt = At });
+        var rule = new TopologyRule { Id = Guid.NewGuid(), Routers = new HashSet<Guid> { a }, Vlans = [new VlanRange(20, 20)] };
+        w.Rules.Add(rule);
+        var result = w.Analyze();
+        var s = result.Suggestions.Single();
+        CollectionAssert.AreEquivalent(new[] { "ether1", "ether1" }, new[] { s.A.Interface, s.B.Interface });
+        var item = result.Interfaces.Single(i => i.Mac == guest);
+        Assert.AreEqual(("ether2", rule.Id), (item.AttachedPort, item.SkippedBy!.Value), "the interface stays, tagged");
+        Assert.AreEqual(new RuleHit(rule.Id, 2, 1), result.Hits.Single());
+        Assert.AreEqual(PortRole.Edge, result.Roles.Single(r => r.RouterId == a && r.Port == "ether2").Role, "the roles follow the rules");
+    }
+
+    [TestMethod]
+    public void An_interface_rule_skips_the_port_also_from_the_other_side()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether10", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        // Only b's neighbor entry names a's ether10.
+        w.Neighbor(b, "ether1", "a", w.MacOf(a, "ether10"), "ether10");
+        w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), Routers = new HashSet<Guid> { a }, InterfacePattern = "ETHER1?" });
+        Assert.AreEqual(0, w.Analyze().Suggestions.Count);
+    }
+
+    [TestMethod]
+    public void An_evidence_rule_skips_a_neighbor_only_when_all_its_protocols_are_skipped()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000), ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        var c = w.Router("c", ("ether1", null, 1000));
+        w.Neighbor(a, "ether1", "b", w.MacOf(b, "ether1"), "ether1", by: "cdp");
+        w.Neighbor(a, "ether2", "c", w.MacOf(c, "ether1"), "ether1", by: "mndp,lldp");
+        w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), Evidence = SkipEvidence.Cdp | SkipEvidence.Mndp });
+        var s = w.Analyze().Suggestions.Single();
+        Assert.IsTrue(s.A.SensorId == c || s.B.SensorId == c, "c is seen by LLDP too");
+    }
+
+    [TestMethod]
+    public void A_router_rule_without_conditions_skips_the_router_and_never_unconfirms_its_connections()
+    {
+        var w = new World();
+        var a = w.Router("lab", ("ether1", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000), ("ether2", null, 1000));
+        var c = w.Router("c", ("ether1", null, 1000));
+        w.Neighbor(a, "ether1", "b", w.MacOf(b, "ether1"), "ether1");
+        w.Neighbor(b, "ether1", "lab", w.MacOf(a, "ether1"), "ether1");
+        w.Neighbor(b, "ether2", "c", w.MacOf(c, "ether1"), "ether1");
+        w.Connect(w.End(a, "ether1"), w.End(b, "ether1"));
+        w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), Routers = new HashSet<Guid> { a } });
+        var result = w.Analyze();
+        var s = result.Suggestions.Single();
+        Assert.IsTrue(s.A.SensorId != a && s.B.SensorId != a, "b's view of the lab router makes no suggestion either");
+        Assert.IsTrue(result.Checks.Single().Evidenced, "the rules change suggestions, never a connection's state");
+    }
+
+    [TestMethod]
+    public void A_rule_on_all_routers_without_conditions_does_nothing()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        w.Neighbor(a, "ether2", "b", w.MacOf(b, "ether1"), "ether1");
+        w.Rules.Add(new TopologyRule { Id = Guid.NewGuid() });
+        Assert.AreEqual(1, w.Analyze().Suggestions.Count);
+    }
+
+    [TestMethod]
+    public void Type_and_MAC_prefix_rules_skip_what_they_name()
+    {
+        var w = new World();
+        var a = w.Router("a", ("ether1", null, 1000), ("ether2", null, 1000));
+        var b = w.Router("b", ("ether1", null, 1000));
+        w.Vlans(a, "ether1", 10);
+        w.Vlans(b, "ether1", 10);
+        w.Neighbor(a, "vlan10", "b", w.MacOf(b, "ether1"), "vlan10");
+        var vm = w.Host("test-vm");
+        w.Adapter(vm, "00:50:56:00:00:01", "ens192", false);
+        w.Learns(a, "ether2", "00:50:56:00:00:01");
+        w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), Types = ["VLAN"] });
+        w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), MacPrefix = "00:50:56" });
+        var result = w.Analyze();
+        Assert.AreEqual(0, result.Suggestions.Count, string.Join("; ", result.Suggestions.Select(s => s.Evidence[0].Text)));
+        Assert.AreEqual(2, result.Hits.Count(h => h.Rows == 1));
+    }
+
+    [TestMethod]
+    [DataRow(false, DisplayName = "without rules")]
+    [DataRow(true, DisplayName = "with three rules: two runs")]
+    public void Five_hundred_routers_are_analysed_in_seconds(bool withRules)
+    {
+        var w = new World();
+        if (withRules)
+        {
+            w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), Vlans = [new VlanRange(99, 99)] });
+            w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), InterfacePattern = "*-guest" });
+            w.Rules.Add(new TopologyRule { Id = Guid.NewGuid(), MacPrefix = "00:50:56" });
+        }
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var routers = Enumerable.Range(0, 500).Select(i => w.Router($"r{i:000}", ("ether1", null, 1000), ("ether2", null, 1000), ("ether3", null, 1000))).ToList();
         for (var i = 1; i < routers.Count; i++)

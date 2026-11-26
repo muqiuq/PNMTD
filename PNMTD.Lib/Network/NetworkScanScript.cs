@@ -17,6 +17,12 @@ public enum ScanTable { Interfaces, Ethernet, Bridges, MacTable, Neighbors, Arp,
 /// <c>:do … on-error</c>, so their absence fails nothing.</item>
 /// <item><c>/interface ethernet monitor … once</c> runs per port inside <c>:do … on-error</c>: a port that can't be monitored
 /// (a CHR's virtio port on some versions) leaves only its own entry out.</item>
+/// <item>VLANs (docs/network-suggestion-rules-plan.md §10, V0, two linked CHRs 7.25.1, <c>Fixtures/Network/vlans</c>):
+/// neighbor discovery answers on every VLAN interface, each its own entry with the VLAN's name in <c>interface</c> and
+/// <c>interface-name</c>. Through a bridge port <c>interface</c> is <c>["ether2","bridge1"]</c>; through a VLAN on a
+/// vlan-filtering bridge only <c>["vlan10"]</c> (and without LLDP); through a VLAN that is a bridge's port
+/// <c>["vlan10","br10"]</c>, with <c>interface-name</c> as <c>br10/vlan10</c>. A vlan-filtering bridge's MAC table names
+/// the member port with <c>vid</c>; with one bridge per VLAN, <c>on-interface</c> is the VLAN interface.</item>
 /// </list>
 /// </summary>
 public static class NetworkScanScript
@@ -62,7 +68,8 @@ public static class NetworkScanScript
                 ":do { :set ($r->\"bonds\") [[:parse \"/interface/bonding/print as-value\"]] } on-error={}"),
             ScanTable.MacTable => ":put [:serialize to=json [/interface/bridge/host/print as-value]]",
             ScanTable.Neighbors => Block(
-                ":set ($r->\"neighbors\") [/ip/neighbor/print as-value]",
+                // Without a proplist, 7.25.1 leaves interface-name, discovered-by and platform out; 7.13 has every one named (V0).
+                ":set ($r->\"neighbors\") [/ip/neighbor/print as-value proplist=interface,address,address4,mac-address,identity,platform,board,version,interface-name,discovered-by]",
                 ":do { :set ($r->\"settings\") [/ip/neighbor/discovery-settings/get] } on-error={}"),
             ScanTable.Arp => ":put [:serialize to=json [/ip/arp/print as-value]]",
             ScanTable.Dhcp => Block(

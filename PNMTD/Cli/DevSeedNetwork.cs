@@ -67,6 +67,17 @@ internal static class DevSeedNetwork
                         SfpWavelength = "1310nm", SfpVendor = "FS", SfpPartNumber = "SFP-10GLR-31" }, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
             }
             Port("bridge", "bridge", 2, null, null);
+            // Basel ↔ Bern: the fibre carries two VLANs, each seen by MNDP; the analysis puts them on the fibre (docs/network-suggestion-rules-plan.md §3).
+            if (o.Host is "office-basel-gw" or "office-bern-gw")
+            {
+                foreach (var id in new[] { 10, 20 })
+                {
+                    ports.Add(new NetworkRouterPortEntity
+                    {
+                        SensorId = sensor, Name = $"vlan{id}", Type = "vlan", Mac = Mac(o.Index, 6), Running = true, VlanParent = "sfp-sfpplus1", VlanId = id, SeenAt = scanned,
+                    });
+                }
+            }
             Port(o.Host == Hub ? "wg-offices" : "wg-hub", "wg", 9, null, ConnectionTypes.WireGuard);
             db.NetworkRouterPorts.AddRange(ports);
             db.NetworkRouterSnapshots.Add(new NetworkRouterSnapshotEntity
@@ -105,10 +116,14 @@ internal static class DevSeedNetwork
             if (o.Host == "office-basel-gw")
             {
                 See(ObservationSource.Neighbor, "sfp-sfpplus1", mac: Mac(3, 6), identity: "bern-gw", remote: "sfp-sfpplus1", by: "mndp");
+                See(ObservationSource.Neighbor, "vlan10", mac: Mac(3, 6), identity: "bern-gw", remote: "vlan10", by: "mndp");
+                See(ObservationSource.Neighbor, "vlan20", mac: Mac(3, 6), identity: "bern-gw", remote: "vlan20", by: "mndp");
             }
             if (o.Host == "office-bern-gw")
             {
                 See(ObservationSource.Neighbor, "sfp-sfpplus1", mac: Mac(2, 6), identity: "basel-gw", remote: "sfp-sfpplus1", by: "mndp");
+                See(ObservationSource.Neighbor, "vlan10", mac: Mac(2, 6), identity: "basel-gw", remote: "vlan10", by: "mndp");
+                See(ObservationSource.Neighbor, "vlan20", mac: Mac(2, 6), identity: "basel-gw", remote: "vlan20", by: "mndp");
             }
             // The office LAN: a printer, laptops and phones by DHCP; on Lugano, the camera that was unplugged.
             var lan = new (string Mac, string Port, string Host)[]

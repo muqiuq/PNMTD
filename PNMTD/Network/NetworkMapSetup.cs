@@ -16,6 +16,7 @@ public static class NetworkMapSetup
         services.AddScoped<NetworkConnectionService>();
         services.AddScoped<NetworkPositionService>();
         services.AddScoped<NetworkScanService>();
+        services.AddScoped<NetworkSkipRuleService>();
         return services;
     }
 }

@@ -1163,6 +1163,7 @@ export const api = {
         physical?: boolean
         routersOnly?: boolean
         unconfirmed?: boolean
+        onVirtualPort?: boolean
       },
     ) => call(client.GET('/api/v1/network-map/connections', { params: { query } })),
     connection: (id: Id) => call(client.GET('/api/v1/network-map/connections/{id}', { params: { path: { id } } })),
@@ -1221,6 +1222,16 @@ export const api = {
     cancelScan: (id: Id) => call(client.POST('/api/v1/network-map/scans/{id}/cancel', { params: { path: { id } } })),
     settings: () => call(client.GET('/api/v1/network-map/settings')),
     saveSettings: (body: S['NetworkMapSettingsRequest']) => call(client.PUT('/api/v1/network-map/settings', { body })),
+    // Skip rules (docs/network-suggestion-rules-plan.md §4.6): read with View; changed and previewed with Manage.
+    skipRules: () => call(client.GET('/api/v1/network-map/skip-rules')),
+    createSkipRule: (body: S['NetworkSkipRuleRequest']) =>
+      call(client.POST('/api/v1/network-map/skip-rules', { body })),
+    updateSkipRule: (id: Id, body: S['NetworkSkipRuleRequest']) =>
+      call(client.PUT('/api/v1/network-map/skip-rules/{id}', { params: { path: { id } }, body })),
+    deleteSkipRule: (id: Id) =>
+      call(client.DELETE('/api/v1/network-map/skip-rules/{id}', { params: { path: { id } } })),
+    previewSkipRule: (body: S['NetworkSkipRulePreviewRequest']) =>
+      call(client.POST('/api/v1/network-map/skip-rules/preview', { body })),
   },
 
   connectors: {

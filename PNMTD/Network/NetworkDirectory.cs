@@ -24,6 +24,12 @@ public sealed class NetworkDirectory
 
     public required LocationTreeSnapshot Tree { get; init; }
 
+    /// <summary>The routers' VLANs and bridges: (router, port, lower case) → "VLAN 10 on ether1", "bridge".</summary>
+    public IReadOnlyDictionary<(Guid, string), string> VirtualPorts { get; init; } = new Dictionary<(Guid, string), string>();
+
+    /// <summary>The skip rules' names (docs/network-suggestion-rules-plan.md §4).</summary>
+    public IReadOnlyDictionary<Guid, string> SkipRules { get; init; } = new Dictionary<Guid, string>();
+
     public static async Task<NetworkDirectory> LoadAsync(PnmtdDbContext db, LocationTree tree, CancellationToken ct)
     {
         var rows = await db.MikrotikRouters.AsNoTracking()
@@ -40,13 +46,28 @@ public sealed class NetworkDirectory
             .ToListAsync(ct);
         var os = servers.GroupBy(s => s.ParentId).ToDictionary(g => g.Key, g => g.First().Type == SensorType.WINDOWS ? "Windows" : "Linux");
         var hosts = await db.Hosts.AsNoTracking().Select(h => new { h.Id, h.Name, h.Enabled, h.LocationId }).ToListAsync(ct);
+        var virtualPorts = await db.NetworkRouterPorts.AsNoTracking()
+            .Where(p => p.Type == "vlan" || p.Type == "bridge" || p.VlanParent != null)
+            .Select(p => new { p.SensorId, p.Name, p.Type, p.VlanParent, p.VlanId })
+            .ToListAsync(ct);
         return new NetworkDirectory
         {
             Routers = routers.ToDictionary(r => r.SensorId),
             Hosts = hosts.ToDictionary(h => h.Id, h => new HostRow(h.Id, h.Name, h.Enabled, h.LocationId, os.GetValueOrDefault(h.Id), routerHosts.Contains(h.Id))),
             Tree = await tree.GetAsync(ct),
+            VirtualPorts = virtualPorts.GroupBy(p => (p.SensorId, p.Name.ToLowerInvariant())).ToDictionary(g => g.Key, g => VirtualPort(g.First().Type, g.First().VlanParent, g.First().VlanId)),
+            SkipRules = await db.NetworkSkipRules.AsNoTracking().ToDictionaryAsync(r => r.Id, r => r.Name, ct),
         };
     }
+
+    private static string VirtualPort(string? type, string? parent, int? vlanId) =>
+        parent is not null || type == "vlan"
+            ? $"VLAN{(vlanId is { } id ? $" {id}" : "")}{(parent is not null ? $" on {parent}" : "")}"
+            : "a bridge";
+
+    /// <summary>A router's port that is a VLAN or a bridge, as "VLAN 10 on ether1"; null for a port on the wire or a host's.</summary>
+    public string? VirtualPortOf(ConnectionEnd end) =>
+        end.SensorId is { } s && end.Interface is { Length: > 0 } i && VirtualPorts.TryGetValue((s, i.Trim().ToLowerInvariant()), out var text) ? text : null;
 
     /// <summary>
     /// A router as the map names it: its host's name when the host has only this router (a sensor is often just "router"),
@@ -74,7 +95,7 @@ public sealed class NetworkDirectory
         if (end.SensorId is { } s)
         {
             var name = Routers.TryGetValue(s, out var r) ? r.Name : "(deleted router)";
-            return new NetworkEndItem(NetworkDeviceKind.Router, end.HostId, s, name, end.Interface, site, SiteName(site));
+            return new NetworkEndItem(NetworkDeviceKind.Router, end.HostId, s, name, end.Interface, site, SiteName(site), VirtualPortOf(end));
         }
         var host = Hosts.TryGetValue(end.HostId, out var h) ? h.Name : "(deleted host)";
         return new NetworkEndItem(NetworkDeviceKind.Host, end.HostId, null, host, end.Interface, site, SiteName(site));

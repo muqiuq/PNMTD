@@ -298,6 +298,9 @@ public class NetworkInterfaceEntity
 
     public Guid? HintHostId { get; set; }
 
+    /// <summary>The skip rule that leaves out the row it is attached by (docs/network-suggestion-rules-plan.md §4.4).</summary>
+    public Guid? SkippedRuleId { get; set; }
+
     public Guid? AssignedHostId { get; set; }
 
     public string? AssignedInterface { get; set; }
@@ -493,6 +496,73 @@ public class NetworkRouterPositionEntity
 
     [AuditIgnore]
     public DateTime UpdatedAt { get; set; }
+
+    [AuditIgnore]
+    public Guid? UpdatedBy { get; set; }
+
+    [AuditIgnore]
+    public string? UpdatedByName { get; set; }
+}
+
+/// <summary>
+/// A skip rule (docs/network-suggestion-rules-plan.md §4.7): what the analysis leaves out of the suggestions, on all routers,
+/// a location (with its sub-locations) or one router. Its conditions must all match; the hits are the analysis' own.
+/// </summary>
+[Table("network_skip_rules")]
+[Audited]
+public class NetworkSkipRuleEntity
+{
+    [Key]
+    public Guid Id { get; set; }
+
+    [MaxLength(100)]
+    public string Name { get; set; } = "";
+
+    public bool Enabled { get; set; } = true;
+
+    public NetworkSkipRuleScope Scope { get; set; }
+
+    /// <summary>For <see cref="NetworkSkipRuleScope.Location"/>; the rule goes with the location.</summary>
+    public Guid? LocationId { get; set; }
+
+    /// <summary>For <see cref="NetworkSkipRuleScope.Router"/>: the router's sensor; the rule goes with it.</summary>
+    public Guid? SensorId { get; set; }
+
+    [MaxLength(100)]
+    public string? InterfacePattern { get; set; }
+
+    public List<string>? InterfaceTypes { get; set; }
+
+    /// <summary>As typed and checked: "10,20-29".</summary>
+    [MaxLength(200)]
+    public string? Vlans { get; set; }
+
+    public SkipEvidence Evidence { get; set; }
+
+    [MaxLength(17)]
+    public string? MacPrefix { get; set; }
+
+    /// <summary>The rows the last analysis left out by this rule.</summary>
+    [AuditIgnore]
+    public int Hits { get; set; }
+
+    [AuditIgnore]
+    public int HitRouters { get; set; }
+
+    [AuditIgnore]
+    public DateTime? HitsAt { get; set; }
+
+    [AuditIgnore]
+    public DateTime CreatedAt { get; set; }
+
+    [AuditIgnore]
+    public Guid? CreatedBy { get; set; }
+
+    [AuditIgnore]
+    public string? CreatedByName { get; set; }
+
+    [AuditIgnore]
+    public DateTime? UpdatedAt { get; set; }
 
     [AuditIgnore]
     public Guid? UpdatedBy { get; set; }

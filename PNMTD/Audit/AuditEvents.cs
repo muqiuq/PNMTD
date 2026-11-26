@@ -330,6 +330,9 @@ public static class AuditEvents
     public const string NetworkPositionsSaved = "NetworkPositionsSaved";
     public const string NetworkPositionCleared = "NetworkPositionCleared";
     public const string NetworkPositionsReset = "NetworkPositionsReset";
+    public const string NetworkSkipRuleCreated = "NetworkSkipRuleCreated";
+    public const string NetworkSkipRuleUpdated = "NetworkSkipRuleUpdated";
+    public const string NetworkSkipRuleDeleted = "NetworkSkipRuleDeleted";
     // Responsibilities (docs/responsibilities-plan.md §12.2).
     public const string ResponsibilityCreated = "ResponsibilityCreated";
     public const string ResponsibilityChanged = "ResponsibilityChanged";
@@ -412,6 +415,7 @@ public static class AuditTargets
     public const string NetworkInterface = "NetworkInterface";
     public const string NetworkScan = "NetworkScan";
     public const string NetworkRouterPosition = "NetworkRouterPosition";
+    public const string NetworkSkipRule = "NetworkSkipRule";
     public const string OsAdvisorySource = "OsAdvisorySource";
     public const string Responsibility = "Responsibility";
     public const string ResponsibilityNote = "ResponsibilityNote";
@@ -566,6 +570,8 @@ public static class AuditCatalog
         Add(AuditCategory.Network, null, AuditEvents.NetworkMapSettingsChanged);
         Add(AuditCategory.Network, AuditTargets.NetworkRouterPosition, AuditEvents.NetworkPositionsSaved, AuditEvents.NetworkPositionCleared,
             AuditEvents.NetworkPositionsReset);
+        Add(AuditCategory.Network, AuditTargets.NetworkSkipRule, AuditEvents.NetworkSkipRuleCreated, AuditEvents.NetworkSkipRuleUpdated,
+            AuditEvents.NetworkSkipRuleDeleted);
         Add(AuditCategory.Responsibilities, AuditTargets.Responsibility, AuditEvents.ResponsibilityCreated, AuditEvents.ResponsibilityChanged,
             AuditEvents.ResponsibilityDeleted, AuditEvents.ResponsibilityLinked, AuditEvents.ResponsibilityUnlinked,
             AuditEvents.ResponsibilityRedmineSaved, AuditEvents.ResponsibilityRedmineDeleted, AuditEvents.ResponsibilityMapSaved,

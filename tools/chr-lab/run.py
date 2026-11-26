@@ -5,6 +5,7 @@ console on /run/chr/serial.sock, signs in as admin on that console as a person w
 new password), sets the identity, and writes /run/chr/ready. QEMU's user-mode network forwards the
 container's ports 2222 (SSH) and 8291 (WinBox) to the router.
 """
+import hashlib
 import os
 import platform
 import shutil
@@ -63,6 +64,23 @@ def image(a):
     return path
 
 
+LINK = os.environ.get("CHR_LINK", "")
+
+
+def nic_mac(n):
+    """In a pair, MACs of the router's own (from its name): QEMU gives every VM the same ones, and two on one cable clash."""
+    h = hashlib.sha256(NAME.encode()).digest()
+    return f",mac=52:54:{h[0]:02x}:{h[1]:02x}:{h[2]:02x}:{n:02x}" if LINK else ""
+
+
+def link_nic():
+    """CHR_LINK=<peer address>:<port>: a second NIC (ether2) as a UDP socket to the peer's, a cable between two lab routers."""
+    if not LINK:
+        return []
+    peer, port = LINK.rsplit(":", 1)
+    return ["-netdev", f"socket,id=n1,udp={peer}:{port},localaddr=0.0.0.0:{port}", "-device", f"virtio-net-pci,netdev=n1{nic_mac(2)}"]
+
+
 def qemu_command(a, disk):
     net = "user,id=n0,hostfwd=tcp::2222-:22,hostfwd=tcp::8291-:8291,hostfwd=tcp::8080-:80"
     serial = f"unix:{SOCK},server=on,wait=off"
@@ -70,13 +88,13 @@ def qemu_command(a, disk):
         return ["qemu-system-aarch64", "-M", "virt", "-cpu", "host", "-accel", "kvm", "-m", MEMORY,
                 "-bios", "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
                 "-drive", f"file={disk},if=none,format=raw,id=hd", "-device", "virtio-blk-pci,drive=hd",
-                "-netdev", net, "-device", "virtio-net-pci,netdev=n0",
+                "-netdev", net, "-device", f"virtio-net-pci,netdev=n0{nic_mac(1)}", *link_nic(),
                 "-serial", serial, "-display", "none", "-monitor", "none"]
     accel = ["-accel", "kvm", "-cpu", "host"] if platform.machine() == "x86_64" and os.path.exists("/dev/kvm") \
         else ["-accel", "tcg"]
     return ["qemu-system-x86_64", *accel, "-m", MEMORY,
             "-drive", f"file={disk},format=raw,if=virtio",
-            "-netdev", net, "-device", "virtio-net-pci,netdev=n0",
+            "-netdev", net, "-device", f"virtio-net-pci,netdev=n0{nic_mac(1)}", *link_nic(),
             "-serial", serial, "-display", "none", "-monitor", "none"]
 
 

@@ -76,6 +76,7 @@ namespace PNMTD.Data
         public DbSet<NetworkConnectionEntity> NetworkConnections { get; set; }
         public DbSet<NetworkSuggestionEntity> NetworkSuggestions { get; set; }
         public DbSet<NetworkRouterPositionEntity> NetworkRouterPositions { get; set; }
+        public DbSet<NetworkSkipRuleEntity> NetworkSkipRules { get; set; }
 
         // 3rd Party Connectors (docs/connectors-plan.md §10): connectors, callers, grants, a script connector's target and arguments, calls.
         public DbSet<ConnectorEntity> Connectors { get; set; }
@@ -868,6 +869,7 @@ namespace PNMTD.Data
             modelBuilder.Entity<NetworkInterfaceEntity>(e =>
             {
                 e.HasOne<HostEntity>().WithMany().HasForeignKey(i => i.AssignedHostId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<NetworkSkipRuleEntity>().WithMany().HasForeignKey(i => i.SkippedRuleId).OnDelete(DeleteBehavior.SetNull);
                 e.HasIndex(i => i.MatchHostId);
                 e.HasIndex(i => i.AttachedSensorId);
                 e.HasIndex(i => i.LastSeenAt);
@@ -892,6 +894,12 @@ namespace PNMTD.Data
             modelBuilder.Entity<NetworkRouterPositionEntity>(e =>
             {
                 e.HasOne<SensorEntity>().WithMany().HasForeignKey(p => p.SensorId).OnDelete(DeleteBehavior.Cascade);
+            });
+            // A rule goes with its location or router: widened to all routers by SET NULL, it would skip far more.
+            modelBuilder.Entity<NetworkSkipRuleEntity>(e =>
+            {
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(r => r.LocationId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(r => r.SensorId).OnDelete(DeleteBehavior.Cascade);
             });
             modelBuilder.Entity<NetworkSuggestionEntity>(e =>
             {

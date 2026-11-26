@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
@@ -15,10 +16,13 @@ import { useSession } from '@/stores/session'
 import LocationPicker from '@/views/locations/LocationPicker.vue'
 import ConnectionDialog from './ConnectionDialog.vue'
 import { confidenceSeverity, endLabel } from './networkFormat'
+import SkipRuleDialog from './SkipRuleDialog.vue'
+import { draftFromSuggestion, type RuleDraft } from './skipRules'
 
 /**
  * Suggestions (docs/network-map-plan.md §8.5): what the scans propose, with their evidence. Make connection (with another type,
- * ports or notes), Accept as proposed, Dismiss; several at once with a selection. Only a person makes a connection.
+ * ports or notes), Accept as proposed, Dismiss; several at once with a selection. Only a person makes a connection. With
+ * Manage, *Skip like this…* starts a skip rule from a suggestion's evidence (docs/network-suggestion-rules-plan.md §4.5).
  */
 const route = useRoute()
 const session = useSession()
@@ -46,6 +50,14 @@ const expanded = ref<Record<string, boolean>>({})
 const making = ref<S['NetworkSuggestionItem'] | null>(null)
 const makingOpen = computed({ get: () => making.value !== null, set: (v) => !v && (making.value = null) })
 const edit = computed(() => session.can('NetworkMap', 'Edit'))
+const manage = computed(() => session.can('NetworkMap', 'Manage'))
+const skipping = ref<RuleDraft | null>(null)
+const skippingOpen = computed({ get: () => skipping.value !== null, set: (v) => !v && (skipping.value = null) })
+const skipTypes = useQuery({
+  queryKey: [...keys.network, 'skip-rules'],
+  queryFn: () => api.network.skipRules(),
+  enabled: computed(() => skipping.value !== null),
+})
 const active = computed(
   () =>
     (state.value !== 'Open' ? 1 : 0) + (confidence.value ? 1 : 0) + (locationId.value ? 1 : 0) + (device.value ? 1 : 0),
@@ -186,7 +198,7 @@ const confidences = [
       <Column header="Seen" field="lastSeen" sortable style="width: 8rem">
         <template #body="{ data }"><RelativeTime :value="data.lastSeenAt" /></template>
       </Column>
-      <Column v-if="edit" style="width: 13rem">
+      <Column v-if="edit" style="width: 17rem" body-style="white-space: nowrap">
         <template #body="{ data }">
           <template v-if="data.state === 'Open'">
             <Button label="Make connection…" size="small" text @click="making = data" />
@@ -206,6 +218,16 @@ const confidences = [
               :aria-label="`Dismiss ${endLabel(data.a)} ↔ ${endLabel(data.b)}`"
               @click="dismiss(data)"
             />
+            <Button
+              v-if="manage"
+              v-tooltip.left="'Skip like this…'"
+              icon="pi pi-filter-slash"
+              size="small"
+              text
+              severity="secondary"
+              :aria-label="`Skip like ${endLabel(data.a)} ↔ ${endLabel(data.b)}…`"
+              @click="skipping = draftFromSuggestion(data)"
+            />
           </template>
           <Button v-else-if="data.state === 'Dismissed'" label="Restore" size="small" text @click="restore(data)" />
           <span v-else class="muted small">by {{ data.decidedByName ?? '–' }}</span>
@@ -218,6 +240,10 @@ const confidences = [
             <span>{{ e.text }}</span>
             <span class="muted small">({{ e.rule }})</span>
           </li>
+          <li v-if="data.evidence.some((e: S['Evidence']) => e.vlans?.length)" class="muted small">
+            VLANs on the same ports:
+            {{ [...new Set(data.evidence.flatMap((e: S['Evidence']) => e.vlans ?? []))].join(', ') }}
+          </li>
         </ul>
       </template>
       <template #mobile="{ item }">
@@ -226,6 +252,12 @@ const confidences = [
       </template>
     </ListTable>
     <ConnectionDialog v-if="making" v-model:visible="makingOpen" :suggestion="making" />
+    <SkipRuleDialog
+      v-if="skipping"
+      v-model:visible="skippingOpen"
+      :initial="skipping"
+      :types="skipTypes.data.value?.interfaceTypes"
+    />
   </div>
 </template>
 

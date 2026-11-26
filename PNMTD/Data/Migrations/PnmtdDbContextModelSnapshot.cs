@@ -6422,6 +6422,9 @@ namespace PNMTD.Data.Migrations
                     b.Property<bool>("Random")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("SkippedRuleId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Sources")
                         .HasColumnType("integer");
 
@@ -6434,6 +6437,8 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("LastSeenAt");
 
                     b.HasIndex("MatchHostId");
+
+                    b.HasIndex("SkippedRuleId");
 
                     b.ToTable("network_interfaces");
                 });
@@ -6792,6 +6797,83 @@ namespace PNMTD.Data.Migrations
                     b.HasIndex("State", "SensorId");
 
                     b.ToTable("network_scan_items");
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkSkipRuleEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CreatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("Evidence")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("HitRouters")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Hits")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("HitsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InterfacePattern")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.PrimitiveCollection<List<string>>("InterfaceTypes")
+                        .HasColumnType("text[]");
+
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MacPrefix")
+                        .HasMaxLength(17)
+                        .HasColumnType("character varying(17)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<short>("Scope")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("SensorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UpdatedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Vlans")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LocationId");
+
+                    b.HasIndex("SensorId");
+
+                    b.ToTable("network_skip_rules");
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.NetworkSuggestionEntity", b =>
@@ -10430,6 +10512,11 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("AssignedHostId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PNMTD.Models.Db.NetworkSkipRuleEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SkippedRuleId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.NetworkObservationEntity", b =>
@@ -10493,6 +10580,19 @@ namespace PNMTD.Data.Migrations
                         .WithMany()
                         .HasForeignKey("SensorId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("PNMTD.Models.Db.NetworkSkipRuleEntity", b =>
+                {
+                    b.HasOne("PNMTD.Models.Db.LocationEntity", null)
+                        .WithMany()
+                        .HasForeignKey("LocationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PNMTD.Models.Db.SensorEntity", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("PNMTD.Models.Db.NetworkSuggestionEntity", b =>

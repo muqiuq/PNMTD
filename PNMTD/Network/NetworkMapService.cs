@@ -238,7 +238,8 @@ public sealed class NetworkMapService(PnmtdDbContext db, LocationTree locations,
             connections.GroupBy(c => ConnectionTypes.Find(c.Type)?.Medium.ToString() ?? "Other").OrderBy(g => g.Key).ToDictionary(g => g.Key, g => g.Count()),
             suggestions.OrderByDescending(s => s.Key).ToDictionary(s => s.Key.ToString(), s => s.Count),
             await db.NetworkInterfaces.CountAsync(i => !i.Ignored && (i.MatchKind == MatchKind.None || i.MatchKind == MatchKind.Ambiguous), ct),
-            await scans.StatusAsync(ct));
+            await scans.StatusAsync(ct),
+            await db.NetworkSkipRules.AsNoTracking().Where(r => r.Enabled).OrderBy(r => r.CreatedAt).Select(r => r.Name).ToListAsync(ct));
     }
 
     public async Task<NetworkPath?> PathAsync(string from, string to, bool physicalOnly, CancellationToken ct)

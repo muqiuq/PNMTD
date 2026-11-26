@@ -20736,6 +20736,13 @@
             }
           },
           {
+            "name": "onVirtualPort",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -21580,6 +21587,212 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/NetworkInterfaceItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/skip-rules": {
+      "get": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleList"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleList"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleList"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/skip-rules/{id}": {
+      "put": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRuleItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/network-map/skip-rules/preview": {
+      "post": {
+        "tags": [
+          "NetworkMap"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRulePreviewRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRulePreviewRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkSkipRulePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRulePreview"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRulePreview"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkSkipRulePreview"
                 }
               }
             }
@@ -47972,6 +48185,41 @@
           },
           "text": {
             "type": "string"
+          },
+          "routerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "interface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "vlan": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "vlans": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "by": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -58314,6 +58562,12 @@
               "null",
               "string"
             ]
+          },
+          "virtualPort": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -58590,6 +58844,19 @@
           "lastSeenAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "skippedRuleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "skippedRule": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -58717,6 +58984,15 @@
           },
           "scans": {
             "$ref": "#/components/schemas/NetworkScanStatus"
+          },
+          "skipRules": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -59540,6 +59816,335 @@
             }
           }
         }
+      },
+      "NetworkSkipEvidence": {
+        "enum": [
+          "MacTable",
+          "Arp",
+          "Mndp",
+          "Lldp",
+          "Cdp",
+          "Wifi",
+          "WireGuard",
+          "Tunnel"
+        ]
+      },
+      "NetworkSkipPreviewSuggestion": {
+        "required": [
+          "key",
+          "a",
+          "b",
+          "confidence",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "a": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "b": {
+            "$ref": "#/components/schemas/NetworkEndItem"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "evidence": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkSkipRuleItem": {
+        "required": [
+          "id",
+          "name",
+          "enabled",
+          "scope",
+          "locationId",
+          "locationName",
+          "sensorId",
+          "routerName",
+          "interfacePattern",
+          "interfaceTypes",
+          "vlans",
+          "evidence",
+          "macPrefix",
+          "hits",
+          "hitRouters",
+          "hitsAt",
+          "createdAt",
+          "createdByName",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/NetworkSkipRuleScope"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "locationName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "routerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interfacePattern": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interfaceTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "vlans": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSkipEvidence"
+            }
+          },
+          "macPrefix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hits": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hitRouters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hitsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkSkipRuleList": {
+        "required": [
+          "items",
+          "interfaceTypes"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSkipRuleItem"
+            }
+          },
+          "interfaceTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "NetworkSkipRulePreview": {
+        "required": [
+          "rows",
+          "routers",
+          "removed",
+          "removedTotal",
+          "added",
+          "addedTotal",
+          "interfaces"
+        ],
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "routers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSkipPreviewSuggestion"
+            }
+          },
+          "removedTotal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "added": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NetworkSkipPreviewSuggestion"
+            }
+          },
+          "addedTotal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "interfaces": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "NetworkSkipRulePreviewRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/NetworkSkipRuleRequest"
+          }
+        }
+      },
+      "NetworkSkipRuleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/NetworkSkipRuleScope"
+          },
+          "locationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sensorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "interfacePattern": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "interfaceTypes": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "vlans": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidence": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/NetworkSkipEvidence"
+            }
+          },
+          "macPrefix": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NetworkSkipRuleScope": {
+        "enum": [
+          "All",
+          "Location",
+          "Router"
+        ]
       },
       "NetworkSuggestionAccept": {
         "type": "object",

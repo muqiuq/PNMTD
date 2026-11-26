@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using PNMTD.Data;
 using PNMTD.Lib.Helper;
 using PNMTD.Lib.Network;
+using PNMTD.Locations;
 using PNMTD.Models.Db;
 using PNMTD.Models.Enums;
 
@@ -104,6 +105,7 @@ public sealed class NetworkAnalysis(IDbContextFactory<PnmtdDbContext> dbs, IOpti
         var interfaces = await WriteInterfacesAsync(db, result, now, ct);
         var open = await WriteSuggestionsAsync(db, result, now, ct);
         var (confirmed, unconfirmed) = await WriteChecksAsync(db, result, now, ct);
+        await WriteHitsAsync(db, result, now, ct);
         await db.SaveChangesAsync(ct);
         return new NetworkAnalysisOutcome(interfaces, open, confirmed, unconfirmed, Clock.UtcNow - started);
     }
@@ -112,7 +114,7 @@ public sealed class NetworkAnalysis(IDbContextFactory<PnmtdDbContext> dbs, IOpti
     public static async Task<TopologyInput> LoadAsync(PnmtdDbContext db, CancellationToken ct)
     {
         var routerRows = await db.MikrotikRouters.AsNoTracking()
-            .Select(r => new { r.SensorId, HostId = r.Sensor.ParentId, Sensor = r.Sensor.Name, Host = r.Sensor.Parent.Name, r.Identity })
+            .Select(r => new { r.SensorId, HostId = r.Sensor.ParentId, Sensor = r.Sensor.Name, Host = r.Sensor.Parent.Name, r.Identity, r.Sensor.Parent.LocationId })
             .ToListAsync(ct);
         var perHost = routerRows.GroupBy(r => r.HostId).ToDictionary(g => g.Key, g => g.Count());
         var routers = routerRows.Select(r => new { r.SensorId, r.HostId, Name = NetworkDirectory.RouterName(r.Host, r.Sensor, perHost[r.HostId]), r.Identity }).ToList();
@@ -121,13 +123,16 @@ public sealed class NetworkAnalysis(IDbContextFactory<PnmtdDbContext> dbs, IOpti
         var ports = await db.NetworkRouterPorts.AsNoTracking().ToListAsync(ct);
         var observations = await db.NetworkObservations.AsNoTracking().ToListAsync(ct);
         var adapters = await db.AgentAdapterMacs.AsNoTracking()
-            .Join(db.Sensors, m => m.SensorId, s => s.Id, (m, s) => new { m.Mac, m.Adapter, m.SpeedBps, m.Virtual, m.SensorId, HostId = s.ParentId })
+            .Join(db.Sensors, m => m.SensorId, s => s.Id, (m, s) => new { m.Mac, m.Adapter, m.SpeedBps, m.Virtual, m.Kind, m.SensorId, HostId = s.ParentId })
             .ToListAsync(ct);
         var interfaces = await db.NetworkInterfaces.AsNoTracking()
             .Where(i => i.AssignedHostId != null || i.Ignored)
             .Select(i => new { i.Mac, i.AssignedHostId, i.AssignedInterface, i.Ignored })
             .ToListAsync(ct);
         var connections = await db.NetworkConnections.AsNoTracking().ToListAsync(ct);
+        var rules = await db.NetworkSkipRules.AsNoTracking().Where(r => r.Enabled).ToListAsync(ct);
+        IReadOnlyList<TopologyRule> topologyRules = rules.Count == 0 ? [] : NetworkSkipRules.ForAnalysis(rules, routerRows.ToDictionary(r => r.SensorId, r => r.LocationId),
+            await LocationTree.LoadAsync(db, ct));
         return new TopologyInput
         {
             Routers = routers.Select(r => new TopologyRouter(r.SensorId, r.HostId, r.Name, r.Identity, scanned.TryGetValue(r.SensorId, out var at) ? at : null)).ToList(),
@@ -167,10 +172,11 @@ public sealed class NetworkAnalysis(IDbContextFactory<PnmtdDbContext> dbs, IOpti
                 Note = o.Note,
                 SeenAt = o.SeenAt,
             }).ToList(),
-            Adapters = adapters.Select(a => new TopologyAdapter(a.HostId, a.SensorId, a.Mac, a.Adapter, a.SpeedBps, a.Virtual)).ToList(),
+            Adapters = adapters.Select(a => new TopologyAdapter(a.HostId, a.SensorId, a.Mac, a.Adapter, a.SpeedBps, a.Virtual, a.Kind)).ToList(),
             Assignments = interfaces.Where(i => i.AssignedHostId is not null).Select(i => new TopologyAssignment(i.Mac, i.AssignedHostId!.Value, i.AssignedInterface)).ToList(),
             Ignored = interfaces.Where(i => i.Ignored).Select(i => i.Mac).ToHashSet(StringComparer.Ordinal),
             Connections = connections.Select(c => new TopologyConnection(c.Id, c.A, c.B, c.Type)).ToList(),
+            Rules = topologyRules,
         };
     }
 
@@ -216,6 +222,7 @@ public sealed class NetworkAnalysis(IDbContextFactory<PnmtdDbContext> dbs, IOpti
             row.MatchSensorId = r.MatchSensorId;
             row.MatchInterface = r.MatchInterface;
             row.HintHostId = r.HintHostId;
+            row.SkippedRuleId = r.SkippedBy;
             if (r.LastSeenAt > row.LastSeenAt)
             {
                 row.LastSeenAt = r.LastSeenAt;
@@ -310,6 +317,17 @@ public sealed class NetworkAnalysis(IDbContextFactory<PnmtdDbContext> dbs, IOpti
             }
         }
         return (confirmed, unconfirmed);
+    }
+
+    /// <summary>Each rule's hits at this analysis; a disabled rule has none (docs/network-suggestion-rules-plan.md §4.4).</summary>
+    private static async Task WriteHitsAsync(PnmtdDbContext db, TopologyResult result, DateTime now, CancellationToken ct)
+    {
+        var hits = result.Hits.ToDictionary(h => h.RuleId);
+        foreach (var rule in await db.NetworkSkipRules.ToListAsync(ct))
+        {
+            (rule.Hits, rule.HitRouters) = hits.TryGetValue(rule.Id, out var hit) ? (hit.Rows, hit.Routers) : (0, 0);
+            rule.HitsAt = now;
+        }
     }
 
     private static string? Cut(string? value, int max) => value is null || value.Length <= max ? value : value[..max];

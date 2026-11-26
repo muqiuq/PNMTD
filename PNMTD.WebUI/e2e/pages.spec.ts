@@ -47,6 +47,7 @@ const pages: [string, string, string][] = [
   ['/network-map', 'Network map', 'network-map'],
   ['/network-map?tab=connections', 'Network map', 'network-map-connections'],
   ['/network-map?tab=suggestions', 'Network map', 'network-map-suggestions'],
+  ['/network-map?tab=rules', 'Network map', 'network-map-rules'],
   ['/network-map?tab=scans', 'Network map', 'network-map-scans'],
   ['/network-map?tab=interfaces', 'Network map', 'network-map-interfaces'],
   // docs/lounge-plan.md §15: the room, and its tab on Admin → Cookie.

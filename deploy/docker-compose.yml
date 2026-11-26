@@ -28,7 +28,7 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   pnmtd:
-    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.28.0}
+    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.29.0}
     restart: unless-stopped
     depends_on:
       db:
@@ -87,7 +87,7 @@ services:
   # database, and passes the app's SSH connections into the tunnel over SOCKS5 on this network. The
   # app stays non-root, read-only and without capabilities. Needs the WireGuard kernel module (Linux 5.6+).
   pnmtd-wg:
-    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.28.0}
+    image: ${PNMTD_IMAGE:-uisach/pnmtd}:${PNMTD_IMAGE_TAG:-v1.29.0}
     profiles: [wireguard]
     command: ["wireguard", "gateway"]
     user: "0:0"

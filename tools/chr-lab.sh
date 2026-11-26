@@ -3,6 +3,9 @@
 # container of its own: ARM64 with KVM where an image exists (7.20 on), x86_64 emulated otherwise.
 #
 #   tools/chr-lab.sh start <name> [<version>]   boot CHR <version> (default 7.25.1) as pnmtd-chr-<name>
+#   tools/chr-lab.sh pair <a> <b> [<version>]   boot two, joined by a cable: each one's ether2, a UDP socket between
+#                                               their containers on the network pnmtd-chr-link (VLAN fixtures,
+#                                               docs/network-suggestion-rules-plan.md §10, V0)
 #   tools/chr-lab.sh stop <name>|--all          remove it, or every lab router
 #   tools/chr-lab.sh list                       the lab routers, their versions and SSH ports
 #   tools/chr-lab.sh port <name>                the router's SSH port on 127.0.0.1
@@ -17,11 +20,14 @@ set -euo pipefail
 if [[ "${1:-}" == import && -n "${3:-}" && -f "$3" ]]; then
   set -- "$1" "$2" "$(cd "$(dirname "$3")" && pwd)/$(basename "$3")"
 fi
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(dirname "$0")"
 ENGINE="${ENGINE:-podman}"
 IMAGE="localhost/pnmtd-chr-lab:1"
 PASSWORD="${CHR_PASSWORD:-pnmt-lab}"
 PREFIX="pnmtd-chr-"
+LINK_NETWORK="${CHR_LINK_NETWORK:-pnmtd-chr-link}"
+LINK_SUBNET="${CHR_LINK_SUBNET:-10.89.77}"
 
 build() {
   "$ENGINE" image exists "$IMAGE" 2>/dev/null && [[ -z "${CHR_REBUILD:-}" ]] && return
@@ -49,9 +55,15 @@ case "${1:-}" in
         devices=(--device /dev/kvm)
       fi
     fi
+    # In a pair: the link network, the container's own address on it, and the peer's for the cable.
+    network=()
+    if [[ -n "${CHR_LINK_IP:-}" ]]; then
+      network=(--network "$LINK_NETWORK" --ip "$CHR_LINK_IP")
+    fi
     "$ENGINE" run -d --name "$PREFIX$name" --label pnmtd-chr-lab=1 --entrypoint "" \
-      ${devices[@]+"${devices[@]}"} -v pnmtd-chr-images:/images \
+      ${devices[@]+"${devices[@]}"} ${network[@]+"${network[@]}"} -v pnmtd-chr-images:/images \
       -e CHR_VERSION="$version" -e CHR_ARCH="${CHR_ARCH:-auto}" -e CHR_MEMORY="${CHR_MEMORY:-1024}" -e CHR_NAME="$name" -e CHR_PASSWORD="$PASSWORD" \
+      -e CHR_LINK="${CHR_LINK:-}" \
       -p 127.0.0.1::2222 -p 127.0.0.1::8291 -p 127.0.0.1::8080 \
       "$IMAGE" python3 -u /lab/run.py >/dev/null
     printf 'booting %s (RouterOS %s)' "$name" "$version"
@@ -67,6 +79,15 @@ case "${1:-}" in
       printf '.'; sleep 2
     done
     echo; echo "$name did not become ready" >&2; exit 1
+    ;;
+  pair)
+    need_name "${2:-}"; need_name "${3:-}"
+    version="${4:-7.25.1}"
+    "$ENGINE" network exists "$LINK_NETWORK" 2>/dev/null \
+      || "$ENGINE" network create --subnet "$LINK_SUBNET.0/24" "$LINK_NETWORK" >/dev/null
+    # UDP needs no listener: the first may start before the second exists.
+    CHR_LINK_IP="$LINK_SUBNET.11" CHR_LINK="$LINK_SUBNET.12:4555" "$SELF" start "$2" "$version"
+    CHR_LINK_IP="$LINK_SUBNET.12" CHR_LINK="$LINK_SUBNET.11:4555" "$SELF" start "$3" "$version"
     ;;
   stop)
     if [[ "${2:-}" == --all ]]; then

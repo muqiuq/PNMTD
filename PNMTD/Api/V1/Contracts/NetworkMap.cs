@@ -15,8 +15,12 @@ public enum NetworkScanEvidence { Confirmed, Unconfirmed, Manual }
 
 public sealed record NetworkConnectionTypeItem(string Code, string Label, ConnectionMedium Medium, int? SpeedMbps, bool Physical);
 
-/// <summary>One end as the UI shows it: the device (a router or a host), its name, the port, and its top-level location (the site).</summary>
-public sealed record NetworkEndItem(NetworkDeviceKind Kind, Guid HostId, Guid? SensorId, string Name, string? Interface, Guid? SiteId, string? Site);
+/// <summary>
+/// One end as the UI shows it: the device (a router or a host), its name, the port, and its top-level location (the site).
+/// <see cref="VirtualPort"/>: a router's port that is a VLAN or a bridge, as "VLAN 10 on ether1" (docs/network-suggestion-rules-plan.md §4.5).
+/// </summary>
+public sealed record NetworkEndItem(NetworkDeviceKind Kind, Guid HostId, Guid? SensorId, string Name, string? Interface, Guid? SiteId, string? Site,
+    string? VirtualPort = null);
 
 /// <summary>An end to write: a router (its sensor; its host follows) or a host, and optionally the interface.</summary>
 public sealed class NetworkEndRequest
@@ -160,6 +164,9 @@ public sealed class NetworkConnectionQuery : PageQuery
     public bool? RoutersOnly { get; set; }
 
     public bool? Unconfirmed { get; set; }
+
+    /// <summary>Only connections with an end on a router's VLAN or bridge: made before the scan put its ends on the wire.</summary>
+    public bool? OnVirtualPort { get; set; }
 }
 
 public sealed class NetworkConnectionRequest
@@ -267,7 +274,9 @@ public sealed record NetworkInterfaceItem(
     string? AssignedByName,
     DateTime? AssignedAt,
     DateTime FirstSeenAt,
-    DateTime LastSeenAt);
+    DateTime LastSeenAt,
+    Guid? SkippedRuleId = null,
+    string? SkippedRule = null);
 
 public sealed class NetworkInterfaceQuery : PageQuery
 {
@@ -368,10 +377,86 @@ public sealed record NetworkMapSummary(
     IReadOnlyDictionary<string, int> ByMedium,
     IReadOnlyDictionary<string, int> OpenSuggestions,
     int UnassignedInterfaces,
-    NetworkScanStatus Scans);
+    NetworkScanStatus Scans,
+    IReadOnlyList<string>? SkipRules = null);
 
 public sealed record NetworkPathHop(Guid ConnectionId, NetworkEndItem From, NetworkEndItem To, string Type, string TypeLabel, bool Physical,
     NetworkScanEvidence Scan, DateTime? ConfirmedAt);
 
 public sealed record NetworkPath(NetworkEndItem From, NetworkEndItem To, IReadOnlyList<NetworkPathHop> Hops, string? Slowest, int VirtualHops,
     IReadOnlyList<Guid> SinglePoints, DateTime? LastFullScanAt);
+
+// --- skip rules (docs/network-suggestion-rules-plan.md §4) -----------------------------------------------------------------
+
+/// <summary>A table a skip rule can name.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<NetworkSkipEvidence>))]
+public enum NetworkSkipEvidence { MacTable, Arp, Mndp, Lldp, Cdp, Wifi, WireGuard, Tunnel }
+
+public sealed record NetworkSkipRuleItem(
+    Guid Id,
+    string Name,
+    bool Enabled,
+    NetworkSkipRuleScope Scope,
+    Guid? LocationId,
+    string? LocationName,
+    Guid? SensorId,
+    string? RouterName,
+    string? InterfacePattern,
+    IReadOnlyList<string> InterfaceTypes,
+    string? Vlans,
+    IReadOnlyList<NetworkSkipEvidence> Evidence,
+    string? MacPrefix,
+    int Hits,
+    int HitRouters,
+    DateTime? HitsAt,
+    DateTime CreatedAt,
+    string? CreatedByName,
+    DateTime? UpdatedAt,
+    string? UpdatedByName);
+
+/// <summary>The rules, and the interface types the scans have seen, for the form.</summary>
+public sealed record NetworkSkipRuleList(IReadOnlyList<NetworkSkipRuleItem> Items, IReadOnlyList<string> InterfaceTypes);
+
+/// <summary>A rule to save. Its conditions must all match; at least one is needed, except on one router.</summary>
+public sealed class NetworkSkipRuleRequest
+{
+    public string Name { get; set; } = "";
+
+    public bool Enabled { get; set; } = true;
+
+    public NetworkSkipRuleScope Scope { get; set; }
+
+    public Guid? LocationId { get; set; }
+
+    public Guid? SensorId { get; set; }
+
+    /// <summary>With * and ?, case-insensitive: vlan9*, ether10, *-guest.</summary>
+    public string? InterfacePattern { get; set; }
+
+    public List<string>? InterfaceTypes { get; set; }
+
+    /// <summary>IDs and ranges: 99, 4000-4094, 10,20-29.</summary>
+    public string? Vlans { get; set; }
+
+    public List<NetworkSkipEvidence>? Evidence { get; set; }
+
+    /// <summary>1 to 6 octets: 00:50:56.</summary>
+    public string? MacPrefix { get; set; }
+}
+
+/// <summary>What a draft would change, from the stored scans; <see cref="Id"/>: the rule it replaces when editing.</summary>
+public sealed class NetworkSkipRulePreviewRequest
+{
+    public Guid? Id { get; set; }
+
+    public NetworkSkipRuleRequest Rule { get; set; } = new();
+}
+
+public sealed record NetworkSkipPreviewSuggestion(string Key, NetworkEndItem A, NetworkEndItem B, Confidence Confidence, string? Evidence);
+
+/// <summary>
+/// The draft's effect: the rows it skips, the open suggestions that go and those that come back (the first 20 of each, and
+/// how many), and the network interfaces attached by what it skips.
+/// </summary>
+public sealed record NetworkSkipRulePreview(int Rows, int Routers, IReadOnlyList<NetworkSkipPreviewSuggestion> Removed, int RemovedTotal,
+    IReadOnlyList<NetworkSkipPreviewSuggestion> Added, int AddedTotal, int Interfaces);

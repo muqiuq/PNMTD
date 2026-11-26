@@ -57,4 +57,11 @@ public static class Mac
     /// <summary>A group address (bit 0x01): multicast and broadcast, never a device.</summary>
     public static bool IsMulticast(string mac) =>
         mac.Length >= 2 && byte.TryParse(mac.AsSpan(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var first) && (first & 0x01) != 0;
+
+    /// <summary>
+    /// VRRP's virtual router MAC (<c>00:00:5E:00:01:xx</c>, and <c>…:02:xx</c> for IPv6): shared by every router of the group by
+    /// design, so it says nothing about a cable (docs/network-suggestion-rules-plan.md §3.6).
+    /// </summary>
+    public static bool IsVrrp(string mac) =>
+        mac.StartsWith("00:00:5E:00:01:", StringComparison.Ordinal) || mac.StartsWith("00:00:5E:00:02:", StringComparison.Ordinal);
 }

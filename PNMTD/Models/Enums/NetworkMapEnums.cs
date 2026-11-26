@@ -54,3 +54,12 @@ public enum NetworkSuggestionState : short
     Accepted = 1,
     Dismissed = 2,
 }
+
+/// <summary>Where a skip rule applies (docs/network-suggestion-rules-plan.md §4.1).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<NetworkSkipRuleScope>))]
+public enum NetworkSkipRuleScope : short
+{
+    All = 0,
+    Location = 1,
+    Router = 2,
+}

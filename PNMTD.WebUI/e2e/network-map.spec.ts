@@ -183,3 +183,58 @@ test('routers moved by hand and their positions saved', async ({ page }) => {
   await page.keyboard.press('Escape')
   expect(problems).toEqual([])
 })
+
+/**
+ * Skip rules (docs/network-suggestion-rules-plan.md §4.5, §6): a suggestion's Skip like this… opens the form prefilled from
+ * its evidence, the preview counts what it removes, saving removes it after the analysis, turning the rule off brings it
+ * back. The rules' matching has its tests in PNMTD.Tests.
+ */
+test('a skip rule made from a suggestion, previewed, turned off and deleted', async ({ page }) => {
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await signIn(page)
+  await page.goto('/pnmt-admin/network-map?tab=suggestions')
+  const behind = () => page.getByRole('row').filter({ hasText: 'nas-01' }).filter({ hasText: 'router-core' })
+  await expect(behind()).toBeVisible()
+
+  // Prefilled from the evidence: the hub's port where nas-01's MAC is learned; the preview counts the suggestion.
+  await behind()
+    .getByRole('button', { name: /^Skip like/ })
+    .click()
+  const dialog = page.getByRole('dialog', { name: 'New skip rule' })
+  await expect(dialog.getByRole('textbox', { name: 'Interface' })).toHaveValue('sfp-sfpplus1')
+  await expect(dialog.getByText(/Removes \d+ open suggestion/)).toBeVisible()
+  await shot(page, 'network-map-skip-rule')
+  await dialog.getByRole('textbox', { name: 'Name' }).fill('Zurich DC fibre, e2e')
+  await dialog.getByRole('button', { name: 'Add rule' }).click()
+  await expect(page.getByText(/Skip rule added/)).toBeVisible()
+
+  // The analysis follows a few seconds later: the list as it is after a reload.
+  async function afterReload(rows: number) {
+    await expect(async () => {
+      await page.reload()
+      await page.getByRole('table').first().waitFor()
+      await expect(behind()).toHaveCount(rows, { timeout: 1000 })
+    }).toPass({ timeout: 30_000, intervals: [2000] })
+  }
+  await afterReload(0)
+
+  // The tab lists it; off, the suggestion comes back.
+  await page.getByRole('link', { name: /^Skip rules/ }).click()
+  const row = page.getByRole('row').filter({ hasText: 'Zurich DC fibre, e2e' })
+  await expect(row).toBeVisible()
+  await expect(row.getByText('sfp-sfpplus1')).toBeVisible()
+  await shot(page, 'network-map-skip-rules')
+  await row.getByRole('switch', { name: 'Zurich DC fibre, e2e on' }).click()
+  await expect(page.getByText('Zurich DC fibre, e2e: off')).toBeVisible()
+  await page.getByRole('link', { name: /^Suggestions/ }).click()
+  await afterReload(1)
+
+  // Deleted, after asking.
+  await page.getByRole('link', { name: /^Skip rules/ }).click()
+  await page.getByRole('button', { name: 'Delete Zurich DC fibre, e2e' }).click()
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await expect(page.getByText('Skip rule deleted')).toBeVisible()
+  await expect(page.getByRole('row').filter({ hasText: 'Zurich DC fibre, e2e' })).toBeHidden()
+  expect(problems).toEqual([])
+})

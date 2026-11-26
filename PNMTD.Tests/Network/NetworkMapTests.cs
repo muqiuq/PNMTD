@@ -588,6 +588,146 @@ public sealed class NetworkMapTests
         Assert.IsTrue(events.Any(e => e.Summary == $"Saved the position of {node.Name} on the network map"), string.Join("; ", events.Select(e => e.Summary)));
     }
 
+    // --- VLANs and skip rules (docs/network-suggestion-rules-plan.md) -------------------------------------------------------
+
+    private static string NeighborList(params (string Port, string Identity, string Mac, string TheirPort)[] entries) => JsonSerializer.Serialize(new
+    {
+        neighbors = entries.Select(e => new Dictionary<string, object>
+        {
+            ["interface"] = e.Port, ["identity"] = e.Identity, ["mac-address"] = e.Mac, ["interface-name"] = e.TheirPort, ["discovered-by"] = "mndp",
+        }),
+        settings = new { protocol = new[] { "mndp" } },
+    });
+
+    private static string VlansOn(params (string Name, string Parent, int Id)[] vlans) => JsonSerializer.Serialize(new
+    {
+        bridges = Array.Empty<object>(),
+        ports = Array.Empty<object>(),
+        bonds = Array.Empty<object>(),
+        vlans = vlans.Select(v => new Dictionary<string, object> { ["name"] = v.Name, ["interface"] = v.Parent, ["vlan-id"] = v.Id }),
+    });
+
+    [TestMethod]
+    public async Task VLANs_on_one_cable_are_one_suggestion_and_a_connection_on_a_VLAN_is_confirmed()
+    {
+        int[] ids = [10, 20, 30];
+        var (macA, macB) = (NewMac(), NewMac());
+        var a = await RouterAsync("vl-a");
+        var b = await RouterAsync("vl-b");
+        void Setup(ScanRouter r, string mac, string port, string other, string otherMac, string otherPort)
+        {
+            r.Tables[ScanTable.Interfaces] = Interfaces([(port, mac, "ether"), .. ids.Select(i => ($"vlan{i}", mac, "vlan"))]);
+            r.Tables[ScanTable.Bridges] = VlansOn(ids.Select(i => ($"vlan{i}", port, i)).ToArray());
+            r.Tables[ScanTable.Neighbors] = NeighborList([(port, other, otherMac, otherPort), .. ids.Select(i => ($"vlan{i}", other, otherMac, $"vlan{i}"))]);
+        }
+        Setup(a.Router, macA, "ether1", b.Name, macB, "sfp-sfpplus1");
+        Setup(b.Router, macB, "sfp-sfpplus1", a.Name, macA, "ether1");
+        await RunAsync((await StartAsync(new { scope = "Router", sensorId = a.Id })).Id);
+        await RunAsync((await StartAsync(new { scope = "Router", sensorId = b.Id })).Id);
+
+        var s = (await (await admin.GetAsync($"/api/v1/network-map/suggestions?deviceId={a.Id}")).ReadAsync<Paged<NetworkSuggestionItem>>()).Items.Single();
+        CollectionAssert.AreEquivalent(new[] { "ether1", "sfp-sfpplus1" }, new[] { s.A.Interface, s.B.Interface });
+        Assert.IsTrue(s.Evidence.Any(e => e.Text.Contains("and on 3 VLANs on that port: vlan10, vlan20, vlan30") && e.Vlans?.Count == 3),
+            string.Join("\n", s.Evidence.Select(e => e.Text)));
+
+        // A connection someone made on the VLANs before: the cable's evidence confirms it, and the Connections tab names the VLAN.
+        var made = await (await admin.PostJsonAsync("/api/v1/network-map/connections",
+            new { a = new { sensorId = a.Id, @interface = "vlan10" }, b = new { sensorId = b.Id, @interface = "vlan10" }, type = "baset-1g" })).ReadAsync<NetworkConnectionItem>();
+        await app.Services.GetRequiredService<NetworkAnalysis>().RunAsync(CancellationToken.None);
+        var after = await (await admin.GetAsync($"/api/v1/network-map/connections/{made.Id}")).ReadAsync<NetworkConnectionItem>();
+        Assert.AreEqual(NetworkScanEvidence.Confirmed, after.Scan);
+        Assert.AreEqual("VLAN 10 on ether1", (after.A.SensorId == a.Id ? after.A : after.B).VirtualPort);
+        var virtualOnes = await (await admin.GetAsync($"/api/v1/network-map/connections?deviceId={a.Id}&onVirtualPort=true")).ReadAsync<Paged<NetworkConnectionItem>>();
+        Assert.AreEqual(made.Id, virtualOnes.Items.Single().Id);
+        Assert.AreEqual(0, (await (await admin.GetAsync($"/api/v1/network-map/suggestions?deviceId={a.Id}")).ReadAsync<Paged<NetworkSuggestionItem>>()).TotalCount);
+    }
+
+    [TestMethod]
+    public async Task Skip_rules_need_Manage_preview_their_effect_and_the_analysis_follows_them()
+    {
+        var (macA, macB, guest) = (NewMac(), NewMac(), NewMac());
+        var a = await RouterAsync("sk-a");
+        var b = await RouterAsync("sk-b");
+        a.Router.Tables[ScanTable.Interfaces] = Interfaces(("ether1", macA, "ether"), ("ether2", NewMac(), "ether"));
+        a.Router.Tables[ScanTable.Neighbors] = NeighborList(("ether1", b.Name, macB, "ether1"));
+        // A switch on ether2 carries VLAN 20 to b by another way, with a guest's laptop.
+        a.Router.Tables[ScanTable.MacTable] = $$"""
+            [{"mac-address":"{{macB}}","on-interface":"ether2","bridge":"bridge","vid":20},
+             {"mac-address":"{{guest}}","on-interface":"ether2","bridge":"bridge","vid":20}]
+            """;
+        b.Router.Tables[ScanTable.Interfaces] = Interfaces(("ether1", macB, "ether"));
+        b.Router.Tables[ScanTable.Neighbors] = NeighborList(("ether1", a.Name, macA, "ether1"));
+        await RunAsync((await StartAsync(new { scope = "Router", sensorId = a.Id })).Id);
+        await RunAsync((await StartAsync(new { scope = "Router", sensorId = b.Id })).Id);
+        async Task<IReadOnlyList<NetworkSuggestionItem>> SuggestionsAsync() =>
+            (await (await admin.GetAsync($"/api/v1/network-map/suggestions?deviceId={a.Id}")).ReadAsync<Paged<NetworkSuggestionItem>>()).Items;
+        var second = (await SuggestionsAsync()).Single(s => s.A.Interface == "ether2" || s.B.Interface == "ether2");
+        Assert.AreEqual(Confidence.Low, second.Confidence, "a second path by the MAC table alone");
+        Assert.AreEqual(2, (await SuggestionsAsync()).Count);
+
+        const string url = "/api/v1/network-map/skip-rules";
+        var request = new { name = "Switch VLAN", scope = "Router", sensorId = a.Id, vlans = "20" };
+        var viewer = app.ClientWithRights("NetworkMap:View");
+        var editor = app.ClientWithRights("NetworkMap:Edit");
+        Assert.AreEqual(HttpStatusCode.OK, (await viewer.GetAsync(url)).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await editor.PostJsonAsync(url, request)).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await editor.PostJsonAsync($"{url}/preview", new { rule = request })).StatusCode);
+        var everything = await admin.PostJsonAsync(url, new { name = "Everything", scope = "All" });
+        Assert.AreEqual(HttpStatusCode.BadRequest, everything.StatusCode, "on all routers, a rule needs a condition");
+        Assert.IsTrue((await everything.ProblemAsync()).GetProperty("errors").TryGetProperty("scope", out _));
+        var bad = await admin.PostJsonAsync(url, new { name = "Bad", scope = "Router", sensorId = a.Id, vlans = "5000", macPrefix = "zz" });
+        var errors = (await bad.ProblemAsync()).GetProperty("errors");
+        Assert.IsTrue(errors.TryGetProperty("vlans", out _) && errors.TryGetProperty("macPrefix", out _), errors.ToString());
+
+        // The preview counts what the rule would do, and stores nothing.
+        var preview = await (await admin.PostJsonAsync($"{url}/preview", new { rule = request })).ReadAsync<NetworkSkipRulePreview>();
+        Assert.AreEqual((2, 1, 1, 0), (preview.Rows, preview.Routers, preview.RemovedTotal, preview.AddedTotal));
+        Assert.IsTrue(preview.Removed.Single().A.Interface == "ether2" || preview.Removed.Single().B.Interface == "ether2");
+        Assert.AreEqual(2, preview.Interfaces, "the guest's laptop, and b's MAC learned there");
+        await using (var db = app.NewDb())
+        {
+            Assert.IsFalse(await db.NetworkSkipRules.AnyAsync(r => r.SensorId == a.Id));
+        }
+
+        var rule = await (await admin.PostJsonAsync(url, request)).ReadAsync<NetworkSkipRuleItem>();
+        try
+        {
+            Assert.AreEqual(("20", true, NetworkSkipRuleScope.Router), (rule.Vlans, rule.Enabled, rule.Scope));
+            StringAssert.EndsWith(rule.RouterName, a.Name, "as the map names it: host / sensor on a host with several routers");
+            var analysis = app.Services.GetRequiredService<NetworkAnalysis>();
+            await analysis.RunAsync(CancellationToken.None);
+            Assert.AreEqual("ether1", (await SuggestionsAsync()).Single().A.Interface);
+            var listed = (await (await viewer.GetAsync(url)).ReadAsync<NetworkSkipRuleList>()).Items.Single(r => r.Id == rule.Id);
+            Assert.AreEqual((2, 1), (listed.Hits, listed.HitRouters));
+            var item = (await (await admin.GetAsync($"/api/v1/network-map/interfaces?search={guest}")).ReadAsync<Paged<NetworkInterfaceItem>>()).Items.Single();
+            Assert.AreEqual((rule.Id, "Switch VLAN", "ether2"), (item.SkippedRuleId!.Value, item.SkippedRule, item.AttachedPort), "still listed, and tagged");
+            var summary = await (await viewer.GetAsync("/api/v1/network-map/summary")).ReadAsync<NetworkMapSummary>();
+            CollectionAssert.Contains(summary.SkipRules!.ToList(), "Switch VLAN");
+
+            // Off: the suggestion comes back, the rule has no hits.
+            await admin.PutJsonAsync($"{url}/{rule.Id}", new { request.name, request.scope, request.sensorId, request.vlans, enabled = false });
+            await analysis.RunAsync(CancellationToken.None);
+            Assert.AreEqual(2, (await SuggestionsAsync()).Count);
+            Assert.AreEqual(0, (await (await viewer.GetAsync(url)).ReadAsync<NetworkSkipRuleList>()).Items.Single(r => r.Id == rule.Id).Hits);
+        }
+        finally
+        {
+            Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"{url}/{rule.Id}")).StatusCode);
+        }
+        await using (var db = app.NewDb())
+        {
+            var events = await db.AuditLog.Where(l => l.TargetId == rule.Id.ToString()).Select(l => l.EventType).ToListAsync();
+            CollectionAssert.IsSubsetOf(new[] { AuditEvents.NetworkSkipRuleCreated, AuditEvents.NetworkSkipRuleUpdated, AuditEvents.NetworkSkipRuleDeleted }, events);
+        }
+
+        // On one router, a rule without conditions skips all of it; it goes with the router.
+        var lab = await RouterAsync("sk-lab");
+        var labRule = await (await admin.PostJsonAsync(url, new { name = "Lab", scope = "Router", sensorId = lab.Id })).ReadAsync<NetworkSkipRuleItem>();
+        Assert.AreEqual(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/v1/sensors/{lab.Id}")).StatusCode);
+        await using var check = app.NewDb();
+        Assert.IsFalse(await check.NetworkSkipRules.AnyAsync(r => r.Id == labRule.Id));
+    }
+
     [TestMethod]
     public async Task The_backfill_writes_the_MACs_of_servers_that_reported_before()
     {

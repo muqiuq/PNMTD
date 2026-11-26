@@ -23,7 +23,8 @@ public static class NetworkReadTools
     [
         new("network_summary", "The network map in numbers",
             "The network map's figures: routers, hosts with connections, connections by medium, physical and virtual, unconfirmed ones (the scans no " +
-            "longer show them), open suggestions by confidence, unassigned interfaces; the last full scan, a running scan with its progress, the schedule.",
+            "longer show them), open suggestions by confidence, unassigned interfaces, the skip rules that leave rows out of the suggestions; the last " +
+            "full scan, a running scan with its progress, the schedule.",
             Schema(), Area.NetworkMap, Level.View, ToolKind.Read, SummaryAsync),
         new("network_connections_list", "Network connections",
             "The map as data: the connections people confirmed, each with both ends (router or host, port, site), its type (medium and speed), " +
@@ -50,7 +51,7 @@ public static class NetworkReadTools
             Area.NetworkMap, Level.View, ToolKind.Read, SuggestionsAsync),
         new("network_interfaces_search", "Network interfaces",
             "Where a MAC (or its start), an IP or a DHCP host name is attached: the router, port and VLAN; what it is matched to (a server's adapter, a " +
-            "router's port, a host by hand); first and last seen.",
+            "router's port, a host by hand); the skip rule that keeps it out of the suggestions, if any; first and last seen.",
             Schema([Text("search", "A MAC, its start, an IP or a host name"), Id("routerId", "Attached at this router", required: false),
                 Bool("unassigned", "Only those matched to nothing"), .. PageArgs]),
             Area.NetworkMap, Level.Details, ToolKind.Read, InterfacesAsync),
@@ -111,6 +112,7 @@ public static class NetworkReadTools
         },
         Match = new { Kind = i.Match, HostId = i.MatchHostId, Name = i.MatchName, Interface = i.MatchInterface },
         Hint = i.HintHostId is null ? null : new { HostId = i.HintHostId, Name = i.HintHostName },
+        SkippedBy = i.SkippedRuleId is null ? null : new { RuleId = i.SkippedRuleId, Name = ctx.UntrustedOrNull("skip rule name", i.SkippedRule, 200) },
         i.Sources,
         i.FirstSeenAt,
         i.LastSeenAt,
@@ -137,6 +139,8 @@ public static class NetworkReadTools
             Connections = new { Total = s.Connections, s.Physical, s.Virtual, s.Unconfirmed, s.ByMedium },
             s.OpenSuggestions,
             s.UnassignedInterfaces,
+            // What the analysis leaves out of the suggestions (docs/network-suggestion-rules-plan.md §4): names people gave.
+            SkipRules = (s.SkipRules ?? []).Select(name => ctx.Untrusted("skip rule name", name, 200)).ToList(),
             Scans = new
             {
                 Running = s.Scans.Running is { } r ? new

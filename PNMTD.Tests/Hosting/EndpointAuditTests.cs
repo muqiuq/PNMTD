@@ -755,6 +755,12 @@ public sealed class EndpointAuditTests
         ["POST /api/v1/network-map/scans/{id:guid}/cancel"] = ("NetworkMap:Manage", Roles.Admin),
         ["GET /api/v1/network-map/settings"] = ("NetworkMap:View", Roles.Admin),
         ["PUT /api/v1/network-map/settings"] = ("NetworkMap:Manage", Roles.Admin),
+        // Skip rules (docs/network-suggestion-rules-plan.md §4.6): read with View, changed and previewed with Manage.
+        ["GET /api/v1/network-map/skip-rules"] = ("NetworkMap:View", Roles.Admin),
+        ["POST /api/v1/network-map/skip-rules"] = ("NetworkMap:Manage", Roles.Admin),
+        ["PUT /api/v1/network-map/skip-rules/{id:guid}"] = ("NetworkMap:Manage", Roles.Admin),
+        ["DELETE /api/v1/network-map/skip-rules/{id:guid}"] = ("NetworkMap:Manage", Roles.Admin),
+        ["POST /api/v1/network-map/skip-rules/preview"] = ("NetworkMap:Manage", Roles.Admin),
     };
 
     private sealed record EndpointInfo(string Key, string Method, string Pattern, RouteEndpoint Endpoint);

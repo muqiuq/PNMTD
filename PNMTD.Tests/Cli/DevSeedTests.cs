@@ -121,6 +121,11 @@ public sealed class DevSeedTests
         Assert.AreEqual(1, await db.NetworkConnections.CountAsync(c => c.UnconfirmedSince != null));
         Assert.IsTrue(await db.NetworkSuggestions.AnyAsync(s => s.State == Models.Enums.NetworkSuggestionState.Open && s.Type == "smf-10g"
             && s.Confidence == PNMTD.Lib.Network.Confidence.High), "Basel ↔ Bern's fibre");
+        // Its two VLANs are on the fibre too: one suggestion between the two, not three (docs/network-suggestion-rules-plan.md §3).
+        var fibre = (await db.NetworkSuggestions.Where(s => s.State == Models.Enums.NetworkSuggestionState.Open && s.ASensorId != null && s.BSensorId != null)
+            .ToListAsync()).Where(s => s.Evidence.Contains("on 2 VLANs on that port")).ToList();
+        Assert.AreEqual(1, fibre.Count, "Basel ↔ Bern, with vlan10 and vlan20 in its evidence");
+        Assert.AreEqual(("sfp-sfpplus1", "sfp-sfpplus1"), (fibre[0].AInterface, fibre[0].BInterface));
         Assert.IsTrue((await db.NetworkSuggestions.Select(s => s.Evidence).ToListAsync()).Any(e => e.Contains("behind-host")), "nas-01 behind router-core");
         Assert.IsGreaterThanOrEqualTo(20, await db.NetworkInterfaces.CountAsync());
         Assert.AreEqual(5, await db.NetworkRouterSnapshots.CountAsync());

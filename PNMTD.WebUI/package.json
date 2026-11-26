@@ -1,13 +1,13 @@
 {
   "name": "pnmtd-webui",
   "private": true,
-  "version": "1.28.0",
+  "version": "1.29.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build && vite build -c vite.board.config.ts",
+    "build": "NODE_OPTIONS=--max-old-space-size=6144 vue-tsc --noEmit && vite build && vite build -c vite.board.config.ts",
     "dev:board": "vite -c vite.board.config.ts",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "NODE_OPTIONS=--max-old-space-size=6144 vue-tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write src e2e",

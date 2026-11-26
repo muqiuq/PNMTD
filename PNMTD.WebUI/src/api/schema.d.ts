@@ -16524,6 +16524,7 @@ export interface paths {
                     physical?: boolean;
                     routersOnly?: boolean;
                     unconfirmed?: boolean;
+                    onVirtualPort?: boolean;
                     page?: number;
                     pageSize?: number;
                     sort?: string;
@@ -17112,6 +17113,177 @@ export interface paths {
                         "application/json": components["schemas"]["NetworkInterfaceItem"];
                         "text/json": components["schemas"]["NetworkInterfaceItem"];
                         "text/plain": components["schemas"]["NetworkInterfaceItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/skip-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSkipRuleList"];
+                        "text/json": components["schemas"]["NetworkSkipRuleList"];
+                        "text/plain": components["schemas"]["NetworkSkipRuleList"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkSkipRuleRequest"];
+                    "text/json": components["schemas"]["NetworkSkipRuleRequest"];
+                    "application/*+json": components["schemas"]["NetworkSkipRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSkipRuleItem"];
+                        "text/json": components["schemas"]["NetworkSkipRuleItem"];
+                        "text/plain": components["schemas"]["NetworkSkipRuleItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/skip-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkSkipRuleRequest"];
+                    "text/json": components["schemas"]["NetworkSkipRuleRequest"];
+                    "application/*+json": components["schemas"]["NetworkSkipRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSkipRuleItem"];
+                        "text/json": components["schemas"]["NetworkSkipRuleItem"];
+                        "text/plain": components["schemas"]["NetworkSkipRuleItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/network-map/skip-rules/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NetworkSkipRulePreviewRequest"];
+                    "text/json": components["schemas"]["NetworkSkipRulePreviewRequest"];
+                    "application/*+json": components["schemas"]["NetworkSkipRulePreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NetworkSkipRulePreview"];
+                        "text/json": components["schemas"]["NetworkSkipRulePreview"];
+                        "text/plain": components["schemas"]["NetworkSkipRulePreview"];
                     };
                 };
             };
@@ -28064,6 +28236,13 @@ export interface components {
             rule: string;
             confidence: components["schemas"]["Confidence"];
             text: string;
+            /** Format: uuid */
+            routerId?: null | string;
+            interface?: null | string;
+            /** Format: int32 */
+            vlan?: null | number;
+            vlans?: null | string[];
+            by?: null | string;
         };
         Fail2banInfo: {
             running: boolean;
@@ -30612,6 +30791,7 @@ export interface components {
             /** Format: uuid */
             siteId: null | string;
             site: null | string;
+            virtualPort?: null | string;
         };
         NetworkEndRequest: {
             /** Format: uuid */
@@ -30677,6 +30857,9 @@ export interface components {
             firstSeenAt: string;
             /** Format: date-time */
             lastSeenAt: string;
+            /** Format: uuid */
+            skippedRuleId?: null | string;
+            skippedRule?: null | string;
         };
         NetworkMapSettings: {
             scanScheduleEnabled: boolean;
@@ -30722,6 +30905,7 @@ export interface components {
             /** Format: int32 */
             unassignedInterfaces: number;
             scans: components["schemas"]["NetworkScanStatus"];
+            skipRules?: null | string[];
         };
         NetworkNode: {
             id: string;
@@ -30923,6 +31107,84 @@ export interface components {
             proxy: null | string;
             hostsEntries: string[];
         };
+        /** @enum {unknown} */
+        NetworkSkipEvidence: "MacTable" | "Arp" | "Mndp" | "Lldp" | "Cdp" | "Wifi" | "WireGuard" | "Tunnel";
+        NetworkSkipPreviewSuggestion: {
+            key: string;
+            a: components["schemas"]["NetworkEndItem"];
+            b: components["schemas"]["NetworkEndItem"];
+            confidence: components["schemas"]["Confidence"];
+            evidence: null | string;
+        };
+        NetworkSkipRuleItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            enabled: boolean;
+            scope: components["schemas"]["NetworkSkipRuleScope"];
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            /** Format: uuid */
+            sensorId: null | string;
+            routerName: null | string;
+            interfacePattern: null | string;
+            interfaceTypes: string[];
+            vlans: null | string;
+            evidence: components["schemas"]["NetworkSkipEvidence"][];
+            macPrefix: null | string;
+            /** Format: int32 */
+            hits: number;
+            /** Format: int32 */
+            hitRouters: number;
+            /** Format: date-time */
+            hitsAt: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdByName: null | string;
+            /** Format: date-time */
+            updatedAt: null | string;
+            updatedByName: null | string;
+        };
+        NetworkSkipRuleList: {
+            items: components["schemas"]["NetworkSkipRuleItem"][];
+            interfaceTypes: string[];
+        };
+        NetworkSkipRulePreview: {
+            /** Format: int32 */
+            rows: number;
+            /** Format: int32 */
+            routers: number;
+            removed: components["schemas"]["NetworkSkipPreviewSuggestion"][];
+            /** Format: int32 */
+            removedTotal: number;
+            added: components["schemas"]["NetworkSkipPreviewSuggestion"][];
+            /** Format: int32 */
+            addedTotal: number;
+            /** Format: int32 */
+            interfaces: number;
+        };
+        NetworkSkipRulePreviewRequest: {
+            /** Format: uuid */
+            id?: null | string;
+            rule?: components["schemas"]["NetworkSkipRuleRequest"];
+        };
+        NetworkSkipRuleRequest: {
+            name?: string;
+            enabled?: boolean;
+            scope?: components["schemas"]["NetworkSkipRuleScope"];
+            /** Format: uuid */
+            locationId?: null | string;
+            /** Format: uuid */
+            sensorId?: null | string;
+            interfacePattern?: null | string;
+            interfaceTypes?: null | string[];
+            vlans?: null | string;
+            evidence?: null | components["schemas"]["NetworkSkipEvidence"][];
+            macPrefix?: null | string;
+        };
+        /** @enum {unknown} */
+        NetworkSkipRuleScope: "All" | "Location" | "Router";
         NetworkSuggestionAccept: {
             type?: null | string;
             aInterface?: null | string;

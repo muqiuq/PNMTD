@@ -18,8 +18,9 @@ import ConnectionDialog from './ConnectionDialog.vue'
 import { endLabel, scanLabel } from './networkFormat'
 
 /**
- * The connections (docs/network-map-plan.md §8.4): paginated, filtered by location, device, physical or virtual, and those
- * the scans no longer show. New connection, Edit and Delete with Network map: Edit.
+ * The connections (docs/network-map-plan.md §8.4): paginated, filtered by location, device, physical or virtual, those the
+ * scans no longer show, and those on a VLAN or bridge (made before the scan put its ends on the wire,
+ * docs/network-suggestion-rules-plan.md §5). New connection, Edit and Delete with Network map: Edit.
  */
 const route = useRoute()
 const session = useSession()
@@ -29,12 +30,14 @@ const device = ref<string | null>(typeof route.query.device === 'string' ? route
 const kind = ref<'all' | 'physical' | 'virtual'>('all')
 const routersOnly = ref(false)
 const unconfirmed = ref(route.query.unconfirmed === '1')
+const onVirtualPort = ref(route.query.virtual === '1')
 const filters = computed(() => ({
   locationId: locationId.value ?? undefined,
   deviceId: device.value ?? undefined,
   physical: kind.value === 'all' ? undefined : kind.value === 'physical',
   routersOnly: routersOnly.value || undefined,
   unconfirmed: unconfirmed.value || undefined,
+  onVirtualPort: onVirtualPort.value || undefined,
 }))
 const table = useServerTable<S['NetworkConnectionItem']>({
   key: [...keys.network, 'connections'],
@@ -58,7 +61,8 @@ const active = computed(
     (device.value ? 1 : 0) +
     (kind.value !== 'all' ? 1 : 0) +
     (routersOnly.value ? 1 : 0) +
-    (unconfirmed.value ? 1 : 0),
+    (unconfirmed.value ? 1 : 0) +
+    (onVirtualPort.value ? 1 : 0),
 )
 
 async function remove(c: S['NetworkConnectionItem']) {
@@ -91,6 +95,9 @@ async function remove(c: S['NetworkConnectionItem']) {
       <label class="check"
         ><Checkbox v-model="unconfirmed" binary input-id="unconfirmed" /><span>No longer seen</span></label
       >
+      <label class="check"
+        ><Checkbox v-model="onVirtualPort" binary input-id="on-virtual-port" /><span>On a VLAN or bridge</span></label
+      >
       <Button v-if="device" label="All devices" icon="pi pi-times" size="small" text @click="device = null" />
       <template #end>
         <Button
@@ -113,6 +120,13 @@ async function remove(c: S['NetworkConnectionItem']) {
             >{{ data.a.name }}</RouterLink
           >
           <span class="mono muted"> {{ data.a.interface ?? '' }}</span>
+          <Tag
+            v-if="data.a.virtualPort"
+            v-tooltip="'A VLAN or bridge: the cable is on the physical port. Edit the connection to move it there.'"
+            :value="data.a.virtualPort"
+            severity="warn"
+            class="virtual"
+          />
           <div class="muted small">{{ data.a.site ?? '' }}</div>
         </template>
       </Column>
@@ -126,6 +140,13 @@ async function remove(c: S['NetworkConnectionItem']) {
             >{{ data.b.name }}</RouterLink
           >
           <span class="mono muted"> {{ data.b.interface ?? '' }}</span>
+          <Tag
+            v-if="data.b.virtualPort"
+            v-tooltip="'A VLAN or bridge: the cable is on the physical port. Edit the connection to move it there.'"
+            :value="data.b.virtualPort"
+            severity="warn"
+            class="virtual"
+          />
           <div class="muted small">{{ data.b.site ?? '' }}</div>
         </template>
       </Column>
@@ -203,5 +224,10 @@ async function remove(c: S['NetworkConnectionItem']) {
 
 .warn {
   color: var(--pnmt-warn);
+}
+
+.virtual {
+  margin-left: 0.35rem;
+  font-size: 0.786rem;
 }
 </style>

@@ -15,6 +15,48 @@ public sealed class NetworkPureTests
     private static string Fixture(string version, ScanTable table) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Network", version, $"{table}.json"));
 
+    // --- VLANs, recorded on two linked CHRs (docs/network-suggestion-rules-plan.md §10, V0) -----------------------------------
+
+    private static readonly ScanTable[] LabTables = [ScanTable.Interfaces, ScanTable.Bridges, ScanTable.MacTable, ScanTable.Neighbors, ScanTable.Arp, ScanTable.Addresses];
+
+    /// <summary>A lab router's tables, parsed as the scan parses them.</summary>
+    private static NetworkScanReading LabRouter(string shape, string router, Guid id)
+    {
+        var reading = new NetworkScanReading();
+        foreach (var table in LabTables)
+        {
+            reading.Add(id, table, File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Network", "vlans", shape, router, $"{table}.json")),
+                new DateTime(2026, 11, 26, 22, 0, 0, DateTimeKind.Utc));
+        }
+        reading.Complete();
+        return reading;
+    }
+
+    [TestMethod]
+    [DataRow("on-port", DisplayName = "VLANs on the port")]
+    [DataRow("bridge", DisplayName = "VLANs on a vlan-filtering bridge")]
+    [DataRow("bridge-per-vlan", DisplayName = "one bridge per VLAN")]
+    public void Two_routers_with_VLANs_on_one_cable_are_one_suggestion(string shape)
+    {
+        var (a, b) = (Guid.NewGuid(), Guid.NewGuid());
+        var (ra, rb) = (LabRouter(shape, "vla", a), LabRouter(shape, "vlb", b));
+        Assert.IsTrue(ra.Observations.Count(o => o.Source == ObservationSource.Neighbor) >= 3, "the neighbor on the port and on each VLAN");
+        Assert.IsTrue(ra.Observations.Any(o => o.Source == ObservationSource.Neighbor && o.RemoteInterface is not null && o.DiscoveredBy is not null),
+            "the proplist brings interface-name and discovered-by");
+        var (ha, hb) = (Guid.NewGuid(), Guid.NewGuid());
+        var result = TopologyAnalyzer.Analyze(new TopologyInput
+        {
+            Routers = [new TopologyRouter(a, ha, "vla", "vla", null), new TopologyRouter(b, hb, "vlb", "vlb", null)],
+            Hosts = [new TopologyHost(ha, "vla"), new TopologyHost(hb, "vlb")],
+            Ports = [.. ra.Ports, .. rb.Ports],
+            Observations = [.. ra.Observations, .. rb.Observations],
+        });
+        var s = result.Suggestions.Single();
+        Assert.AreEqual(Confidence.High, s.Confidence, string.Join("\n", s.Evidence.Select(e => e.Text)));
+        CollectionAssert.AreEquivalent(new[] { "ether2", "ether2" }, new[] { s.A.Interface, s.B.Interface });
+        Assert.IsTrue(s.Evidence.Any(e => e.Vlans is { Count: 2 }), string.Join("\n", s.Evidence.Select(e => e.Text)));
+    }
+
     // --- MACs and types ----------------------------------------------------------------------------------------------------
 
     [TestMethod]

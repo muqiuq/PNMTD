@@ -15,7 +15,7 @@ namespace PNMTD.Api.V1;
 [Route("api/v1/network-map")]
 [Authorize]
 public sealed class NetworkMapController(NetworkMapService map, NetworkConnectionService connections, NetworkScanService scans,
-    NetworkPositionService positions) : V1ControllerBase
+    NetworkPositionService positions, NetworkSkipRuleService skipRules) : V1ControllerBase
 {
     // --- the map ---------------------------------------------------------------------------------------------------------
 
@@ -172,6 +172,41 @@ public sealed class NetworkMapController(NetworkMapService map, NetworkConnectio
     [RequireRight(Area.NetworkMap, Level.Edit)]
     [Audit(AuditEvents.NetworkInterfaceUnignored)]
     public async Task<ActionResult<NetworkInterfaceItem>> Unignore(string mac, CancellationToken ct) => await connections.IgnoreAsync(mac, false, ct);
+
+    // --- skip rules (docs/network-suggestion-rules-plan.md §4.6) -----------------------------------------------------------
+
+    /// <summary>The rules with their hits at the last analysis, and the interface types the scans have seen.</summary>
+    [HttpGet("skip-rules")]
+    [RequireRight(Area.NetworkMap, Level.View)]
+    public async Task<ActionResult<NetworkSkipRuleList>> SkipRules(CancellationToken ct) => await skipRules.ListAsync(ct);
+
+    [HttpPost("skip-rules")]
+    [RequireRight(Area.NetworkMap, Level.Manage)]
+    [Audit(AuditEvents.NetworkSkipRuleCreated)]
+    public async Task<ActionResult<NetworkSkipRuleItem>> CreateSkipRule(NetworkSkipRuleRequest request, CancellationToken ct) =>
+        await skipRules.CreateAsync(request, ct);
+
+    [HttpPut("skip-rules/{id:guid}")]
+    [RequireRight(Area.NetworkMap, Level.Manage)]
+    [Audit(AuditEvents.NetworkSkipRuleUpdated)]
+    public async Task<ActionResult<NetworkSkipRuleItem>> UpdateSkipRule(Guid id, NetworkSkipRuleRequest request, CancellationToken ct) =>
+        await skipRules.UpdateAsync(id, request, ct);
+
+    [HttpDelete("skip-rules/{id:guid}")]
+    [RequireRight(Area.NetworkMap, Level.Manage)]
+    [Audit(AuditEvents.NetworkSkipRuleDeleted)]
+    public async Task<IActionResult> DeleteSkipRule(Guid id, CancellationToken ct)
+    {
+        await skipRules.DeleteAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>What a draft would change, from the stored scans: the analysis in memory with and without it. Writes nothing.</summary>
+    [HttpPost("skip-rules/preview")]
+    [RequireRight(Area.NetworkMap, Level.Manage)]
+    [NotAudited("a dry run: the analysis in memory, nothing stored")]
+    public async Task<ActionResult<NetworkSkipRulePreview>> PreviewSkipRule(NetworkSkipRulePreviewRequest request, CancellationToken ct) =>
+        await skipRules.PreviewAsync(request, ct);
 
     // --- scans -----------------------------------------------------------------------------------------------------------
 

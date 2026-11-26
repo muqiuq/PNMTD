@@ -59,6 +59,10 @@ public sealed class NetworkConnectionService(PnmtdDbContext db, LocationTree loc
         {
             rows = rows.Where(c => c.UnconfirmedSince is not null);
         }
+        if (query.OnVirtualPort == true)
+        {
+            rows = rows.Where(c => d.VirtualPortOf(c.A) is not null || d.VirtualPortOf(c.B) is not null);
+        }
         var items = rows.Select(c => NetworkViews.Connection(c, d));
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

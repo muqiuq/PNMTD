@@ -178,6 +178,14 @@ internal static class NetworkCommand
         var outcome = sp.GetRequiredService<NetworkAnalysis>().RunAsync(CancellationToken.None).GetAwaiter().GetResult();
         Console.WriteLine($"{outcome.Interfaces} interfaces, {outcome.OpenSuggestions} open suggestions, {outcome.Confirmed} connections confirmed, " +
             $"{outcome.Unconfirmed} unconfirmed ({outcome.Duration.TotalMilliseconds:0} ms).");
+        // The skip rules' hits (docs/network-suggestion-rules-plan.md §4.6).
+        using var db = sp.GetRequiredService<IDbContextFactory<PnmtdDbContext>>().CreateDbContext();
+        foreach (var rule in db.NetworkSkipRules.AsNoTracking().OrderBy(r => r.CreatedAt).ToList())
+        {
+            Console.WriteLine(rule.Enabled
+                ? $"Skip rule {rule.Name}: {rule.Hits} rows on {rule.HitRouters} router(s)"
+                : $"Skip rule {rule.Name}: off");
+        }
         return 0;
     }
 

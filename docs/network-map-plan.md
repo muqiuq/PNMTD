@@ -123,7 +123,7 @@ From docs/mikrotikmapfeature.md, numbered for the rest of the plan:
 | `wifi`, `wlan` interface, or a Wi-Fi client | The interface type, the registration table | `wifi` |
 | `wireguard` | The interface type | `wireguard` |
 | `eoip`, `gre`, `ipip`, `vxlan` | The interface type | `tunnel` |
-| VLAN | **Its parent's type.** A VLAN is no connection of its own: the connection is on the physical port, and the evidence names the VLAN | The parent's |
+| VLAN | **Its parent's type.** A VLAN is no connection of its own: the connection is on the physical port, and the evidence names the VLAN. Built for every rule, not only ARP, in [network-suggestion-rules-plan.md](network-suggestion-rules-plan.md) §3 | The parent's |
 | Bridge | **The member port** where the MAC was learned (`on-interface`) | The member's |
 | Bond | **Each member is its own connection** in this plan. The evidence says "member of bond1" | The member's |
 | No link, no module, or unclear | | none: the person chooses |
@@ -233,6 +233,7 @@ Before any MAC is placed, each router port gets a role:
 
 - **Every end of a suggestion is a router or a host.** A neighbor or a MAC that matches no host gives no suggestion and no node. It is a network interface with its data (§6), until a person creates its host and assigns it (decision 6).
 - **One suggestion per pair of ends.** Its key is the two ends, normalised. Evidence from several rules merges into one suggestion, and the highest confidence wins.
+- **One suggestion per cable**, and **skip rules** that leave rows out: [network-suggestion-rules-plan.md](network-suggestion-rules-plan.md) §3, §4. Ends sit on the physical port; suggestions of one device pair that share a router port are one; a router-to-router link only the MAC table or ARP shows, between routers linked on other ports, is Low.
 - **The evidence is sentences:** "office-gw sees branch-gw on ether2 by MNDP (its port ether1)", "srv-db's adapter eno1 (AA:BB:…) is the only MAC on ether7", "Both sides 10 Gbit/s". It is also stored as data, for the UI's icons.
 - **The type proposed** comes from §3.3, from the router's side. For router to router, both sides are compared.
 - **A MAC seen on edge ports of two routers** (a device that moved, or a table that is out of date): the newer scan wins, with **Low** confidence and both in the evidence.

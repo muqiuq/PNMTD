@@ -57,7 +57,8 @@ public static class NetworkViews
             i.NeighborIdentity, i.NeighborPlatform, i.NeighborBoard, i.NeighborPort,
             i.MatchKind, i.MatchHostId, i.MatchSensorId, matchName, i.MatchInterface,
             i.HintHostId, i.HintHostId is { } hint && d.Hosts.TryGetValue(hint, out var hinted) ? hinted.Name : null,
-            i.AssignedByName, i.AssignedAt, i.FirstSeenAt, i.LastSeenAt);
+            i.AssignedByName, i.AssignedAt, i.FirstSeenAt, i.LastSeenAt,
+            i.SkippedRuleId, i.SkippedRuleId is { } rule && d.SkipRules.TryGetValue(rule, out var skipped) ? skipped : null);
     }
 
     public static PortFacts? Sfp(string? json)

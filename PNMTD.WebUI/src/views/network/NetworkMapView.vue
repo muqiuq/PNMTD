@@ -11,12 +11,13 @@ import InterfacesTab from './InterfacesTab.vue'
 import MapTab from './MapTab.vue'
 import ScansTab from './ScansTab.vue'
 import ScanStrip from './ScanStrip.vue'
+import SkipRulesTab from './SkipRulesTab.vue'
 import SuggestionsTab from './SuggestionsTab.vue'
 
 /**
  * The network map (docs/network-map-plan.md §8.1): how the routers, hosts and servers are connected. Tabs in ?tab=: the map,
- * the connections, the suggestions, the scans, and the network interfaces (Details). While a scan runs, a strip on every tab
- * says what it is doing.
+ * the connections, the suggestions, the skip rules (docs/network-suggestion-rules-plan.md §4.5), the scans, and the network
+ * interfaces (Details). While a scan runs, a strip on every tab says what it is doing.
  */
 const route = useRoute()
 const session = useSession()
@@ -46,6 +47,13 @@ const tabs = computed(() => {
     },
     { key: 'suggestions', label: 'Suggestions', icon: 'pi pi-lightbulb', to: to('suggestions'), badge: open || null },
     {
+      key: 'rules',
+      label: 'Skip rules',
+      icon: 'pi pi-filter-slash',
+      to: to('rules'),
+      badge: s?.skipRules?.length || null,
+    },
+    {
       key: 'scans',
       label: 'Scans',
       icon: 'pi pi-sync',
@@ -66,6 +74,7 @@ const tabs = computed(() => {
     <ScanStrip v-if="tab !== 'scans'" :status="status.data.value" />
     <ConnectionsTab v-if="tab === 'connections'" />
     <SuggestionsTab v-else-if="tab === 'suggestions'" />
+    <SkipRulesTab v-else-if="tab === 'rules'" />
     <ScansTab v-else-if="tab === 'scans'" :status="status.data.value" />
     <InterfacesTab v-else-if="tab === 'interfaces' && session.can('NetworkMap', 'Details')" />
     <MapTab v-else />

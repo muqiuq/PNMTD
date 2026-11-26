@@ -147,6 +147,13 @@ async function ignore(row: Row, on: boolean) {
           <span class="mono">{{ data.mac }}</span>
           <Tag v-if="data.random" value="random" severity="secondary" class="tag" />
           <Tag v-if="data.ignored" value="ignored" severity="secondary" class="tag" />
+          <Tag
+            v-if="data.skippedRuleId"
+            v-tooltip="`Skip rule ${data.skippedRule ?? ''}: no suggestion from what it is attached by`"
+            value="skipped"
+            severity="warn"
+            class="tag"
+          />
         </template>
       </Column>
       <Column header="IP · host name" field="hostName" sortable>
