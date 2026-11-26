@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using PNMTD.Api.V1.Contracts;
 using PNMTD.Auth;
 using PNMTD.Auth.Rights;
@@ -122,4 +123,70 @@ public sealed class ResponsibilityToolsTests
     [TestMethod]
     public async Task WithoutTheRightCookieIsToldSo() =>
         StringAssert.Contains(await RunAsync("responsibilities_list", "{}", Reader(withRight: false)), "needs a right");
+
+    /// <summary>A tool run as an MCP token with these rights (docs/responsibilities-mcp-and-map-plan.md §6.4).</summary>
+    private static async Task<System.Text.Json.JsonElement> McpAsync(string tool, string arguments, Dictionary<Area, Level> rights)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var ctx = new ToolContext(scope.ServiceProvider, new UserRights(false, rights), NoMasking.Instance)
+        {
+            Mcp = new McpCallInfo(TestUsers.Admin, "test-admin", Guid.NewGuid(), McpTokenKind.Read, "https://pnmt.example", "test"),
+        };
+        var result = await ToolCatalog.All.Single(t => t.Name == tool)
+            .Run(System.Text.Json.JsonDocument.Parse(arguments).RootElement, ctx, scope.ServiceProvider.GetRequiredService<Data.PnmtdDbContext>(), CancellationToken.None);
+        return System.Text.Json.JsonSerializer.SerializeToElement(result, ToolResults.Json);
+    }
+
+    [TestMethod]
+    public async Task TheLinksListNeverNamesASensitivePageAndTheUnlinkedViewsNeedTheirRight()
+    {
+        var name = V1.Unique("Tool Links");
+        var r = await (await manager.PostJsonAsync("/api/v1/responsibilities", new { name })).ReadAsync<ResponsibilityDetail>();
+        var open = await PageAsync(V1.Unique("Open links page"), false);
+        var secret = await PageAsync(V1.Unique("Secret links page"), true);
+        await using (var db = app.NewDb())
+        {
+            foreach (var page in db.KbPages.Where(p => p.Number == open || p.Number == secret).Select(p => p.Id).ToList())
+            {
+                await manager.PostJsonAsync($"/api/v1/responsibilities/{r.Id}/links", new { kind = "Page", id = page });
+            }
+        }
+        var reader = new Dictionary<Area, Level> { [Area.Responsibilities] = Level.View };
+        var rows = await McpAsync("responsibility_links_list", $$"""{"responsibilityIds":["{{r.Id}}"]}""", reader);
+        var text = rows.GetRawText();
+        StringAssert.Contains(text, "Open links page");
+        Assert.IsFalse(text.Contains("Secret links page"), text);
+        Assert.AreEqual("1 linked page is not shown", rows.GetProperty("pagesNotShown").GetString());
+
+        var refused = await Assert.ThrowsExactlyAsync<ToolException>(() => McpAsync("responsibility_links_list", """{"view":"unlinkedHosts"}""", reader));
+        Assert.AreEqual("missing_right", refused.Code);
+        var locations = await Assert.ThrowsExactlyAsync<ToolException>(() => McpAsync("responsibility_links_list", """{"view":"unlinkedLocations"}""",
+            new Dictionary<Area, Level> { [Area.Responsibilities] = Level.View, [Area.Monitoring] = Level.View }));
+        Assert.AreEqual("missing_right", locations.Code);
+        var hosts = await McpAsync("responsibility_links_list", """{"view":"unlinkedHosts","limit":1}""",
+            new Dictionary<Area, Level> { [Area.Responsibilities] = Level.View, [Area.Monitoring] = Level.View });
+        Assert.IsTrue(hosts.TryGetProperty("items", out _));
+
+        // A sensitive page is no page to link either: refused before anything is written.
+        var edit = new Dictionary<Area, Level> { [Area.Responsibilities] = Level.Edit };
+        var missing = await Assert.ThrowsExactlyAsync<ToolException>(() =>
+            McpAsync("responsibility_links_change", $$"""{"action":"link","responsibilityId":"{{r.Id}}","pageNumbers":[{{secret}}]}""", edit));
+        Assert.AreEqual("not_found", missing.Code);
+    }
+
+    [TestMethod]
+    public void TheServersPaletteIsTheWebUisOne()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "PNMTD.slnx")))
+        {
+            root = root.Parent;
+        }
+        var colours = File.ReadAllText(Path.Combine(root!.FullName, "PNMTD.WebUI", "src", "components", "colours.ts"));
+        var list = colours[colours.IndexOf("export const palette", StringComparison.Ordinal)..colours.IndexOf("export function colourName", StringComparison.Ordinal)];
+        var swatches = System.Text.RegularExpressions.Regex.Matches(list, @"\{ name: '([A-Za-z]+)', hex: '(#[0-9a-f]{6})' \}")
+            .Select(m => (m.Groups[1].Value, m.Groups[2].Value)).ToList();
+        Assert.AreEqual(12, swatches.Count);
+        CollectionAssert.AreEqual(global::PNMTD.Services.Domain.Colours.Palette.ToList(), swatches);
+    }
 }

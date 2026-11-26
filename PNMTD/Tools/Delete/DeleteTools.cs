@@ -29,6 +29,11 @@ public static class DeleteTools
         new("network_connection_delete", "Delete a network connection", "Deletes one connection of the network map, as it was recorded." + Window,
             Schema(Id("id", "The connection's id")), Area.NetworkMap, Level.Edit, ToolKind.Delete, NetworkConnectionAsync)
         { AuditEvents = [AuditEvents.NetworkConnectionDeleted] },
+        // docs/responsibilities-mcp-and-map-plan.md §6.4: a note on the responsibilities' overview.
+        new("responsibility_note_delete", "Delete a note on the responsibilities' overview",
+            "Deletes a note on Admin → Responsibilities → Overview, for everyone; the audit keeps its text." + Window,
+            Schema(Id("id", "The note's id, from responsibility_notes")), Area.Responsibilities, Level.Edit, ToolKind.Delete, ResponsibilityNoteAsync)
+        { AuditEvents = [AuditEvents.ResponsibilityNoteDeleted] },
     ];
 
     /// <summary>The object as it was, field by field, into the audit's changes (field: value → deleted).</summary>
@@ -121,5 +126,17 @@ public static class DeleteTools
         ctx.Target("MailInputRule", id, was.Name);
         ctx.Summary = $"deleted mail input rule {was.Name}";
         return new { Deleted = snapshot };
+    }
+
+    private static async Task<object> ResponsibilityNoteAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
+    {
+        var id = IdOf(args);
+        var was = await db.ResponsibilityMapNotes.AsNoTracking().SingleOrDefaultAsync(n => n.Id == id, ct) ?? throw ToolException.NotFound("note");
+        // As it was, field by field, as every delete over MCP: the audit keeps its text.
+        AsItWas(new { was.Text, was.Colour, was.Width, was.X, was.Y, was.CreatedByName });
+        await ctx.Services.GetRequiredService<Responsibilities.ResponsibilityMapService>().DeleteNoteAsync(id, ct);
+        ctx.Target("ResponsibilityNote", id, null);
+        ctx.Summary = "deleted a note on the responsibilities' overview";
+        return new { Deleted = new { was.Id, Text = ctx.Untrusted("overview note", was.Text, 2000), was.Colour, was.Width } };
     }
 }
