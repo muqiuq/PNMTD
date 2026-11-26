@@ -28,7 +28,8 @@ public sealed record PersonProfile(
     IReadOnlyList<DefaultDay> DefaultWeek,
     int PlanOrder,
     IReadOnlyList<string>? ServerAccounts = null,
-    int? RedmineUserId = null);
+    int? RedmineUserId = null,
+    int ResponsibleShare = 100);
 
 /// <summary>
 /// What belongs to a person (docs/cookie-plan.md §8.1, revision 7): the e-mail address, the Pushover key and the Redmine user,
@@ -72,7 +73,7 @@ public static partial class People
 
     public static PersonProfile Of(UserEntity u) =>
         new(u.Email, u.PushoverKey, u.RedmineName, u.InPlan, u.ShortCode, u.Color, WeekOf(u.DefaultWeek), u.PlanOrder, u.ServerAccounts,
-            u.RedmineUserId);
+            u.RedmineUserId, u.ResponsibleShare);
 
     /// <summary>
     /// The person's accounts on servers and routers (docs/cookie-access-plan.md §5.3), cleaned: trimmed, each once, at most 20 of at
@@ -94,10 +95,16 @@ public static partial class People
             "A Pushover user key has 30 letters and digits.");
     }
 
-    /// <summary>Checks and applies the plan's fields: a unique code of 3 letters, a colour, a known type per working weekday.</summary>
+    public const int MaxResponsibleShare = 500;
+
+    /// <summary>
+    /// Checks and applies the plan's fields: a unique code of 3 letters, a colour, a known type per working weekday, and the share
+    /// as responsible (0 to 500, docs/availability-extensions-plan.md §8; left as it is when null).
+    /// </summary>
     public static async Task ApplyPlanAsync(PnmtdDbContext db, UserEntity user, bool inPlan, string? shortCode, string? color,
-        IReadOnlyList<DefaultDay>? week, int planOrder, ApiValidator v, CancellationToken ct)
+        IReadOnlyList<DefaultDay>? week, int planOrder, ApiValidator v, CancellationToken ct, int? responsibleShare = null)
     {
+        v.Check(responsibleShare is null or >= 0 and <= MaxResponsibleShare, "responsibleShare", $"0 to {MaxResponsibleShare} %.");
         var code = string.IsNullOrWhiteSpace(shortCode) ? null : shortCode.Trim().ToUpperInvariant();
         v.Check(code is null || CodePattern().IsMatch(code), "shortCode", "3 letters.");
         v.Check(!inPlan || code is not null, "shortCode", "Someone in the plan needs a short code.");
@@ -122,6 +129,10 @@ public static partial class People
         user.Color = colour;
         user.DefaultWeek = JsonSerializer.Serialize(StandardWeek.Select(d => days.FirstOrDefault(x => x.Day == d.Day) ?? d), Json);
         user.PlanOrder = planOrder;
+        if (responsibleShare is { } share)
+        {
+            user.ResponsibleShare = share;
+        }
     }
 
     public static string? Clean(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : value.Trim() is var t && t.Length > max ? t[..max] : value.Trim();

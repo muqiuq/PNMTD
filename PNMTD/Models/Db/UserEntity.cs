@@ -142,6 +142,12 @@ public class UserEntity
     /// <summary>The column's place in the plan.</summary>
     public int PlanOrder { get; set; }
 
+    /// <summary>
+    /// The person's share of the days as the day's responsible, as a weight (docs/availability-extensions-plan.md §8): 100 a full
+    /// share, 50 half, 0 never. The Status tab compares each person's days with their share of everyone's.
+    /// </summary>
+    public int ResponsibleShare { get; set; } = 100;
+
     /// <summary>Cookie and Seraph may talk about the person in the lounge (docs/lounge-plan.md §9.4); on by default.</summary>
     public bool LoungeMentions { get; set; } = true;
 

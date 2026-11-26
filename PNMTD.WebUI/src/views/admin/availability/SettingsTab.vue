@@ -20,13 +20,16 @@ import CodeChip from './CodeChip.vue'
 import HoursEditor from './HoursEditor.vue'
 import { normalizeWeek, tidyPeriods } from './hours'
 import { flags, isColour, works, type Flag } from './plan'
+import { currentErrors, sentParts, type SettingsParts } from './serverErrors'
 import { settingsKey, useAvailabilityPeople, useAvailabilitySettings } from './useAvailability'
 
 /**
  * The plan's settings (docs/cookie-plan.md §8.2, §9.4), for Availability: Manage, saved as a whole: the availability types
  * with what they mean as checkboxes (several at once, never checked against each other), exactly one the default and at
  * most one for the days a person doesn't work; the count columns; the working hours and holidays (§7.3, Admin → Cookie
- * before revision 7); and the global fallback. A type left out that is in use is retired, keeping its cells.
+ * before revision 7); the global fallback; and what the pages call the day's responsible (docs/availability-extensions-plan.md
+ * §7). A type left out that is in use is retired, keeping its cells. The server's messages show only while the part they are
+ * about is as it was sent (§3.2, serverErrors.ts).
  */
 interface Draft {
   types: S['AvailabilityTypeInput'][]
@@ -36,6 +39,7 @@ interface Draft {
     countColumns: S['CountColumn'][]
     globalFallbackUserId: string | null
     globalFallbackGroupId: string | null
+    responsibleLabel: string
   }
 }
 type Fallback = 'none' | 'user' | 'group'
@@ -51,7 +55,20 @@ const draft = ref<Draft | null>(null)
 const fallback = ref<Fallback>('none')
 const base = ref('')
 const busy = ref(false)
-const errors = ref<Record<string, string[]>>({})
+/** The server's last answer, and what each of its fields was about when it was sent. */
+const serverErrors = ref<Record<string, string[]>>({})
+const sent = ref<Record<string, string>>({})
+const partsOf = (d: Draft, mode: Fallback): SettingsParts => ({
+  types: d.types,
+  countColumns: d.settings.countColumns,
+  week: d.settings.week,
+  holidays: d.settings.holidays,
+  globalFallback: { mode, user: d.settings.globalFallbackUserId, group: d.settings.globalFallbackGroupId },
+  responsibleLabel: d.settings.responsibleLabel,
+})
+const errors = computed(() =>
+  draft.value ? currentErrors(serverErrors.value, sent.value, partsOf(draft.value, fallback.value)) : {},
+)
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const snapshot = () => JSON.stringify({ draft: draft.value, fallback: fallback.value })
@@ -84,6 +101,7 @@ function load(item: S['AvailabilitySettingsItem']) {
       })),
       globalFallbackUserId: s.globalFallbackUserId ?? null,
       globalFallbackGroupId: s.globalFallbackGroupId ?? null,
+      responsibleLabel: s.responsibleLabel ?? 'Responsible',
     },
   }
   fallback.value = s.globalFallbackUserId ? 'user' : s.globalFallbackGroupId ? 'group' : 'none'
@@ -231,6 +249,7 @@ function request(d: Draft): S['AvailabilitySettingsRequest'] {
       })),
       globalFallbackUserId: fallback.value === 'user' ? d.settings.globalFallbackUserId : null,
       globalFallbackGroupId: fallback.value === 'group' ? d.settings.globalFallbackGroupId : null,
+      responsibleLabel: d.settings.responsibleLabel.trim(),
     },
   }
 }
@@ -238,7 +257,9 @@ function request(d: Draft): S['AvailabilitySettingsRequest'] {
 async function save() {
   if (!draft.value || !dirty.value) return
   busy.value = true
-  errors.value = {}
+  serverErrors.value = {}
+  // What was sent, for the messages that come back: the draft may change while the request runs.
+  const asSent = partsOf(clone(draft.value), fallback.value)
   try {
     const saved = await api.availability.saveSettings(request(draft.value))
     queryClient.setQueryData(settingsKey, saved)
@@ -247,7 +268,8 @@ async function save() {
     await queryClient.invalidateQueries({ queryKey: keys.availability })
   } catch (e) {
     if (e instanceof ApiError && Object.keys(e.errors).length) {
-      errors.value = e.errors
+      sent.value = sentParts(e.errors, asSent)
+      serverErrors.value = e.errors
     } else {
       notify.error(e, 'Not saved')
     }
@@ -258,11 +280,14 @@ async function save() {
 
 function reset() {
   if (settings.data.value) load(settings.data.value)
-  errors.value = {}
+  serverErrors.value = {}
 }
 
 const placed = (f: string) =>
-  ['types', 'countColumns', 'week', 'holidays', 'globalFallback'].some((p) => f === p || f.startsWith(`${p}.`))
+  ['types', 'countColumns', 'week', 'holidays', 'globalFallback', 'responsibleLabel'].some(
+    (p) => f === p || f.startsWith(`${p}.`),
+  )
+const labelShown = computed(() => draft.value?.settings.responsibleLabel.trim() || 'Responsible')
 </script>
 
 <template>
@@ -531,7 +556,38 @@ const placed = (f: string) =>
       </div>
     </section>
 
-    <HoursEditor v-model:week="draft.settings.week" v-model:holidays="draft.settings.holidays" :errors="errors" />
+    <HoursEditor
+      v-model:week="draft.settings.week"
+      v-model:holidays="draft.settings.holidays"
+      :errors="errors"
+      :time-zone="settings.data.value?.timeZone ?? null"
+    />
+
+    <section class="panel" aria-labelledby="label-title">
+      <div id="label-title" class="panel-header">The day's responsible</div>
+      <div class="panel-body form">
+        <p class="muted small intro">
+          What the plan, the Status tab and the boards' On duty element call the day's responsible:
+          <i>Responsible</i> by default, or a name of the team's own. Cookie, the API and the audit log keep
+          <i>responsible</i>.
+        </p>
+        <label for="responsible-label" class="label-row">
+          <span>Called</span>
+          <InputText
+            id="responsible-label"
+            v-model="draft.settings.responsibleLabel"
+            size="small"
+            maxlength="30"
+            placeholder="Responsible"
+            class="label-input"
+          />
+          <small class="muted"
+            >The Status tab says <i>{{ labelShown }} for 14 days</i>.</small
+          >
+        </label>
+        <small v-if="errors.responsibleLabel" class="field-error">{{ errors.responsibleLabel.join(' ') }}</small>
+      </div>
+    </section>
 
     <section class="panel" aria-labelledby="fallback-title">
       <div id="fallback-title" class="panel-header">Global fallback</div>
@@ -580,6 +636,17 @@ const placed = (f: string) =>
 </template>
 
 <style scoped>
+.label-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pnmt-space-2);
+}
+
+.label-input {
+  width: 14rem;
+}
+
 .tab {
   display: flex;
   flex-direction: column;

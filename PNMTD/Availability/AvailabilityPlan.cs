@@ -64,9 +64,16 @@ public sealed class PlanSnapshot
     /// <summary>A weekend or a closed holiday: greyed, nobody needed (§8.2).</summary>
     public bool Closed(DateOnly day) => !Calendar.AlwaysOpen && Calendar.PeriodsOn(day).Count == 0;
 
+    /// <summary>
+    /// The day's hours as the settings have them ("08:00–12:00, 13:00–17:00"), in PNMT's time zone. <see cref="WorkingCalendar.PeriodsOn"/>
+    /// is local wall-clock time already: converting it again moved every period by the zone's offset (before 1.28).
+    /// </summary>
     public string Hours(DateOnly day) => Closed(day) ? "closed"
         : Calendar.AlwaysOpen ? "always"
-        : string.Join(", ", Calendar.PeriodsOn(day).Select(p => $"{Clock.ToLocal(p.From):HH:mm}–{(Clock.ToLocal(p.To) is var to && to.TimeOfDay == TimeSpan.Zero ? "24:00" : to.ToString("HH:mm", CultureInfo.InvariantCulture))}"));
+        : string.Join(", ", Calendar.PeriodsOn(day).Select(p => $"{HourText(day, p.From)}–{HourText(day, p.To)}"));
+
+    private static string HourText(DateOnly day, DateTime local) =>
+        local.TimeOfDay == TimeSpan.Zero && DateOnly.FromDateTime(local) > day ? "24:00" : local.ToString("HH:mm", CultureInfo.InvariantCulture);
 
     public AvailabilityEntryEntity? Cell(Guid user, DateOnly day) => cells.GetValueOrDefault((user, day));
 

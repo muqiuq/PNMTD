@@ -426,7 +426,8 @@ public sealed record BoardLounge(IReadOnlyList<BoardLoungeLine> Lines, string? T
 /// Who is on duty today (§7.1, docs/board-messages-plan.md §9.5): the chain's first step and as what, then as many deputies as the
 /// element shows; whether the day is closed; the day's comment and the next open day's first step where the element shows them.
 /// </summary>
-public sealed record BoardOnDuty(IReadOnlyList<BoardDutyPerson> People, string As, bool Closed, string? Comment = null, BoardDutyNext? Next = null);
+public sealed record BoardOnDuty(IReadOnlyList<BoardDutyPerson> People, string As, bool Closed, string? Comment = null, BoardDutyNext? Next = null,
+    string? ResponsibleLabel = null);
 
 /// <summary>
 /// A person in <i>On duty today</i>: the name as the board names people (null when it hides them), a deputy or not, how they are in the

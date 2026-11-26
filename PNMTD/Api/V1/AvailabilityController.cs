@@ -20,6 +20,35 @@ public sealed class AvailabilityController(AvailabilityService availability) : V
     public async Task<AvailabilityPlanItem> Plan([FromQuery] AvailabilityPlanQuery query, CancellationToken ct) =>
         await availability.PlanAsync(query, User, ct);
 
+    /// <summary>
+    /// The Status tab's numbers for a year (docs/availability-extensions-plan.md §9 to §11), by default this year: for whoever sees
+    /// the plan.
+    /// </summary>
+    [HttpGet("stats")]
+    public async Task<AvailabilityStatsItem> Stats([FromQuery] AvailabilityStatsQuery query, CancellationToken ct) =>
+        await availability.StatsAsync(query, User, ct);
+
+    /// <summary>A note on a day (§6): for everyone in the plan and <i>Availability: Edit</i>.</summary>
+    [HttpPost("notes")]
+    [Audit(AuditEvents.AvailabilityChanged)]
+    public async Task<AvailabilityNoteItem> AddNote(AvailabilityNoteRequest request, CancellationToken ct) =>
+        await availability.AddNoteAsync(request, User, ct);
+
+    /// <summary>One's own note, changed.</summary>
+    [HttpPut("notes/{id:guid}")]
+    [Audit(AuditEvents.AvailabilityChanged)]
+    public async Task<AvailabilityNoteItem> ChangeNote(Guid id, AvailabilityNoteChange request, CancellationToken ct) =>
+        await availability.ChangeNoteAsync(id, request, User, ct);
+
+    /// <summary>One's own note removed, or anyone's with <i>Edit</i>.</summary>
+    [HttpDelete("notes/{id:guid}")]
+    [Audit(AuditEvents.AvailabilityChanged)]
+    public async Task<IActionResult> DeleteNote(Guid id, CancellationToken ct)
+    {
+        await availability.DeleteNoteAsync(id, User, ct);
+        return NoContent();
+    }
+
     /// <summary>Cells of several people and days: one's own column from today on, everything with <i>Edit</i>.</summary>
     [HttpPut("entries")]
     [Audit(AuditEvents.AvailabilityChanged)]

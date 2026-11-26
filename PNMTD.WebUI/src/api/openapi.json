@@ -5549,6 +5549,175 @@
         }
       }
     },
+    "/api/v1/availability/stats": {
+      "get": {
+        "tags": [
+          "Availability"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityStatsItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityStatsItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityStatsItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/notes": {
+      "post": {
+        "tags": [
+          "Availability"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityNoteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityNoteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityNoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityNoteItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityNoteItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityNoteItem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/availability/notes/{id}": {
+      "put": {
+        "tags": [
+          "Availability"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityNoteChange"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityNoteChange"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityNoteChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityNoteItem"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityNoteItem"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvailabilityNoteItem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Availability"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/availability/entries": {
       "put": {
         "tags": [
@@ -35956,6 +36125,28 @@
           }
         }
       },
+      "AvailabilityAwayDay": {
+        "required": [
+          "userId",
+          "date",
+          "typeId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "typeId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "AvailabilityCell": {
         "required": [
           "userId",
@@ -36089,7 +36280,8 @@
           "fallbackWorks",
           "cells",
           "counts",
-          "missing"
+          "missing",
+          "notes"
         ],
         "type": "object",
         "properties": {
@@ -36160,6 +36352,12 @@
           "missing": {
             "type": "integer",
             "format": "int32"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityNoteItem"
+            }
           }
         }
       },
@@ -36253,6 +36451,77 @@
           "Compensation"
         ]
       },
+      "AvailabilityNoteChange": {
+        "required": [
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "AvailabilityNoteItem": {
+        "required": [
+          "id",
+          "date",
+          "userId",
+          "author",
+          "text",
+          "createdAt",
+          "changedAt",
+          "mine"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "mine": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AvailabilityNoteRequest": {
+        "required": [
+          "date",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "AvailabilityPeopleItem": {
         "required": [
           "id",
@@ -36262,7 +36531,8 @@
           "shortCode",
           "color",
           "defaultWeek",
-          "planOrder"
+          "planOrder",
+          "responsibleShare"
         ],
         "type": "object",
         "properties": {
@@ -36298,6 +36568,10 @@
             }
           },
           "planOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "responsibleShare": {
             "type": "integer",
             "format": "int32"
           }
@@ -36371,6 +36645,13 @@
           "planOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "responsibleShare": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -36385,7 +36666,9 @@
           "days",
           "canEditAll",
           "inPlan",
-          "globalFallback"
+          "globalFallback",
+          "timeZone",
+          "responsibleLabel"
         ],
         "type": "object",
         "properties": {
@@ -36436,6 +36719,12 @@
               "null",
               "string"
             ]
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "responsibleLabel": {
+            "type": "string"
           }
         }
       },
@@ -36459,6 +36748,9 @@
             "items": {
               "$ref": "#/components/schemas/CountColumn"
             }
+          },
+          "responsibleLabel": {
+            "type": "string"
           },
           "globalFallbackUserId": {
             "type": [
@@ -36500,6 +36792,12 @@
             "items": {
               "$ref": "#/components/schemas/Ref"
             }
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -36518,6 +36816,355 @@
           },
           "settings": {
             "$ref": "#/components/schemas/AvailabilitySettings"
+          }
+        }
+      },
+      "AvailabilityShareRow": {
+        "required": [
+          "userId",
+          "days",
+          "actual",
+          "target",
+          "expected",
+          "deviation"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actual": {
+            "type": "number",
+            "format": "double"
+          },
+          "target": {
+            "type": "number",
+            "format": "double"
+          },
+          "expected": {
+            "type": "number",
+            "format": "double"
+          },
+          "deviation": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AvailabilityShareWindow": {
+        "required": [
+          "window",
+          "from",
+          "to",
+          "openDays",
+          "total",
+          "others",
+          "withoutResponsible",
+          "people"
+        ],
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "openDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "others": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "withoutResponsible": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityShareRow"
+            }
+          }
+        }
+      },
+      "AvailabilityStatsAhead": {
+        "required": [
+          "from",
+          "to",
+          "withoutResponsible",
+          "firstWithoutResponsible",
+          "belowMinimum",
+          "firstBelowMinimum",
+          "emptyCells",
+          "firstEmpty",
+          "away"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "withoutResponsible": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstWithoutResponsible": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "belowMinimum": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstBelowMinimum": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "emptyCells": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstEmpty": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "away": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityAwayDay"
+            }
+          }
+        }
+      },
+      "AvailabilityStatsDay": {
+        "required": [
+          "date",
+          "counts",
+          "responsibleId"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "responsibleId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "AvailabilityStatsItem": {
+        "required": [
+          "year",
+          "firstYear",
+          "today",
+          "timeZone",
+          "responsibleLabel",
+          "types",
+          "columns",
+          "people",
+          "months",
+          "windows",
+          "days",
+          "ahead"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "today": {
+            "type": "string",
+            "format": "date"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "responsibleLabel": {
+            "type": "string"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityTypeItem"
+            }
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityColumnItem"
+            }
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityStatsPerson"
+            }
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityStatsMonth"
+            }
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityShareWindow"
+            }
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityStatsDay"
+            }
+          },
+          "ahead": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AvailabilityStatsAhead"
+              }
+            ]
+          }
+        }
+      },
+      "AvailabilityStatsMonth": {
+        "required": [
+          "userId",
+          "month",
+          "types",
+          "empty",
+          "responsible",
+          "fallback"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailabilityTypeTally"
+            }
+          },
+          "empty": {
+            "$ref": "#/components/schemas/AvailabilityTally"
+          },
+          "responsible": {
+            "$ref": "#/components/schemas/AvailabilityTally"
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/AvailabilityTally"
+          }
+        }
+      },
+      "AvailabilityStatsPerson": {
+        "required": [
+          "id",
+          "name",
+          "code",
+          "color",
+          "share",
+          "target"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "color": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "share": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "target": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "AvailabilityTally": {
+        "required": [
+          "done",
+          "planned"
+        ],
+        "type": "object",
+        "properties": {
+          "done": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "planned": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -36612,6 +37259,28 @@
           },
           "works": {
             "type": "boolean"
+          }
+        }
+      },
+      "AvailabilityTypeTally": {
+        "required": [
+          "typeId",
+          "done",
+          "planned"
+        ],
+        "type": "object",
+        "properties": {
+          "typeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "done": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "planned": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -38651,6 +39320,12 @@
               {
                 "$ref": "#/components/schemas/BoardDutyNext"
               }
+            ]
+          },
+          "responsibleLabel": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -63823,6 +64498,11 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "responsibleShare": {
+            "type": "integer",
+            "format": "int32",
+            "default": 100
           }
         }
       },
@@ -74427,6 +75107,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "responsibleShare": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },

@@ -4201,6 +4201,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/availability/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    year?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityStatsItem"];
+                        "text/json": components["schemas"]["AvailabilityStatsItem"];
+                        "text/plain": components["schemas"]["AvailabilityStatsItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityNoteRequest"];
+                    "text/json": components["schemas"]["AvailabilityNoteRequest"];
+                    "application/*+json": components["schemas"]["AvailabilityNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityNoteItem"];
+                        "text/json": components["schemas"]["AvailabilityNoteItem"];
+                        "text/plain": components["schemas"]["AvailabilityNoteItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/availability/notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AvailabilityNoteChange"];
+                    "text/json": components["schemas"]["AvailabilityNoteChange"];
+                    "application/*+json": components["schemas"]["AvailabilityNoteChange"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailabilityNoteItem"];
+                        "text/json": components["schemas"]["AvailabilityNoteItem"];
+                        "text/plain": components["schemas"]["AvailabilityNoteItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/availability/entries": {
         parameters: {
             query?: never;
@@ -25000,6 +25146,14 @@ export interface components {
             removable: boolean;
             notRemovable: null | string;
         };
+        AvailabilityAwayDay: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            typeId: string;
+        };
         AvailabilityCell: {
             /** Format: uuid */
             userId: string;
@@ -25052,6 +25206,7 @@ export interface components {
             counts: number[];
             /** Format: int32 */
             missing: number;
+            notes: components["schemas"]["AvailabilityNoteItem"][];
         };
         AvailabilityDaysRequest: {
             days: components["schemas"]["AvailabilityDayChange"][];
@@ -25075,6 +25230,29 @@ export interface components {
         };
         /** @enum {unknown} */
         AvailabilityFlag: "Vacation" | "Holiday" | "OnSite" | "WorkTravel" | "HomeOffice" | "Compensation";
+        AvailabilityNoteChange: {
+            text: string;
+        };
+        AvailabilityNoteItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date */
+            date: string;
+            /** Format: uuid */
+            userId: string;
+            author: string;
+            text: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            changedAt: string;
+            mine: boolean;
+        };
+        AvailabilityNoteRequest: {
+            /** Format: date */
+            date: string;
+            text: string;
+        };
         AvailabilityPeopleItem: {
             /** Format: uuid */
             id: string;
@@ -25086,6 +25264,8 @@ export interface components {
             defaultWeek: components["schemas"]["DefaultDay"][];
             /** Format: int32 */
             planOrder: number;
+            /** Format: int32 */
+            responsibleShare: number;
         };
         AvailabilityPersonItem: {
             /** Format: uuid */
@@ -25102,6 +25282,8 @@ export interface components {
             defaultWeek: null | components["schemas"]["DefaultDay"][];
             /** Format: int32 */
             planOrder: number;
+            /** Format: int32 */
+            responsibleShare?: null | number;
         };
         AvailabilityPlanItem: {
             /** Format: date */
@@ -25117,11 +25299,14 @@ export interface components {
             canEditAll: boolean;
             inPlan: boolean;
             globalFallback: null | string;
+            timeZone: string;
+            responsibleLabel: string;
         };
         AvailabilitySettings: {
             week?: components["schemas"]["DayHours"][];
             holidays?: components["schemas"]["Holiday"][];
             countColumns?: components["schemas"]["CountColumn"][];
+            responsibleLabel?: string;
             /** Format: uuid */
             globalFallbackUserId?: null | string;
             /** Format: uuid */
@@ -25131,10 +25316,111 @@ export interface components {
             types: components["schemas"]["AvailabilityTypeItem"][];
             settings: components["schemas"]["AvailabilitySettings"];
             groups?: null | components["schemas"]["Ref"][];
+            timeZone?: null | string;
         };
         AvailabilitySettingsRequest: {
             types: components["schemas"]["AvailabilityTypeInput"][];
             settings: components["schemas"]["AvailabilitySettings"];
+        };
+        AvailabilityShareRow: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: int32 */
+            days: number;
+            /** Format: double */
+            actual: number;
+            /** Format: double */
+            target: number;
+            /** Format: double */
+            expected: number;
+            /** Format: double */
+            deviation: number;
+        };
+        AvailabilityShareWindow: {
+            window: string;
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            openDays: number;
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            others: number;
+            /** Format: int32 */
+            withoutResponsible: number;
+            people: components["schemas"]["AvailabilityShareRow"][];
+        };
+        AvailabilityStatsAhead: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: int32 */
+            withoutResponsible: number;
+            /** Format: date */
+            firstWithoutResponsible: null | string;
+            /** Format: int32 */
+            belowMinimum: number;
+            /** Format: date */
+            firstBelowMinimum: null | string;
+            /** Format: int32 */
+            emptyCells: number;
+            /** Format: date */
+            firstEmpty: null | string;
+            away: components["schemas"]["AvailabilityAwayDay"][];
+        };
+        AvailabilityStatsDay: {
+            /** Format: date */
+            date: string;
+            counts: number[];
+            /** Format: uuid */
+            responsibleId: null | string;
+        };
+        AvailabilityStatsItem: {
+            /** Format: int32 */
+            year: number;
+            /** Format: int32 */
+            firstYear: number;
+            /** Format: date */
+            today: string;
+            timeZone: string;
+            responsibleLabel: string;
+            types: components["schemas"]["AvailabilityTypeItem"][];
+            columns: components["schemas"]["AvailabilityColumnItem"][];
+            people: components["schemas"]["AvailabilityStatsPerson"][];
+            months: components["schemas"]["AvailabilityStatsMonth"][];
+            windows: components["schemas"]["AvailabilityShareWindow"][];
+            days: components["schemas"]["AvailabilityStatsDay"][];
+            ahead: null | components["schemas"]["AvailabilityStatsAhead"];
+        };
+        AvailabilityStatsMonth: {
+            /** Format: uuid */
+            userId: string;
+            /** Format: int32 */
+            month: number;
+            types: components["schemas"]["AvailabilityTypeTally"][];
+            empty: components["schemas"]["AvailabilityTally"];
+            responsible: components["schemas"]["AvailabilityTally"];
+            fallback: components["schemas"]["AvailabilityTally"];
+        };
+        AvailabilityStatsPerson: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            code: string;
+            color: null | string;
+            /** Format: int32 */
+            share: number;
+            /** Format: double */
+            target: number;
+        };
+        AvailabilityTally: {
+            /** Format: int32 */
+            done: number;
+            /** Format: int32 */
+            planned: number;
         };
         AvailabilityTypeInput: {
             /** Format: uuid */
@@ -25159,6 +25445,14 @@ export interface components {
             order: number;
             retired: boolean;
             works: boolean;
+        };
+        AvailabilityTypeTally: {
+            /** Format: uuid */
+            typeId: string;
+            /** Format: int32 */
+            done: number;
+            /** Format: int32 */
+            planned: number;
         };
         /** @enum {unknown} */
         AwayCommentState: "Pending" | "Withheld" | "Waiting" | "Notified" | "Joined" | "NotImportant" | "Recorded" | "Nobody" | "Back" | "Expired" | "Off";
@@ -25657,6 +25951,7 @@ export interface components {
             closed: boolean;
             comment?: null | string;
             next?: null | components["schemas"]["BoardDutyNext"];
+            responsibleLabel?: null | string;
         };
         /** @enum {unknown} */
         BoardPeople: "Names" | "Initials" | "Hidden";
@@ -32040,6 +32335,11 @@ export interface components {
             serverAccounts?: null | string[];
             /** Format: int32 */
             redmineUserId?: null | number;
+            /**
+             * Format: int32
+             * @default 100
+             */
+            responsibleShare: number;
         };
         PingParameters: {
             target: string;
@@ -34614,6 +34914,8 @@ export interface components {
             /** Format: int32 */
             planOrder: number;
             serverAccounts?: null | string[];
+            /** Format: int32 */
+            responsibleShare?: null | number;
         };
         VolumeInfo: {
             mount: string;

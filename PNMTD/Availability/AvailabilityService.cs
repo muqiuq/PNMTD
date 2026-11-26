@@ -48,7 +48,7 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
         if (!await MaySeeAsync(user, ct))
         {
             // Not in the plan and no right to see it: an empty plan, so the page can say so.
-            return new AvailabilityPlanItem(today, today, today, [], [], [], [], false, false, null);
+            return new AvailabilityPlanItem(today, today, today, [], [], [], [], false, false, null, Clock.TimeZone.Id, AvailabilitySettings.DefaultResponsibleLabel);
         }
         var from = query.From ?? today.AddDays(-7);
         var to = query.To ?? from.AddDays(60);
@@ -60,6 +60,8 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
         var me = user.UserId();
         var columns = snapshot.Settings.CountColumns.Where(c => c.Shown).ToList();
         var fillEnd = today.AddDays(AvailabilityPlan.FillDays - 1);
+        await using var db = await dbs.CreateDbContextAsync(ct);
+        var notes = (await NotesAsync(db, from, to, me, ct)).ToLookup(n => n.Date);
         var days = new List<AvailabilityDayItem>();
         for (var day = from; day <= to; day = day.AddDays(1))
         {
@@ -71,9 +73,8 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
             days.Add(new AvailabilityDayItem(day, Weekdays[(int)day.DayOfWeek], closed, snapshot.HolidayOn(day)?.Name, snapshot.Hours(day),
                 row?.ResponsibleId, row?.FallbackId, row?.Comment,
                 row?.ResponsibleId is { } r ? snapshot.Works(r, day) : null, row?.FallbackId is { } f ? snapshot.Works(f, day) : null,
-                cells, [.. columns.Select(c => snapshot.Count(c, day))], missing));
+                cells, [.. columns.Select(c => snapshot.Count(c, day))], missing, [.. notes[day]]));
         }
-        await using var db = await dbs.CreateDbContextAsync(ct);
         string? fallback = snapshot.Settings.GlobalFallbackUserId is { } fu
             ? await db.Users.AsNoTracking().Where(u => u.Id == fu).Select(u => u.DisplayName).FirstOrDefaultAsync(ct)
             : snapshot.Settings.GlobalFallbackGroupId is { } fg
@@ -81,7 +82,7 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
         return new AvailabilityPlanItem(from, to, today, [.. snapshot.Types.Select(ToItem)],
             [.. snapshot.People.Select(p => new AvailabilityPersonItem(p.Id, p.DisplayName, p.ShortCode!, p.Color, p.Id == me))],
             [.. columns.Select(c => new AvailabilityColumnItem(c.Id, c.Name, c.Minimum))], days,
-            user.Has(Area.Availability, Level.Edit), snapshot.People.Any(p => p.Id == me), fallback);
+            user.Has(Area.Availability, Level.Edit), snapshot.People.Any(p => p.Id == me), fallback, Clock.TimeZone.Id, snapshot.Settings.LabelOrDefault());
     }
 
     /// <summary>Sets cells: one's own column from today on, anything with <i>Edit</i> (§8.2).</summary>
@@ -297,24 +298,27 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         return [.. (await db.Users.AsNoTracking().Where(u => u.IsActive).OrderByDescending(u => u.InPlan).ThenBy(u => u.PlanOrder).ThenBy(u => u.DisplayName)
-            .ToListAsync(ct)).Select(u => new AvailabilityPeopleItem(u.Id, u.Username, u.DisplayName, u.InPlan, u.ShortCode, u.Color, People.WeekOf(u.DefaultWeek), u.PlanOrder))];
+            .ToListAsync(ct)).Select(u => new AvailabilityPeopleItem(u.Id, u.Username, u.DisplayName, u.InPlan, u.ShortCode, u.Color, People.WeekOf(u.DefaultWeek), u.PlanOrder,
+                u.ResponsibleShare))];
     }
 
     public async Task<AvailabilityPeopleItem> SavePersonAsync(Guid id, AvailabilityPersonRequest request, CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var u = await db.Users.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw ApiException.NotFound("User");
-        await People.ApplyPlanAsync(db, u, request.InPlan, request.ShortCode, request.Color, request.DefaultWeek, request.PlanOrder, new ApiValidator(), ct);
+        await People.ApplyPlanAsync(db, u, request.InPlan, request.ShortCode, request.Color, request.DefaultWeek, request.PlanOrder, new ApiValidator(), ct,
+            request.ResponsibleShare);
         await db.SaveChangesAsync(ct);
         AuditLog.Summary($"Availability: {u.DisplayName} {(u.InPlan ? $"in the plan as {u.ShortCode}" : "not in the plan")}");
-        return new AvailabilityPeopleItem(u.Id, u.Username, u.DisplayName, u.InPlan, u.ShortCode, u.Color, People.WeekOf(u.DefaultWeek), u.PlanOrder);
+        return new AvailabilityPeopleItem(u.Id, u.Username, u.DisplayName, u.InPlan, u.ShortCode, u.Color, People.WeekOf(u.DefaultWeek), u.PlanOrder,
+            u.ResponsibleShare);
     }
 
     public async Task<AvailabilitySettingsItem> SettingsAsync(CancellationToken ct)
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var groups = await db.Groups.AsNoTracking().OrderBy(g => g.Name).Select(g => new Ref(g.Id, g.Name)).ToListAsync(ct);
-        return new([.. (await plan.TypesAsync(ct)).Select(ToItem)], await plan.SettingsAsync(ct), groups);
+        return new([.. (await plan.TypesAsync(ct)).Select(ToItem)], await plan.SettingsAsync(ct), groups, Clock.TimeZone.Id);
     }
 
     public async Task<AvailabilitySettingsItem> SaveSettingsAsync(AvailabilitySettingsRequest request, ClaimsPrincipal user, CancellationToken ct)
@@ -324,7 +328,8 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
             throw ApiException.BadRequest("The types and the settings.");
         }
         var v = new ApiValidator();
-        request.Settings.Validate(v);
+        var settings = request.Settings with { ResponsibleLabel = (request.Settings.ResponsibleLabel ?? "").Trim() };
+        settings.Validate(v);
         v.Check(request.Types.Count is > 0 and <= 40, "types", "1 to 40 types.");
         v.Check(request.Types.Count(t => t.IsDefault) == 1, "types", "Exactly one type is the default.");
         v.Check(request.Types.Count(t => t.IsDayOff) <= 1, "types", "At most one type is for days off.");
@@ -386,7 +391,7 @@ public sealed partial class AvailabilityService(IDbContextFactory<PnmtdDbContext
         {
             db.AvailabilitySettings.Add(row = new AvailabilitySettingsEntity());
         }
-        row.Json = JsonSerializer.Serialize(request.Settings, AvailabilitySettings.Json);
+        row.Json = JsonSerializer.Serialize(settings, AvailabilitySettings.Json);
         row.ChangedAt = Clock.UtcNow;
         row.ChangedBy = Name(user);
         await db.SaveChangesAsync(ct);

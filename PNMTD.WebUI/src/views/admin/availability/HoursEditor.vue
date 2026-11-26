@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Message from 'primevue/message'
+import { computed } from 'vue'
 import type { S } from '@/api/resources'
 import { formatDay } from '@/format'
 import { holidayProblems, maxPeriods, nextPeriod, periodProblems } from './hours'
@@ -11,7 +13,7 @@ import { holidayProblems, maxPeriods, nextPeriod, periodProblems } from './hours
  * first answer's hours count only working time; reminders outside it wait for the next period. In PNMT's time zone. The
  * week comes with every weekday once, Monday first (normalizeWeek); errors are the server's, by field.
  */
-const props = defineProps<{ errors: Record<string, string[]> }>()
+const props = defineProps<{ errors: Record<string, string[]>; timeZone?: string | null }>()
 const week = defineModel<S['DayHours'][]>('week', { required: true })
 const holidays = defineModel<S['Holiday'][]>('holidays', { required: true })
 
@@ -27,6 +29,9 @@ const dayProblems = (day: S['DayHours']) =>
 const holidayIssues = (h: S['Holiday']) =>
   unique([...holidayProblems(h, holidays.value), ...(props.errors[`holidays.${h.date}`] ?? [])])
 const general = (field: string) => props.errors[field] ?? []
+/** PNMT's zone (docs/availability-extensions-plan.md §3.3): UTC when TZ isn't set, which a team elsewhere rarely means. */
+const zone = computed(() => props.timeZone || 'UTC')
+const utc = computed(() => ['UTC', 'Etc/UTC', 'Etc/Universal', 'Universal', 'Zulu'].includes(zone.value))
 </script>
 
 <template>
@@ -34,10 +39,16 @@ const general = (field: string) => props.errors[field] ?? []
     <div id="hours-week-title" class="panel-header">Working hours</div>
     <div class="panel-body body">
       <p class="muted small intro">
-        From–to as HH:mm in PNMT's time zone; 24:00 ends a day. A day without periods is closed, and greyed in the plan.
-        The 4 hours for a ticket's first answer count only these; the 14 days for an update count every day. Outside
-        them, Cookie reaches nobody.
+        From–to as HH:mm in <strong>{{ zone }}</strong>, PNMT's time zone (<code>TZ</code>); 24:00 ends a day. A day
+        without periods is closed, and greyed in the plan. The 4 hours for a ticket's first answer count only these; the
+        14 days for an update count every day. Outside them, Cookie reaches nobody.
       </p>
+      <Message v-if="utc" severity="warn" :closable="false" size="small">
+        PNMT's time zone is UTC: <code>TZ</code> isn't set, so 08:00 here is 08:00 UTC (09:00 in Zurich in winter). To
+        enter local hours, set <code>TZ</code> (for example <code>TZ=Europe/Zurich</code>) in
+        <code>deploy/.env</code> and restart. It also moves PNMT's other wall-clock rules: uptime per day, "daily at 8",
+        the 04:00 renewals.
+      </Message>
       <div v-if="general('week').length" class="field-error" role="alert">{{ general('week').join(' ') }}</div>
       <div v-for="day in week" :key="day.day" class="row">
         <div class="name">{{ day.day }}</div>

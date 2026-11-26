@@ -188,6 +188,140 @@ test('a viewer outside the plan has no menu entry, and the page says why', async
   await expect(page.locator('aside.drawer').getByRole('link', { name: 'Availability plan' })).toHaveCount(0)
   await page.goto('/pnmt-admin/admin/availability')
   await expect(page.getByText("The plan isn't yours to see.")).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Availability plan' }).getByRole('link')).toHaveText(['Plan'])
+  await expect(page.getByRole('navigation', { name: 'Availability plan' }).getByRole('link')).toHaveText([
+    'Plan',
+    'Status',
+  ])
+  await page.goto('/pnmt-admin/admin/availability/status')
+  await expect(page.getByText("The plan isn't yours to see.")).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+/** docs/availability-extensions-plan.md: the clock, Go to a day, the year's row, notes and the Status tab. */
+test('the plan: its zone and time, a day far ahead, the year’s row, a note, and the Status tab', async ({ page }) => {
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page)
+  const plan = (await json(page, '/api/v1/availability/plan')) as Plan & { timeZone: string }
+  const add = (iso: string, n: number) =>
+    new Date(Date.parse(`${iso}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
+  const typed = (iso: string) => `${Number(iso.slice(8, 10))}.${Number(iso.slice(5, 7))}.${iso.slice(0, 4)}`
+
+  await page.goto('/pnmt-admin/admin/availability')
+  const grid = page.getByRole('region', { name: 'The plan' })
+  await expect(grid.locator('tr[aria-current="date"]')).toBeVisible()
+  // §3.3: PNMT's zone, today's date and the time.
+  const clock = page.getByTestId('plan-clock')
+  await expect(clock).toContainText(plan.timeZone)
+  await expect(clock).toContainText(new RegExp(dotted(plan.today)))
+
+  // §5: a day far beyond the days loaded: typed, Enter, and the plan loads around it; the address keeps it.
+  const far = add(plan.today, 300)
+  const go = page.getByRole('combobox', { name: 'Go to a day' })
+  await go.fill(typed(far))
+  await go.press('Enter')
+  await expect(page).toHaveURL(new RegExp(`[?&]day=${far}`))
+  const farRow = grid.locator('tr.day', { hasText: new RegExp(dotted(far)) })
+  await expect(farRow).toBeVisible()
+  await expect(grid.locator('tr.flash')).toHaveCount(1)
+  // Today goes back, and the address forgets the day.
+  await page.getByRole('button', { name: 'Today' }).click()
+  await expect(grid.locator('tr[aria-current="date"]')).toBeVisible()
+  await expect(page).not.toHaveURL(/[?&]day=/)
+
+  // §4: 1 January has a year's row before January's.
+  const nextYear = Number(plan.today.slice(0, 4)) + 1
+  await go.fill(`1.1.${nextYear}`)
+  await go.press('Enter')
+  const yearRow = grid.locator('tr.year', { hasText: String(nextYear) })
+  await expect(yearRow).toBeVisible()
+  await expect(grid.locator('tr.month', { hasText: `January ${nextYear}` })).toBeVisible()
+  await shot(page, 'availability-year-row')
+
+  // §6: a note under one's own name, on that day; then deleted.
+  const day = `${nextYear}-01-04`
+  await go.fill(typed(day))
+  await go.press('Enter')
+  const written = `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
+  await grid.getByRole('button', { name: `Add a note on ${written}` }).click()
+  const notes = page.getByRole('dialog', { name: /^Notes on / })
+  await expect(notes).toBeVisible()
+  await notes.getByRole('textbox', { name: 'Add a note' }).fill('Dentist until 10')
+  await notes.getByRole('textbox', { name: 'Add a note' }).press('Enter')
+  await expect(notes.locator('.note-text')).toHaveText(['Dentist until 10'])
+  // tools/e2e.sh signs in as e2e-admin, "Ada Admin": the note carries the name.
+  await expect(notes).toContainText('Ada Admin')
+  await expect(grid.locator(`td[data-notes="${day}"]`)).toContainText('Ada Admin')
+  await expect(grid.locator(`td[data-notes="${day}"]`)).toContainText('Dentist until 10')
+  await shot(page, 'availability-notes')
+  await notes.getByRole('button', { name: /^Delete the note by / }).click()
+  await expect(notes.locator('.note-text')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(notes).toHaveCount(0)
+  await expect(grid.locator(`td[data-notes="${day}"]`)).not.toContainText('Dentist')
+
+  // §10: the Status tab, its tables and CSV.
+  await page.getByRole('navigation', { name: 'Availability plan' }).getByRole('link', { name: 'Status' }).click()
+  await expect(page).toHaveURL(/\/admin\/availability\/status/)
+  await expect(page.getByRole('region', { name: /^Days as Responsible, against each share/ })).toBeVisible()
+  const perPerson = page.getByRole('region', { name: /^Days per person/ })
+  await expect(perPerson.getByRole('rowheader', { name: /ADM/ })).toBeVisible()
+  await expect(page.getByRole('region', { name: /^The office/ })).toBeVisible()
+  await shot(page, 'availability-status')
+  const download = page.waitForEvent('download')
+  await perPerson.getByRole('button', { name: 'CSV' }).click()
+  expect((await download).suggestedFilename()).toMatch(/^availability-\d{4}.*\.csv$/)
+  // A tile with a first day opens the plan there.
+  const without = page.getByTestId('tile-without')
+  if ((await without.evaluate((el) => el.tagName)) === 'BUTTON') {
+    await without.click()
+    await expect(page).toHaveURL(/\/admin\/availability\/plan\?day=\d{4}-\d{2}-\d{2}/)
+  }
+  expect(problems).toEqual([])
+})
+
+/**
+ * docs/availability-extensions-plan.md §3.2 and §7: "Periods may not overlap" went with the server's answer and stayed after
+ * the periods were fixed, until the next Save; and the responsible's name is a setting.
+ */
+test('Settings: the overlap message goes once the periods are fixed, and the responsible is renamed', async ({
+  page,
+}) => {
+  const problems = collectProblems(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await signIn(page)
+  await page.goto('/pnmt-admin/admin/availability/settings')
+  const hours = page.getByRole('region', { name: 'Working hours' })
+  const monday = (n: number, end: 'from' | 'to') => hours.getByRole('textbox', { name: `Monday, period ${n}, ${end}` })
+  await monday(1, 'to').fill('12:00')
+  await hours.getByRole('button', { name: 'Add a period on Monday' }).click()
+  await monday(2, 'from').fill('11:30')
+  await monday(2, 'to').fill('17:00')
+  await expect(hours).toContainText('Periods may not overlap.')
+  const answer = page.waitForResponse(
+    (r) => r.request().method() === 'PUT' && r.url().endsWith('/api/v1/availability/settings'),
+  )
+  await page.getByRole('button', { name: 'Save' }).click()
+  expect((await answer).status()).toBe(400)
+  await expect(hours).toContainText('Periods may not overlap.')
+  // Fixed: 08:00–11:30 and 13:00–17:00, as reported. The message goes at once, without another Save.
+  await monday(1, 'to').fill('11:30')
+  await monday(2, 'from').fill('13:00')
+  await expect(hours).not.toContainText('Periods may not overlap.')
+  await shot(page, 'availability-hours-fixed')
+  await page.getByRole('button', { name: 'Undo changes' }).click()
+
+  // §7: Hero, in the plan's header; then back.
+  const name = page.getByRole('textbox', { name: 'Called' })
+  await name.fill('Hero')
+  await expect(page.getByRole('region', { name: "The day's responsible" })).toContainText('Hero for 14 days')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
+  await page.goto('/pnmt-admin/admin/availability')
+  await expect(page.getByRole('region', { name: 'The plan' }).getByRole('columnheader', { name: 'Hero' })).toBeVisible()
+  await page.goto('/pnmt-admin/admin/availability/settings')
+  await page.getByRole('textbox', { name: 'Called' }).fill('Responsible')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
   expect(problems).toEqual([])
 })

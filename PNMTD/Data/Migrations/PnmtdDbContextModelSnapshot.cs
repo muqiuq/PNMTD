@@ -1663,6 +1663,41 @@ namespace PNMTD.Data.Migrations
                     b.ToTable("availability_entries");
                 });
 
+            modelBuilder.Entity("PNMTD.Models.Db.AvailabilityNoteEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Date");
+
+                    b.ToTable("availability_notes");
+                });
+
             modelBuilder.Entity("PNMTD.Models.Db.AvailabilitySettingsEntity", b =>
                 {
                     b.Property<int>("SingletonId")
@@ -9105,6 +9140,9 @@ namespace PNMTD.Data.Migrations
                         .HasColumnType("character varying(200)");
 
                     b.Property<int?>("RedmineUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResponsibleShare")
                         .HasColumnType("integer");
 
                     b.Property<string>("SecurityStamp")

@@ -432,7 +432,7 @@ public sealed class UsersController(UserAccounts accounts, PnmtdDbContext db) : 
         {
             u.ServerAccounts = People.CleanAccounts(v, request.ServerAccounts);
         }
-        await People.ApplyPlanAsync(db, u, request.InPlan, request.ShortCode, request.Color, request.DefaultWeek, request.PlanOrder, v, ct);
+        await People.ApplyPlanAsync(db, u, request.InPlan, request.ShortCode, request.Color, request.DefaultWeek, request.PlanOrder, v, ct, request.ResponsibleShare);
         await db.SaveChangesAsync(ct);
         return People.Of(u);
     }

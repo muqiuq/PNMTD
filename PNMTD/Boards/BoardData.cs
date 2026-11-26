@@ -563,7 +563,7 @@ public sealed class BoardData(PnmtdDbContext db, MonitoringReader reader, Dashbo
         var upcoming = next is { } n
             ? new BoardDutyNext(n.Day, n.Who.UserIds.Select(Name).Order(StringComparer.CurrentCultureIgnoreCase).Select(x => read.Person(x)!).ToList())
             : null;
-        return Ok(e) with { OnDuty = new BoardOnDuty(people, duty.As, snapshot.Closed(today), comment, upcoming) };
+        return Ok(e) with { OnDuty = new BoardOnDuty(people, duty.As, snapshot.Closed(today), comment, upcoming, snapshot.Settings.LabelOrDefault()) };
     }
 
     /// <summary>An image element's file (docs/board-messages-plan.md §9.4): what it is, not its bytes.</summary>

@@ -12,7 +12,7 @@ import ErrorState from '@/components/ErrorState.vue'
 import { useNotify } from '@/composables/useNotify'
 import CodeChip from './CodeChip.vue'
 import PlanFields from './PlanFields.vue'
-import { chipStyle, fullWeek, planDraftOf, planRequest, weekdayShort, type PlanDraft } from './plan'
+import { chipStyle, fullWeek, planDraftOf, planRequest, targetShare, weekdayShort, type PlanDraft } from './plan'
 import { useAvailabilityPeople, useTypeOptions } from './useAvailability'
 
 /**
@@ -24,11 +24,21 @@ type Person = S['AvailabilityPeopleItem']
 const queryClient = useQueryClient()
 const notify = useNotify()
 const people = useAvailabilityPeople()
-const { types } = useTypeOptions()
+const { types, settings } = useTypeOptions()
+/** What the settings call the responsible (docs/availability-extensions-plan.md §7). */
+const label = computed(() => settings.data.value?.settings.responsibleLabel || 'Responsible')
 const typesById = computed(() => new Map(types.value.map((t) => [t.id, t])))
 const list = computed(() => people.data.value ?? [])
 const inPlan = computed(() => list.value.filter((p) => p.inPlan))
 const name = (p: Person) => (p.displayName && p.displayName !== p.username ? p.displayName : p.username)
+/** The share as entered and the target it gives among everyone in the plan (§8): "100 % → 25 %". */
+const shareText = (p: Person) =>
+  `${p.responsibleShare} % → ${Math.round(
+    targetShare(
+      p.responsibleShare,
+      inPlan.value.map((x) => x.responsibleShare),
+    ) * 100,
+  )} %`
 
 /** A weekday as the week's chip shows it: the type's colour, or grey when the person is off. */
 function weekday(d: S['DefaultDay']) {
@@ -170,6 +180,17 @@ async function move(p: Person, by: -1 | 1) {
             <span v-else class="muted">not in it</span>
           </template>
         </Column>
+        <Column style="width: 8rem">
+          <template #header>
+            <span :title="`The share of the days as ${label}, and the target it gives among everyone in the plan`"
+              >Share</span
+            >
+          </template>
+          <template #body="{ data }">
+            <span v-if="data.inPlan" class="mono small">{{ shareText(data) }}</span>
+            <span v-else class="muted">–</span>
+          </template>
+        </Column>
         <Column header="Default week" style="width: 17rem">
           <template #body="{ data }">
             <span class="week">
@@ -203,7 +224,7 @@ async function move(p: Person, by: -1 | 1) {
 
   <Dialog v-model:visible="open" :header="editing ? name(editing) : ''" modal :style="{ width: 'min(40rem, 95vw)' }">
     <form v-if="draft" id="person-form" class="form" novalidate @submit.prevent="save">
-      <PlanFields v-model="draft" :types="types" :errors="errors" id-prefix="person" />
+      <PlanFields v-model="draft" :types="types" :errors="errors" id-prefix="person" :label="label" />
     </form>
     <template #footer>
       <Button label="Cancel" severity="secondary" text @click="editing = null" />

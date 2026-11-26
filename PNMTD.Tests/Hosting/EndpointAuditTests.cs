@@ -282,6 +282,10 @@ public sealed class EndpointAuditTests
         ["GET /api/v1/availability/plan"] = ("signed-in", Roles.Viewer),
         ["PUT /api/v1/availability/entries"] = ("signed-in", Roles.Viewer),
         ["POST /api/v1/availability/fill/mine"] = ("signed-in", Roles.Viewer),
+        ["GET /api/v1/availability/stats"] = ("signed-in", Roles.Viewer),
+        ["POST /api/v1/availability/notes"] = ("signed-in", Roles.Viewer),
+        ["PUT /api/v1/availability/notes/{id:guid}"] = ("signed-in", Roles.Viewer),
+        ["DELETE /api/v1/availability/notes/{id:guid}"] = ("signed-in", Roles.Viewer),
         ["PUT /api/v1/availability/days"] = ("Availability:Edit", Roles.Admin),
         ["POST /api/v1/availability/fill"] = ("Availability:Edit", Roles.Admin),
         ["GET /api/v1/availability/people"] = ("Availability:Manage", Roles.Admin),
@@ -807,9 +811,12 @@ public sealed class EndpointAuditTests
         Assert.AreEqual("", string.Join("\n", wrong));
         // A write needs a right, except one's own session and account (§5.1).
         var selfService = v1.Where(e => e.Method != "GET" && Matrix[e.Key].Right == "signed-in").Select(e => e.Key).ToList();
-        // The availability plan's own column (docs/cookie-plan.md §8.2): its code lets each person edit only their own.
+        // The availability plan's own column (docs/cookie-plan.md §8.2): its code lets each person edit only their own. Its notes
+        // (docs/availability-extensions-plan.md §6): everyone in the plan writes them, and only the author changes one.
         Assert.IsTrue(selfService.All(k => k.Contains("/api/v1/auth/", StringComparison.Ordinal) || k.Contains("/api/v1/account/", StringComparison.Ordinal)
-            || k is "PUT /api/v1/availability/entries" or "POST /api/v1/availability/fill/mine"),
+            || k is "PUT /api/v1/availability/entries" or "POST /api/v1/availability/fill/mine"
+            || k.StartsWith("POST /api/v1/availability/notes", StringComparison.Ordinal) || k.StartsWith("PUT /api/v1/availability/notes/", StringComparison.Ordinal)
+            || k.StartsWith("DELETE /api/v1/availability/notes/", StringComparison.Ordinal)),
             "writes with no right: " + string.Join(", ", selfService));
     }
 

@@ -5,6 +5,7 @@ import InputText from 'primevue/inputtext'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '@/api/client'
 import { api, type S } from '@/api/resources'
 import ColumnEdge from '@/components/ColumnEdge.vue'
@@ -14,6 +15,7 @@ import { useActions } from '@/composables/useActions'
 import { useColumnWidths } from '@/composables/useColumnWidths'
 import CodeChip from './CodeChip.vue'
 import FillAgainDialog from './FillAgainDialog.vue'
+import GoToDay from './GoToDay.vue'
 import {
   addDays,
   after,
@@ -21,12 +23,16 @@ import {
   before,
   belowMinimum,
   chipStyle,
+  clockLine,
   datesBetween,
   exactCode,
   fallbackWarning,
   formatPlanDate,
+  inZone,
   mergeDays,
   movePoint,
+  noteSummary,
+  noteTime,
   planRows,
   responsibleWarning,
   selectionRect,
@@ -36,6 +42,7 @@ import {
   type GridPoint,
   type GridSelection,
   type PlanDay,
+  type PlanNote,
   type PlanType,
 } from './plan'
 import { planKey } from './useAvailability'
@@ -47,6 +54,10 @@ import { planKey } from './useAvailability'
  * code sets it; shift-click or dragging selects several. Everyone in the plan edits their own column from today on;
  * Availability: Edit edits everything, the responsible, the fallback and the comments too. The warnings of §8.2 are red.
  * Each month starts with a row of its own; the columns are as wide as a person drags them (docs/adjustments1.md).
+ *
+ * docs/availability-extensions-plan.md: a year's row before each January's (§4); *Go to a day* beside *Today*, kept in the
+ * URL as ?day=, which loads the days around a day not loaded yet (§5); the notes, a second comment column for everyone in
+ * the plan (§6); the responsible as the settings call it (§7); PNMT's zone with its date and time in the toolbar (§3.3).
  */
 type Plan = S['AvailabilityPlanItem']
 type Range = { from: string; to: string } | null
@@ -59,15 +70,31 @@ const STAFF = ['responsible', 'fallback'] as const
 
 const queryClient = useQueryClient()
 const { run, notify } = useActions()
+const route = useRoute()
+const router = useRouter()
 
-const plan = useInfiniteQuery({
-  queryKey: planKey,
-  queryFn: ({ pageParam }) => api.availability.plan(pageParam ?? {}),
-  initialPageParam: null as Range,
-  getPreviousPageParam: (first: Plan): Range | undefined => (first.days.length ? before(first.from) : undefined),
-  getNextPageParam: (last: Plan): Range | undefined => (last.days.length ? after(last.to) : undefined),
-  staleTime: 30_000,
-})
+const isDay = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
+/**
+ * The day the first page loads around (§5): none for the server's default (a week back, two months ahead). A day not
+ * loaded yet gets a query of its own, from a week before it to 53 days after, which scrolls on both ways from there.
+ */
+const anchor = ref<string | null>(isDay(route.query.day) ? route.query.day : null)
+/** The day to scroll to once it is loaded. */
+const target = ref<string | null>(anchor.value)
+const planQueryKey = computed<readonly unknown[]>(() => (anchor.value ? [...planKey, { day: anchor.value }] : planKey))
+
+const plan = useInfiniteQuery(
+  computed(() => ({
+    queryKey: planQueryKey.value,
+    queryFn: ({ pageParam }: { pageParam: Range }) => api.availability.plan(pageParam ?? {}),
+    initialPageParam: (anchor.value
+      ? { from: addDays(anchor.value, -7), to: addDays(anchor.value, 53) }
+      : null) as Range,
+    getPreviousPageParam: (first: Plan): Range | undefined => (first.days.length ? before(first.from) : undefined),
+    getNextPageParam: (last: Plan): Range | undefined => (last.days.length ? after(last.to) : undefined),
+    staleTime: 30_000,
+  })),
+)
 const pages = computed(() => plan.data.value?.pages ?? [])
 const meta = computed<Plan | undefined>(() => pages.value[pages.value.length - 1])
 const days = computed(() => mergeDays(pages.value))
@@ -90,6 +117,10 @@ const choosable = computed(() =>
 )
 const canEditAll = computed(() => meta.value?.canEditAll ?? false)
 const inPlan = computed(() => meta.value?.inPlan ?? false)
+/** What the settings call the day's responsible (§7). */
+const label = computed(() => meta.value?.responsibleLabel || 'Responsible')
+/** Notes are written by everyone in the plan and by Edit (§6.2). */
+const canWriteNotes = computed(() => inPlan.value || canEditAll.value)
 const me = computed(() => people.value.find((p) => p.isMe))
 const empty = computed(() => plan.isSuccess.value && pages.value.length > 0 && days.value.length === 0)
 const cellsByDay = computed(() => new Map(days.value.map((d) => [d.date, new Map(d.cells.map((c) => [c.userId, c]))])))
@@ -114,7 +145,7 @@ const end = computed(() =>
 const visible = computed(() => rows.value.slice(start.value, end.value))
 const padTop = computed(() => start.value * rowHeight.value)
 const padBottom = computed(() => Math.max(0, rows.value.length - end.value) * rowHeight.value)
-const span = computed(() => 5 + columns.value.length + people.value.length)
+const span = computed(() => 6 + columns.value.length + people.value.length)
 
 const resize =
   typeof ResizeObserver === 'undefined'
@@ -174,6 +205,7 @@ watch(
     const shift = moved * rowHeight.value
     scrollTop.value += shift
     if (picker.value) picker.value = { ...picker.value, top: picker.value.top + shift }
+    if (notesAt.value) notesAt.value = { ...notesAt.value, top: notesAt.value.top + shift }
     void nextTick(() => {
       if (scroller.value) scroller.value.scrollTop = scrollTop.value
     })
@@ -187,22 +219,92 @@ function scrollToRow(i: number) {
   scrollTop.value = el.scrollTop
 }
 
-/** Today's row, with two rows before it. */
+/** A day's row with two rows before it, outlined for a moment when asked; false while the day isn't loaded. */
+const flashed = ref<string | null>(null)
+const announced = ref('')
+let flashTimer: ReturnType<typeof setTimeout> | undefined
+function scrollToDay(date: string, flash = false): boolean {
+  const i = rowIndex.value.get(date)
+  if (i === undefined) return false
+  scrollToRow(i - 2)
+  if (flash) {
+    flashed.value = date
+    const d = days.value[index.value.get(date) ?? -1]
+    announced.value = `Showing ${d?.weekday ?? ''} ${formatPlanDate(date)}`
+    clearTimeout(flashTimer)
+    flashTimer = setTimeout(() => (flashed.value = null), 2_000)
+  }
+  return true
+}
+
+/** *Go to a day* (§5): scrolls to a loaded day, or loads the days around it; ?day= keeps it in the URL. */
+function goTo(date: string) {
+  if (route.query.day !== date) void router.replace({ query: { ...route.query, day: date } })
+  if (scrollToDay(date, true)) return
+  target.value = date
+  anchor.value = date
+}
+
+/** Today's row: back to the server's default days when today isn't loaded (after a jump far away). */
 function scrollToToday() {
-  const i = rowIndex.value.get(today.value)
-  if (i !== undefined) scrollToRow(i - 2)
+  if (route.query.day) {
+    const rest = { ...route.query }
+    delete rest.day
+    void router.replace({ query: rest })
+  }
+  if (scrollToDay(today.value)) return
+  target.value = null
+  anchor.value = null
+  positioned.value = false
 }
 
 const positioned = ref(false)
 watch(
-  () => days.value.length,
-  (n) => {
-    if (n && !positioned.value && scroller.value) {
+  () => [days.value.length, planQueryKey.value] as const,
+  ([n]) => {
+    if (!n || !scroller.value) return
+    if (target.value && scrollToDay(target.value, true)) {
+      target.value = null
+      positioned.value = true
+    } else if (!positioned.value && !target.value) {
       positioned.value = true
       scrollToToday()
     }
   },
   { flush: 'post', immediate: true },
+)
+// Another day's query: the table is drawn anew, so what was open on the old one closes.
+watch(planQueryKey, () => {
+  closeNotes()
+  clearSelection()
+})
+// Back and forward between days in the URL.
+watch(
+  () => route.query.day,
+  (day) => {
+    if (isDay(day) && day !== anchor.value && !rowIndex.value.has(day)) goTo(day)
+  },
+)
+
+// --- the clock (§3.3): PNMT's zone, its date and time; a new day there loads the plan again ---------------------------
+const now = ref(new Date())
+const clock = setInterval(() => (now.value = new Date()), 30_000)
+const zone = computed(() => meta.value?.timeZone || 'UTC')
+const clockText = computed(() => clockLine(now.value, zone.value))
+const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+const clockTitle = computed(() => {
+  const here = inZone(now.value, zone.value)
+  const lines = [`PNMT's time zone: ${zone.value} (${here.offset}). The plan's days and hours are in it.`]
+  if (browserZone && browserZone !== zone.value)
+    lines.push(`Your browser: ${inZone(now.value, browserZone).time}, ${browserZone}.`)
+  return lines.join('\n')
+})
+watch(
+  () => inZone(now.value, zone.value).date,
+  (date, was) => {
+    if (was && date !== was && today.value && date !== today.value)
+      void queryClient.invalidateQueries({ queryKey: planKey })
+  },
 )
 
 /** A row brought into view, below the header. */
@@ -294,6 +396,7 @@ function released() {
 function pressedOutside(e: MouseEvent) {
   const wrap = scroller.value
   if (wrap && !wrap.contains(e.target as Node)) clearSelection()
+  if (notesAt.value && !notesEl.value?.contains(e.target as Node)) closeNotes()
 }
 
 onMounted(() => {
@@ -305,6 +408,8 @@ onBeforeUnmount(() => {
   document.removeEventListener('mousedown', pressedOutside)
   resize?.disconnect()
   clearTimeout(typedTimer)
+  clearTimeout(flashTimer)
+  clearInterval(clock)
 })
 
 /**
@@ -392,7 +497,7 @@ function key(e: KeyboardEvent) {
 // --- saving ---------------------------------------------------------------------------------------------------------
 /** Changes the days loaded in place: what was just set, before the server's answer, then the server's days. */
 function updateDays(change: (d: PlanDay) => PlanDay | undefined) {
-  queryClient.setQueryData<InfiniteData<Plan, Range>>(planKey, (data) =>
+  queryClient.setQueryData<InfiniteData<Plan, Range>>(planQueryKey.value, (data) =>
     data ? { ...data, pages: data.pages.map((p) => ({ ...p, days: p.days.map((d) => change(d) ?? d) })) } : data,
   )
 }
@@ -519,6 +624,99 @@ function cancelComment() {
   scroller.value?.focus({ preventScroll: true })
 }
 
+// --- the notes (§6) -------------------------------------------------------------------------------------------------
+/** The open list of a day's notes, placed under its cell like the picker. */
+const notesAt = ref<{ date: string; top: number; left: number } | null>(null)
+const notesEl = ref<HTMLElement | null>(null)
+const noteDraft = ref('')
+const editingNote = ref<string | null>(null)
+const editDraft = ref('')
+const noteBusy = ref(false)
+const notesOf = (date: string): PlanNote[] => days.value[index.value.get(date) ?? -1]?.notes ?? []
+const openDay = computed(() => (notesAt.value ? days.value[index.value.get(notesAt.value.date) ?? -1] : undefined))
+const summaryOf = (d: PlanDay) => noteSummary(d.notes)
+const mayDelete = (n: PlanNote) => n.mine || canEditAll.value
+
+async function openNotes(date: string) {
+  commitComment()
+  clearSelection()
+  const el = scroller.value
+  const cell = el?.querySelector<HTMLElement>(`[data-notes="${date}"]`)
+  if (!el || !cell) return
+  const box = el.getBoundingClientRect()
+  const c = cell.getBoundingClientRect()
+  const width = 320
+  const left = Math.max(
+    el.scrollLeft,
+    Math.min(c.left - box.left + el.scrollLeft, el.scrollLeft + el.clientWidth - width - 4),
+  )
+  notesAt.value = { date, top: c.bottom - box.top + el.scrollTop + 2, left }
+  noteDraft.value = ''
+  editingNote.value = null
+  await nextTick()
+  const pop = notesEl.value
+  if (pop && notesAt.value) {
+    const bottom = el.scrollTop + el.clientHeight - 4
+    if (notesAt.value.top + pop.offsetHeight > bottom)
+      notesAt.value = { ...notesAt.value, top: Math.max(el.scrollTop + headHeight.value, bottom - pop.offsetHeight) }
+    pop.querySelector<HTMLInputElement>('input.note-new')?.focus()
+  }
+}
+function closeNotes() {
+  notesAt.value = null
+  editingNote.value = null
+}
+function closeNotesToGrid() {
+  closeNotes()
+  scroller.value?.focus({ preventScroll: true })
+}
+/** A day's notes changed in the days loaded, as the server answered. */
+function updateNotes(date: string, change: (notes: PlanNote[]) => PlanNote[]) {
+  updateDays((d) => (d.date === date ? { ...d, notes: change(d.notes ?? []) } : undefined))
+}
+async function addNote() {
+  const at = notesAt.value
+  const text = noteDraft.value.trim()
+  if (!at || !text || noteBusy.value) return
+  noteBusy.value = true
+  try {
+    const note = await api.availability.addNote({ date: at.date, text })
+    updateNotes(at.date, (notes) => [...notes, note])
+    noteDraft.value = ''
+  } catch (e) {
+    failed(e)
+  } finally {
+    noteBusy.value = false
+  }
+}
+function editNote(n: PlanNote) {
+  editingNote.value = n.id
+  editDraft.value = n.text
+  void nextTick(() => notesEl.value?.querySelector<HTMLInputElement>('input.note-edit')?.focus())
+}
+async function saveNote(n: PlanNote) {
+  const text = editDraft.value.trim()
+  editingNote.value = null
+  if (!text || text === n.text) return
+  try {
+    const saved = await api.availability.changeNote(n.id, text)
+    updateNotes(n.date, (notes) => notes.map((x) => (x.id === n.id ? saved : x)))
+  } catch (e) {
+    failed(e)
+  }
+}
+async function deleteNote(n: PlanNote) {
+  try {
+    await api.availability.deleteNote(n.id)
+    updateNotes(n.date, (notes) => notes.filter((x) => x.id !== n.id))
+    // The button is gone with its note: the focus stays in the list, so Escape still closes it.
+    await nextTick()
+    notesEl.value?.querySelector<HTMLInputElement>('input.note-new')?.focus()
+  } catch (e) {
+    failed(e)
+  }
+}
+
 // --- Fill -----------------------------------------------------------------------------------------------------------
 /** *Fill again* opens its options (docs/adjustments1.md); *Fill* and *Fill mine* fill the empty days at once. */
 const fillingAgain = ref(false)
@@ -540,17 +738,19 @@ async function fill(again: boolean, mine = false, body?: S['AvailabilityFillRequ
 
 // --- how cells look -------------------------------------------------------------------------------------------------
 const staffId = (d: PlanDay, col: string) => (col === 'responsible' ? d.responsibleId : d.fallbackId)
-const staffWarning = (d: PlanDay, col: string) => (col === 'responsible' ? responsibleWarning(d) : fallbackWarning(d))
+const staffWarning = (d: PlanDay, col: string) =>
+  col === 'responsible' ? responsibleWarning(d, label.value) : fallbackWarning(d)
+const staffName = (col: string) => (col === 'responsible' ? label.value : 'Fallback')
 function staffTitle(d: PlanDay, col: string): string {
   const id = staffId(d, col)
   const p = id ? peopleById.value.get(id) : undefined
   const who = id ? (p ? `${p.name} (${p.code})` : 'Someone who is no longer in the plan') : 'Nobody'
   const warning = staffWarning(d, col)
-  return `${col === 'responsible' ? 'Responsible' : 'Fallback'}: ${who}${warning ? `. ${warning}` : ''}`
+  return `${staffName(col)}: ${who}${warning ? `. ${warning}` : ''}`
 }
 const staffLabel = (d: PlanDay, col: string) => {
   const id = staffId(d, col)
-  return `${col === 'responsible' ? 'Responsible' : 'Fallback'} ${formatPlanDate(d.date)}: ${id ? (peopleById.value.get(id)?.code ?? '?') : 'nobody'}`
+  return `${staffName(col)} ${formatPlanDate(d.date)}: ${id ? (peopleById.value.get(id)?.code ?? '?') : 'nobody'}`
 }
 const missingHere = (d: PlanDay, p: Person) => !cellOf(d, p.id) && shouldBeSet(d, today.value)
 function cellTitle(d: PlanDay, p: Person): string {
@@ -570,6 +770,7 @@ const rowClass = (d: PlanDay) => ({
   closed: d.closed,
   today: d.date === today.value,
   past: d.date < today.value,
+  flash: d.date === flashed.value,
 })
 
 // --- the columns' widths --------------------------------------------------------------------------------------------
@@ -600,6 +801,7 @@ const scrollPad = computed(() => ({
   <div v-else class="plan">
     <div class="toolbar">
       <Button label="Today" icon="pi pi-calendar" size="small" severity="secondary" outlined @click="scrollToToday" />
+      <GoToDay :today="today" @go="goTo" />
       <template v-if="canEditAll">
         <Button
           label="Fill"
@@ -629,6 +831,11 @@ const scrollPad = computed(() => ({
           <span class="muted small">{{ t.name }}</span>
         </span>
       </span>
+      <span class="clock muted small" :title="clockTitle" data-testid="plan-clock">
+        <i class="pi pi-clock" aria-hidden="true" />
+        {{ clockText }}
+      </span>
+      <span class="sr-only" aria-live="polite">{{ announced }}</span>
     </div>
     <FillAgainDialog
       v-model:visible="fillingAgain"
@@ -659,6 +866,7 @@ const scrollPad = computed(() => ({
           <col class="w-staff" :style="colStyle('responsible')" />
           <col class="w-staff" :style="colStyle('fallback')" />
           <col class="w-comment" :style="colStyle('comment')" />
+          <col class="w-notes" :style="colStyle('notes')" />
           <col v-for="c in columns" :key="c.id" class="w-count" :style="colStyle(`count:${c.id}`)" />
           <col v-for="p in people" :key="p.id" class="w-person" :style="colStyle(`person:${p.id}`)" />
         </colgroup>
@@ -668,9 +876,10 @@ const scrollPad = computed(() => ({
             <th class="c-date sticky-2" scope="col" :style="dateLeft">
               Date<ColumnEdge :widths="widths" column="date" label="Date" />
             </th>
-            <th scope="col">Responsible<ColumnEdge :widths="widths" column="responsible" label="Responsible" /></th>
+            <th scope="col">{{ label }}<ColumnEdge :widths="widths" column="responsible" :label="label" /></th>
             <th scope="col">Fallback<ColumnEdge :widths="widths" column="fallback" label="Fallback" /></th>
             <th scope="col">Comment<ColumnEdge :widths="widths" column="comment" label="Comment" /></th>
+            <th scope="col">Notes<ColumnEdge :widths="widths" column="notes" label="Notes" /></th>
             <th
               v-for="c in columns"
               :key="c.id"
@@ -691,8 +900,13 @@ const scrollPad = computed(() => ({
             <td :colspan="span" />
           </tr>
           <template v-for="d in visible" :key="d.key">
-            <!-- A month's row before its first day (docs/adjustments1.md), as high as a day's: the view counts in rows. -->
-            <tr v-if="d.kind === 'month'" class="month" :class="{ year: d.year }">
+            <!-- A year's row before January's (§4), and a month's before its first day (docs/adjustments1.md), each as high
+                 as a day's: the view counts in rows. -->
+            <tr v-if="d.kind === 'year'" class="year">
+              <td colspan="2" class="c-year sticky-1">{{ d.label }}</td>
+              <td :colspan="span - 2" class="c-year-rest" />
+            </tr>
+            <tr v-else-if="d.kind === 'month'" class="month">
               <td colspan="2" class="c-month sticky-1">{{ d.label }}</td>
               <td :colspan="span - 2" class="c-month-rest" />
             </tr>
@@ -751,6 +965,31 @@ const scrollPad = computed(() => ({
                   @blur="saveComment(d)"
                 />
                 <span v-else class="ellipsis comment">{{ d.comment }}</span>
+              </td>
+              <td
+                class="c-notes"
+                :class="{ open: notesAt?.date === d.date, clickable: canWriteNotes || !!d.notes?.length }"
+                :data-notes="d.date"
+                :title="summaryOf(d) ? `${d.notes.length} ${d.notes.length === 1 ? 'note' : 'notes'}` : undefined"
+                @click="(canWriteNotes || d.notes?.length) && openNotes(d.date)"
+              >
+                <span v-if="summaryOf(d)" class="note-line">
+                  <span class="ellipsis">
+                    <strong>{{ summaryOf(d)!.newest.author }}</strong> {{ summaryOf(d)!.newest.text }}
+                  </span>
+                  <span v-if="summaryOf(d)!.more" class="note-more">+{{ summaryOf(d)!.more }}</span>
+                </span>
+                <button
+                  v-if="canWriteNotes"
+                  type="button"
+                  class="note-add"
+                  :class="{ alone: !summaryOf(d) }"
+                  :aria-label="`Add a note on ${formatPlanDate(d.date)}`"
+                  title="Add a note"
+                  @click.stop="openNotes(d.date)"
+                >
+                  <i class="pi pi-plus" aria-hidden="true" />
+                </button>
               </td>
               <td
                 v-for="(c, i) in columns"
@@ -826,6 +1065,89 @@ const scrollPad = computed(() => ({
           </button>
         </template>
       </div>
+
+      <div
+        v-if="notesAt"
+        ref="notesEl"
+        class="notes-pop"
+        role="dialog"
+        :aria-label="`Notes on ${formatPlanDate(notesAt.date)}`"
+        :style="{ top: `${notesAt.top}px`, left: `${notesAt.left}px` }"
+        @mousedown.stop
+        @keydown.esc.stop.prevent="closeNotesToGrid"
+      >
+        <div class="notes-head">
+          <span>Notes on {{ openDay?.weekday }} {{ formatPlanDate(notesAt.date) }}</span>
+          <Button
+            icon="pi pi-times"
+            size="small"
+            severity="secondary"
+            text
+            aria-label="Close the notes"
+            @click="closeNotesToGrid"
+          />
+        </div>
+        <p v-if="!notesOf(notesAt.date).length" class="muted small note-none">No notes yet.</p>
+        <ul class="note-list">
+          <li v-for="n in notesOf(notesAt.date)" :key="n.id" class="note-item">
+            <div class="note-meta">
+              <strong>{{ n.author }}</strong>
+              <span class="muted small">
+                {{ noteTime(n.createdAt, zone) }}{{ n.changedAt !== n.createdAt ? ' (changed)' : '' }}
+              </span>
+              <span class="note-actions">
+                <Button
+                  v-if="n.mine && editingNote !== n.id"
+                  icon="pi pi-pencil"
+                  size="small"
+                  severity="secondary"
+                  text
+                  :aria-label="`Change your note: ${n.text}`"
+                  @click="editNote(n)"
+                />
+                <Button
+                  v-if="mayDelete(n)"
+                  icon="pi pi-trash"
+                  size="small"
+                  severity="secondary"
+                  text
+                  :aria-label="`Delete the note by ${n.author}: ${n.text}`"
+                  @click="deleteNote(n)"
+                />
+              </span>
+            </div>
+            <InputText
+              v-if="editingNote === n.id"
+              v-model="editDraft"
+              size="small"
+              class="note-edit"
+              maxlength="300"
+              aria-label="The note"
+              @keydown.enter.prevent="saveNote(n)"
+              @keydown.esc.stop.prevent="editingNote = null"
+            />
+            <div v-else class="note-text">{{ n.text }}</div>
+          </li>
+        </ul>
+        <form v-if="canWriteNotes" class="note-form" @submit.prevent="addNote">
+          <InputText
+            v-model="noteDraft"
+            size="small"
+            class="note-new"
+            maxlength="300"
+            placeholder="Add a note"
+            aria-label="Add a note"
+            :disabled="noteBusy"
+          />
+          <Button
+            type="submit"
+            icon="pi pi-plus"
+            size="small"
+            aria-label="Add"
+            :disabled="!noteDraft.trim() || noteBusy"
+          />
+        </form>
+      </div>
     </div>
 
     <div class="notes muted small">
@@ -838,9 +1160,11 @@ const scrollPad = computed(() => ({
         several.</span
       >
       <span
-        >Red: nobody responsible on a working day, a responsible or fallback who doesn't work that day, a count below
-        its minimum, an empty cell.</span
+        >Red: no {{ label }} on a working day, a {{ label }} or fallback who doesn't work that day, a count below its
+        minimum, an empty cell.</span
       >
+      <span v-if="canWriteNotes">Notes: <i class="pi pi-plus" aria-hidden="true" /> adds one under your name.</span>
+      <span>Days and hours in {{ zone }}.</span>
       <span v-if="meta?.globalFallback">Global fallback: {{ meta.globalFallback }}.</span>
       <span
         >Drag a column's edge in the header to make it wider or narrower; a double-click gives it its default
@@ -1064,6 +1388,161 @@ tr.pad td {
   cursor: text;
 }
 
+.w-notes {
+  width: 12rem;
+}
+
+.c-notes {
+  position: relative;
+  font-size: 0.857rem;
+}
+
+.c-notes.clickable {
+  cursor: pointer;
+}
+
+.c-notes.open {
+  box-shadow: inset 0 0 0 2px var(--p-primary-color);
+}
+
+.note-line {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
+  min-width: 0;
+  padding-right: 1.4rem;
+}
+
+.note-more {
+  flex: none;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pnmt-text) 12%, var(--pnmt-panel));
+  font-size: 0.786rem;
+}
+
+.note-add {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  border: none;
+  border-radius: var(--p-border-radius-sm);
+  padding: 0.15rem 0.3rem;
+  background: var(--pnmt-panel);
+  color: var(--pnmt-muted);
+  cursor: pointer;
+}
+
+.note-add.alone,
+tr.day:hover .note-add,
+.note-add:focus-visible {
+  display: inline-flex;
+}
+
+.note-add.alone {
+  opacity: 0.35;
+}
+
+tr.day:hover .note-add {
+  opacity: 1;
+}
+
+.note-add:hover {
+  color: var(--p-primary-color);
+}
+
+.notes-pop {
+  position: absolute;
+  z-index: 5;
+  width: 320px;
+  max-height: 360px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+  padding: var(--pnmt-space-2);
+  border: 1px solid var(--pnmt-border);
+  border-radius: var(--p-border-radius-md);
+  background: var(--pnmt-panel);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+  white-space: normal;
+}
+
+.notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.note-none {
+  margin: 0;
+}
+
+.note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-2);
+}
+
+.note-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--pnmt-space-1);
+  border-bottom: 1px solid var(--pnmt-border);
+}
+
+.note-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
+}
+
+.note-actions {
+  margin-left: auto;
+  display: inline-flex;
+}
+
+.note-text {
+  overflow-wrap: anywhere;
+}
+
+.note-form {
+  display: flex;
+  gap: var(--pnmt-space-1);
+}
+
+.note-new,
+.note-edit {
+  flex: 1;
+  min-width: 0;
+}
+
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pnmt-space-1);
+  white-space: nowrap;
+}
+
+tr.flash td {
+  box-shadow: inset 0 0 0 2px var(--p-primary-color);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
 .comment {
   display: block;
 }
@@ -1091,35 +1570,45 @@ tr.pad td {
   font-weight: 500;
 }
 
-/* A month's row (docs/adjustments1.md): as high as a day's, its name where the day and the date are. January's, a year's,
-   stands out more. */
-tr.month td {
+/* A month's row (docs/adjustments1.md): as high as a day's, its name where the day and the date are. Every month as strong
+   as January's was before 1.28; a year's row before January's, stronger still (docs/availability-extensions-plan.md §4). */
+tr.month td,
+tr.year td {
   height: 40px;
-  background: color-mix(in srgb, var(--pnmt-text) 8%, var(--pnmt-panel));
   border-right: none;
 }
 
-.c-month {
-  border-right: 2px solid var(--pnmt-border) !important;
-  padding-left: var(--pnmt-space-2);
-  font-weight: 700;
-  font-size: 0.857rem;
-  letter-spacing: 0.02em;
-}
-
-tr.month td.c-month {
-  background: color-mix(in srgb, var(--pnmt-text) 14%, var(--pnmt-panel));
-}
-
-tr.month.year td {
+tr.month td {
   background: color-mix(in srgb, var(--pnmt-text) 16%, var(--pnmt-panel));
   box-shadow: inset 0 2px 0 var(--pnmt-text);
 }
 
-tr.month.year td.c-month {
+.c-month,
+.c-year {
+  border-right: 2px solid var(--pnmt-border) !important;
+  padding-left: var(--pnmt-space-2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+tr.month td.c-month {
   background: var(--pnmt-text);
   color: var(--pnmt-bg);
   font-size: 0.929rem;
+}
+
+tr.year td {
+  background: color-mix(in srgb, var(--p-primary-color) 30%, var(--pnmt-panel));
+  box-shadow:
+    inset 0 3px 0 var(--pnmt-text),
+    inset 0 -1px 0 var(--pnmt-text);
+}
+
+tr.year td.c-year {
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  font-size: 1.143rem;
+  letter-spacing: 0.08em;
 }
 
 .resizing {

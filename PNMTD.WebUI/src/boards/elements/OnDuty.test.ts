@@ -31,6 +31,23 @@ describe('On duty today', () => {
     expect(w.find('li[data-deputy="true"]').exists()).toBe(true)
   })
 
+  it("names the responsible as the plan's settings do, unless the element has a label of its own", () => {
+    const hero = show({ people: [anna, ben], as: 'responsible', closed: false, responsibleLabel: 'Hero' })
+    expect(rows(hero)[0]).toEqual(['Anna Muster', 'Hero · on site'])
+    const own = show(
+      { people: [anna], as: 'responsible', closed: false, responsibleLabel: 'Hero' },
+      { dutyLabel: 'Pikett' },
+    )
+    expect(rows(own)[0]).toEqual(['Anna Muster', 'Pikett · on site'])
+    const fallback = show({
+      people: [{ ...ben, deputy: false }],
+      as: 'fallback',
+      closed: false,
+      responsibleLabel: 'Hero',
+    })
+    expect(rows(fallback)[0]).toEqual(['Ben Keller', 'Fallback'])
+  })
+
   it('takes its own labels, and leaves them out where asked', () => {
     const own = show(
       { people: [anna, ben], as: 'responsible', closed: false },

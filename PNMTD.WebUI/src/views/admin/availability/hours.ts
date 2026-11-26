@@ -49,9 +49,17 @@ export function holidayProblems(holiday: S['Holiday'], all: readonly S['Holiday'
   return [...problems, ...periodProblems(holiday.periods)]
 }
 
-/** The week as the tab shows it: every day once, Monday first; a day the settings leave out is closed. */
+/**
+ * The week as the tab shows it: every day once, Monday first; a day the settings leave out is closed. Each period is a copy
+ * (docs/availability-extensions-plan.md §3.2): the query's data is read-only, and before 1.28 the periods already saved were
+ * its own objects, so a change to one never reached the draft. The field showed 11:30, the draft kept 17:00, and
+ * 08:00–11:30 with 13:00–17:00 was "Periods may not overlap."
+ */
 export function normalizeWeek(week: readonly S['DayHours'][]): S['DayHours'][] {
-  return weekdays.map((day) => ({ day, periods: [...(week.find((d) => d.day === day)?.periods ?? [])] }))
+  return weekdays.map((day) => ({
+    day,
+    periods: (week.find((d) => d.day === day)?.periods ?? []).map((p) => ({ from: p.from, to: p.to })),
+  }))
 }
 
 /** The periods as sent: trimmed, in order of their start. */

@@ -31,6 +31,17 @@ public sealed record AvailabilitySettings
         new(new Guid("6f1c5a40-0000-4000-8000-000000000002"), "Remote", [AvailabilityFlag.HomeOffice, AvailabilityFlag.WorkTravel]),
     ];
 
+    public const string DefaultResponsibleLabel = "Responsible";
+
+    /// <summary>
+    /// What the plan's pages call the day's responsible (docs/availability-extensions-plan.md §7): <i>Responsible</i>, or <i>Hero</i>.
+    /// Cookie, the API, MCP and the audit log keep <i>responsible</i>.
+    /// </summary>
+    public string ResponsibleLabel { get; init; } = DefaultResponsibleLabel;
+
+    /// <summary>The label as shown: the default when none is stored.</summary>
+    public string LabelOrDefault() => string.IsNullOrWhiteSpace(ResponsibleLabel) ? DefaultResponsibleLabel : ResponsibleLabel.Trim();
+
     /// <summary>Who stands in when the day's responsible and fallback don't work: a user …</summary>
     public Guid? GlobalFallbackUserId { get; init; }
 
@@ -80,6 +91,7 @@ public sealed record AvailabilitySettings
             v.Check(c.Minimum is null or >= 0 and <= 1000, field, "A minimum of 0 to 1,000.");
         }
         v.Check(GlobalFallbackUserId is null || GlobalFallbackGroupId is null, "globalFallback", "A user or a group, not both.");
+        v.Check((ResponsibleLabel ?? "").Trim().Length is > 0 and <= 30, "responsibleLabel", "A name of 1 to 30 characters.");
     }
 
     private static void Periods(ApiValidator v, string field, IReadOnlyList<HoursPeriod> periods)

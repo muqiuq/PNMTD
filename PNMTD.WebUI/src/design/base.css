@@ -45,6 +45,19 @@
   --pnmt-note-purple: var(--p-purple-100);
   --pnmt-note-grey: var(--p-surface-100);
 
+  /* Charts (docs/availability-extensions-plan.md §10): a diverging pair with a grey midpoint and one sequential blue,
+     checked with the dataviz validator on white and on slate 900 (CVD ΔE 24.7 light, 26.8 dark). Not the status colours. */
+  --pnmt-chart-above: #2a78d6;
+  --pnmt-chart-below: #eb6834;
+  --pnmt-chart-mid: #f0efec;
+  --pnmt-chart-seq-1: #cde2fb;
+  --pnmt-chart-seq-2: #9ec5f4;
+  --pnmt-chart-seq-3: #6da7ec;
+  --pnmt-chart-seq-4: #3987e5;
+  --pnmt-chart-seq-5: #256abf;
+  --pnmt-chart-seq-6: #184f95;
+  --pnmt-chart-seq-7: #0d366b;
+
   color-scheme: light;
 }
 
@@ -71,6 +84,18 @@
   --pnmt-note-pink: color-mix(in srgb, var(--p-pink-500) 24%, var(--p-surface-900));
   --pnmt-note-purple: color-mix(in srgb, var(--p-purple-500) 24%, var(--p-surface-900));
   --pnmt-note-grey: var(--p-surface-800);
+
+  /* Dark: the same hues stepped for the dark surface; low counts recede towards it, high ones are bright. */
+  --pnmt-chart-above: #3987e5;
+  --pnmt-chart-below: #d95926;
+  --pnmt-chart-mid: #383835;
+  --pnmt-chart-seq-1: #0d366b;
+  --pnmt-chart-seq-2: #184f95;
+  --pnmt-chart-seq-3: #256abf;
+  --pnmt-chart-seq-4: #3987e5;
+  --pnmt-chart-seq-5: #6da7ec;
+  --pnmt-chart-seq-6: #9ec5f4;
+  --pnmt-chart-seq-7: #cde2fb;
 
   color-scheme: dark;
 }

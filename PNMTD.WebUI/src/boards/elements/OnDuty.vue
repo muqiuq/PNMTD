@@ -15,7 +15,9 @@ const duty = computed(() => props.data.onDuty)
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 const people = computed(() =>
   (duty.value?.people ?? []).map((p, i) => {
-    const label = p.deputy ? (s.value.deputyLabel ?? 'Deputy') : (s.value.dutyLabel ?? capital(p.as))
+    // The first step as the availability plan's settings call the responsible (docs/availability-extensions-plan.md §7).
+    const own = p.as === 'responsible' && duty.value?.responsibleLabel ? duty.value.responsibleLabel : capital(p.as)
+    const label = p.deputy ? (s.value.deputyLabel ?? 'Deputy') : (s.value.dutyLabel ?? own)
     const parts = [s.value.role || !p.name ? label : null, p.where].filter((x): x is string => !!x)
     return { key: `${i}-${p.name ?? ''}`, name: p.name, deputy: p.deputy, line: parts.join(' · ') }
   }),

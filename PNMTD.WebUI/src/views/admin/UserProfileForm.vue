@@ -30,7 +30,8 @@ const profile = useQuery({
   queryKey: computed(() => [...keys.users, props.userId, 'profile']),
   queryFn: () => api.users.profile(props.userId),
 })
-const { types } = useTypeOptions()
+const { types, settings: planSettings } = useTypeOptions()
+const responsibleLabel = computed(() => planSettings.data.value?.settings.responsibleLabel || 'Responsible')
 const session = useSession()
 const cookieSettings = session.can('Cookie', 'Manage') ? useCookieSettings() : null
 const accountsShown = computed(() => cookieSettings?.data.value?.access.links?.serverAccounts !== false)
@@ -141,7 +142,7 @@ async function save() {
         jdoe). The access watch links a login to them by these, without case, with or without the domain.</small
       >
     </div>
-    <PlanFields v-model="plan" :types="types" :errors="errors" id-prefix="up" />
+    <PlanFields v-model="plan" :types="types" :errors="errors" id-prefix="up" :label="responsibleLabel" />
     <div class="form-actions"><Button type="submit" label="Save" size="small" :loading="busy" /></div>
   </form>
 </template>

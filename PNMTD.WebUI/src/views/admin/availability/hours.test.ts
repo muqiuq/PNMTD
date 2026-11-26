@@ -43,6 +43,11 @@ describe("working hours (docs/cookie-plan.md §7.3), as the availability plan's 
     ])
     expect(week[0].periods).toEqual([])
     expect(week[6].periods).toEqual([p('10:00', '14:00')])
+    // Copies (docs/availability-extensions-plan.md §3.2): the query's own periods are read-only.
+    const saved = [{ day: 'Monday' as const, periods: [p('08:00', '17:00')] }]
+    const copy = normalizeWeek(saved)
+    copy[0].periods[0].to = '11:30'
+    expect(saved[0].periods[0].to).toBe('17:00')
   })
 
   it('suggests a period that fits after the last', () => {

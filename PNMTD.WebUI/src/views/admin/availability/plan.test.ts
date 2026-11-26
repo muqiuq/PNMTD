@@ -5,6 +5,7 @@ import {
   barShare,
   before,
   belowMinimum,
+  clockLine,
   datesBetween,
   daysBetween,
   exactCode,
@@ -13,9 +14,12 @@ import {
   formatPlanDate,
   fullWeek,
   inSelection,
+  inZone,
   mergeDays,
   monthLabel,
   movePoint,
+  noteSummary,
+  noteTime,
   planRows,
   responsibleWarning,
   selectionRect,
@@ -41,6 +45,7 @@ const day = (date: string, patch: Partial<PlanDay> = {}): PlanDay => ({
   cells: [],
   counts: [],
   missing: 0,
+  notes: [],
   ...patch,
 })
 
@@ -69,17 +74,63 @@ describe('the availability plan (docs/cookie-plan.md §8.2, §9.4)', () => {
     expect(merged[3].comment).toBe('new')
   })
 
-  it('puts a row with the month before each 1st, January standing out, and none inside a month', () => {
+  it("puts a row with the month before each 1st, a year's row before 1 January, and none inside a month", () => {
     const rows = planRows(datesBetween('2026-12-30', '2027-02-02').map((d) => day(d)))
-    const months = rows.flatMap((r, i) => (r.kind === 'month' ? [{ i, label: r.label, year: r.year }] : []))
-    expect(months).toEqual([
-      { i: 2, label: 'January 2027', year: true },
-      { i: 34, label: 'February 2027', year: false },
+    const marks = rows.flatMap((r, i) => (r.kind === 'day' ? [] : [{ i, kind: r.kind, label: r.label }]))
+    expect(marks).toEqual([
+      { i: 2, kind: 'year', label: '2027' },
+      { i: 3, kind: 'month', label: 'January 2027' },
+      { i: 35, kind: 'month', label: 'February 2027' },
     ])
-    expect(rows[3]).toMatchObject({ kind: 'day', key: '2027-01-01', date: '2027-01-01' })
+    expect(rows[4]).toMatchObject({ kind: 'day', key: '2027-01-01', date: '2027-01-01' })
     expect(rows.filter((r) => r.kind === 'day')).toHaveLength(35)
     expect(planRows([day('2026-11-15'), day('2026-11-16')]).map((r) => r.kind)).toEqual(['day', 'day'])
+    // Loaded from inside January: neither the year's row nor the month's comes.
+    expect(planRows([day('2027-01-15'), day('2027-01-16')]).map((r) => r.kind)).toEqual(['day', 'day'])
+    expect(new Set(rows.map((r) => r.key)).size).toBe(rows.length)
     expect(monthLabel('2026-12-24')).toBe('December 2026')
+  })
+
+  it('names the responsible as the settings do, never in a plural (docs/availability-extensions-plan.md §7)', () => {
+    expect(responsibleWarning(day('2026-11-17'), 'Hero')).toBe('Hero: nobody on a working day.')
+    expect(responsibleWarning(day('2026-11-17', { responsibleId: 'a', responsibleWorks: false }), 'Hero')).toBe(
+      "Hero: doesn't work that day.",
+    )
+  })
+
+  it("shows a day's newest note and how many more, with times in PNMT's zone (§6)", () => {
+    const note = (id: string, createdAt: string) => ({
+      id,
+      date: '2026-11-26',
+      userId: 'u',
+      author: 'Ben Keller',
+      text: id,
+      createdAt,
+      changedAt: createdAt,
+      mine: false,
+    })
+    expect(noteSummary([])).toBeNull()
+    const summary = noteSummary([
+      note('a', '2026-11-26T08:00:00Z'),
+      note('b', '2026-11-26T09:30:00Z'),
+      note('c', '2026-11-26T07:00:00Z'),
+    ])
+    expect(summary?.newest.id).toBe('b')
+    expect(summary?.more).toBe(2)
+    expect(noteTime('2026-11-26T13:32:00Z', 'Europe/Zurich')).toBe('26.11. 14:32')
+    expect(noteTime('2026-07-01T13:32:00Z', 'Europe/Zurich')).toBe('1.7. 15:32')
+  })
+
+  it("tells the time in PNMT's zone, not the browser's (§3.3)", () => {
+    const at = new Date('2026-11-26T13:32:10Z')
+    expect(clockLine(at, 'Europe/Zurich')).toBe('Europe/Zurich · Thu 26.11.2026 · 14:32')
+    expect(clockLine(at, 'UTC')).toBe('UTC · Thu 26.11.2026 · 13:32')
+    expect(inZone(at, 'Europe/Zurich').offset).toBe('UTC+1')
+    expect(inZone(at, 'UTC').offset).toBe('UTC')
+    // Late in the evening in New York it is already the next day in Zurich.
+    const late = new Date('2026-11-27T03:30:00Z')
+    expect(inZone(late, 'America/New_York').date).toBe('2026-11-26')
+    expect(inZone(late, 'Europe/Zurich').date).toBe('2026-11-27')
   })
 
   it('writes black on light colours and white on dark ones', () => {
@@ -104,7 +155,7 @@ describe('the availability plan (docs/cookie-plan.md §8.2, §9.4)', () => {
   })
 
   it('warns on a working day without a responsible, or with one who is off; closed days need nothing', () => {
-    expect(responsibleWarning(day('2026-11-17'))).toMatch(/Nobody/)
+    expect(responsibleWarning(day('2026-11-17'))).toBe('Responsible: nobody on a working day.')
     expect(responsibleWarning(day('2026-11-17', { responsibleId: 'a', responsibleWorks: true }))).toBeNull()
     expect(responsibleWarning(day('2026-11-17', { responsibleId: 'a', responsibleWorks: false }))).toMatch(
       /doesn't work/,

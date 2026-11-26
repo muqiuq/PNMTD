@@ -8,13 +8,21 @@ import CodeChip from './CodeChip.vue'
 import DefaultWeekEditor from './DefaultWeekEditor.vue'
 import type { PlanDraft } from './plan'
 
-/** A person's place in the availability plan (docs/cookie-plan.md §8.1): the plan's People tab and Admin → Users. */
-defineProps<{
-  types: readonly S['AvailabilityTypeItem'][]
-  /** The server's messages by field (shortCode, color, defaultWeek, planOrder). */
-  errors: Record<string, string | undefined>
-  idPrefix: string
-}>()
+/**
+ * A person's place in the availability plan (docs/cookie-plan.md §8.1): the plan's People tab and Admin → Users. With the
+ * share as the day's responsible (docs/availability-extensions-plan.md §8), named as the settings call the responsible.
+ */
+withDefaults(
+  defineProps<{
+    types: readonly S['AvailabilityTypeItem'][]
+    /** The server's messages by field (shortCode, color, defaultWeek, planOrder, responsibleShare). */
+    errors: Record<string, string | undefined>
+    idPrefix: string
+    /** What the settings call the responsible (§7). */
+    label?: string
+  }>(),
+  { label: 'Responsible' },
+)
 const draft = defineModel<PlanDraft>({ required: true })
 const upper = (value: string | undefined) => (draft.value.shortCode = (value ?? '').toUpperCase())
 </script>
@@ -67,6 +75,23 @@ const upper = (value: string | undefined) => (draft.value.shortCode = (value ?? 
         />
         <small v-if="errors.planOrder" class="field-error">{{ errors.planOrder }}</small>
         <small v-else class="field-hint">The columns go from low to high.</small>
+      </div>
+      <div class="field">
+        <label :for="`${idPrefix}-share`">Share as {{ label }}</label>
+        <InputNumber
+          v-model="draft.responsibleShare"
+          :input-id="`${idPrefix}-share`"
+          :min="0"
+          :max="500"
+          :use-grouping="false"
+          suffix=" %"
+          class="order"
+          :invalid="!!errors.responsibleShare"
+        />
+        <small v-if="errors.responsibleShare" class="field-error">{{ errors.responsibleShare }}</small>
+        <small v-else class="field-hint"
+          >100 is a full share of the days as {{ label }}; 50 half as many as someone with 100; 0 never.</small
+        >
       </div>
     </div>
     <div class="field">

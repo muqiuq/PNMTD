@@ -98,11 +98,13 @@ export function mergeDays(pages: readonly { days: readonly PlanDay[] }[]): PlanD
 
 // --- rows -----------------------------------------------------------------------------------------------------------
 
-/** A month's row before its first day; January's, a year's, stands out more. */
-export type MonthRow = { kind: 'month'; key: string; label: string; year: boolean }
+/** A month's row before its first day; all as strong as January's was before 1.28 (docs/availability-extensions-plan.md §4). */
+export type MonthRow = { kind: 'month'; key: string; label: string }
+/** A year's row before January's month row: stronger still. */
+export type YearRow = { kind: 'year'; key: string; label: string }
 /** A day's row: the day itself, so the table reads it as before. */
 export type DayRow = PlanDay & { kind: 'day'; key: string }
-export type PlanRow = MonthRow | DayRow
+export type PlanRow = YearRow | MonthRow | DayRow
 
 const monthNames = [
   'January',
@@ -125,20 +127,19 @@ export function monthLabel(iso: string): string {
 }
 
 /**
- * The table's rows (docs/adjustments1.md): every day, and a row of its own before each month's first day with the
- * month's name, so a change of month is plain however the table is scrolled. Only before a 1st: the first days loaded
- * may start inside a month, and its row comes when the days before them do.
+ * The table's rows (docs/adjustments1.md, docs/availability-extensions-plan.md §4): every day, a row of its own before each
+ * month's first day with the month's name, and before 1 January a year's row too, so a change of month or year is plain
+ * however the table is scrolled. Only before a 1st: the first days loaded may start inside a month, and its row comes when
+ * the days before them do. Every row is as high as a day's: the table counts in rows.
  */
 export function planRows(days: readonly PlanDay[]): PlanRow[] {
   const rows: PlanRow[] = []
   for (const d of days) {
+    if (d.date.endsWith('-01-01')) {
+      rows.push({ kind: 'year', key: `year:${d.date.slice(0, 4)}`, label: d.date.slice(0, 4) })
+    }
     if (d.date.endsWith('-01')) {
-      rows.push({
-        kind: 'month',
-        key: `month:${d.date.slice(0, 7)}`,
-        label: monthLabel(d.date),
-        year: d.date.endsWith('-01-01'),
-      })
+      rows.push({ kind: 'month', key: `month:${d.date.slice(0, 7)}`, label: monthLabel(d.date) })
     }
     rows.push({ ...d, kind: 'day', key: d.date })
   }
@@ -174,11 +175,15 @@ export function works(checked: readonly Flag[]): boolean {
 
 // --- the warnings of §8.2 -------------------------------------------------------------------------------------------
 
-/** Why a day's responsible is red: nobody on a working day, or someone who doesn't work that day. Closed days need nothing. */
-export function responsibleWarning(d: PlanDay): string | null {
+/**
+ * Why a day's responsible is red: nobody on a working day, or someone who doesn't work that day. Closed days need nothing.
+ * `label` is what the settings call the responsible (docs/availability-extensions-plan.md §7), used as a name, never in a
+ * plural: "Responsible: nobody on a working day."
+ */
+export function responsibleWarning(d: PlanDay, label = 'Responsible'): string | null {
   if (d.closed) return null
-  if (!d.responsibleId) return 'Nobody is responsible on a working day.'
-  return d.responsibleWorks === false ? "The responsible doesn't work that day." : null
+  if (!d.responsibleId) return `${label}: nobody on a working day.`
+  return d.responsibleWorks === false ? `${label}: doesn't work that day.` : null
 }
 
 export function fallbackWarning(d: PlanDay): string | null {
@@ -315,22 +320,32 @@ export interface PlanDraft {
   color: string | null
   defaultWeek: S['DefaultDay'][]
   planOrder: number
+  /** The share as responsible, a weight from 0 to 500 (docs/availability-extensions-plan.md §8). */
+  responsibleShare: number
 }
 
 export function planDraftOf(p: {
   inPlan: boolean
-  shortCode: string | null
-  color: string | null
+  shortCode?: string | null
+  color?: string | null
   defaultWeek: readonly S['DefaultDay'][]
   planOrder: number
+  responsibleShare?: number
 }): PlanDraft {
   return {
     inPlan: p.inPlan,
     shortCode: p.shortCode ?? '',
-    color: p.color,
+    color: p.color ?? null,
     defaultWeek: fullWeek(p.defaultWeek),
     planOrder: p.planOrder,
+    responsibleShare: p.responsibleShare ?? 100,
   }
+}
+
+/** A share's target, as everyone's shares in the plan make it: 100 of 400 is 25 %. */
+export function targetShare(share: number, all: readonly number[]): number {
+  const sum = all.reduce((a, b) => a + Math.max(0, b), 0)
+  return sum > 0 ? Math.max(0, share) / sum : 0
 }
 
 /** As sent: the code trimmed and in capitals, none as null; a day that isn't worked has no type. */
@@ -345,5 +360,72 @@ export function planRequest(d: PlanDraft): S['AvailabilityPersonRequest'] {
       typeId: w.works ? (w.typeId ?? null) : null,
     })),
     planOrder: d.planOrder ?? 0,
+    responsibleShare: d.responsibleShare ?? 100,
   }
+}
+
+// --- notes (docs/availability-extensions-plan.md §6) -----------------------------------------------------------------
+
+export type PlanNote = S['AvailabilityNoteItem']
+
+/** What a day's notes cell shows on its one line: the newest note, and how many more there are. */
+export function noteSummary(notes: readonly PlanNote[] | null | undefined): { newest: PlanNote; more: number } | null {
+  if (!notes?.length) return null
+  const newest = [...notes].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))[0]
+  return { newest, more: notes.length - 1 }
+}
+
+/** A note's line in its list: "26.11. 14:32", in PNMT's zone. */
+export function noteTime(at: string, zone: string): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: zone,
+      day: 'numeric',
+      month: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(new Date(at))
+      .map((p) => [p.type, p.value]),
+  )
+  return `${Number(parts.day)}.${Number(parts.month)}. ${parts.hour}:${parts.minute}`
+}
+
+// --- the clock (docs/availability-extensions-plan.md §3.3) ------------------------------------------------------------
+
+const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+/** A moment in a zone: its date (yyyy-MM-dd), weekday and time, and the zone's offset ("UTC+1"). */
+export function inZone(at: Date, zone: string): { date: string; weekday: string; time: string; offset: string } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: zone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZoneName: 'shortOffset',
+    })
+      .formatToParts(at)
+      .map((p) => [p.type, p.value]),
+  )
+  const date = `${parts.year}-${parts.month}-${parts.day}`
+  // "GMT" or "GMT+0" for UTC, depending on the browser's data.
+  const name = parts.timeZoneName ?? ''
+  const offset = /^GMT([+-]0)?$/.test(name) ? 'UTC' : name.replace('GMT', 'UTC')
+  return {
+    date,
+    weekday: weekdayNames[new Date(`${date}T12:00:00Z`).getUTCDay()],
+    time: `${parts.hour}:${parts.minute}`,
+    offset,
+  }
+}
+
+/** The plan's clock: "Europe/Zurich · Thu 26.11.2026 · 14:32". */
+export function clockLine(at: Date, zone: string): string {
+  const z = inZone(at, zone)
+  return `${zone} · ${z.weekday} ${formatPlanDate(z.date)} · ${z.time}`
 }

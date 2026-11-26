@@ -127,3 +127,34 @@ public class AvailabilitySettingsEntity
     [MaxLength(200)]
     public string ChangedBy { get; set; } = "";
 }
+
+/// <summary>
+/// A note on a day of the plan (docs/availability-extensions-plan.md §6): the team's second comment column, one row per note,
+/// with its author. Everyone in the plan writes them; the day's comment stays the planner's.
+/// </summary>
+[Table("availability_notes")]
+[NotAudited("a note on the plan; each save is in the audit log as AvailabilityChanged")]
+public class AvailabilityNoteEntity
+{
+    public const int MaxText = 300;
+    public const int MaxPerDay = 20;
+
+    [Key]
+    public Guid Id { get; set; }
+
+    public DateOnly Date { get; set; }
+
+    /// <summary>The author. No foreign key: a note keeps <see cref="AuthorName"/> when the user is gone.</summary>
+    public Guid UserId { get; set; }
+
+    /// <summary>The author's display name when written; shown only once the user no longer exists.</summary>
+    [MaxLength(200)]
+    public string AuthorName { get; set; } = "";
+
+    [MaxLength(MaxText)]
+    public string Text { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime ChangedAt { get; set; }
+}

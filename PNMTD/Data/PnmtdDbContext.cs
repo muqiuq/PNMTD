@@ -217,6 +217,7 @@ namespace PNMTD.Data
         public DbSet<AvailabilityEntryEntity> AvailabilityEntries { get; set; }
         public DbSet<AvailabilityDayEntity> AvailabilityDays { get; set; }
         public DbSet<AvailabilitySettingsEntity> AvailabilitySettings { get; set; }
+        public DbSet<AvailabilityNoteEntity> AvailabilityNotes { get; set; }
         public DbSet<CookieSettingEntity> CookieSettings { get; set; }
         public DbSet<CookieDecisionEntity> CookieDecisions { get; set; }
         public DbSet<CookieInstructionEntity> CookieInstructions { get; set; }
@@ -1192,6 +1193,7 @@ namespace PNMTD.Data
                 e.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.ResponsibleId).OnDelete(DeleteBehavior.SetNull);
                 e.HasOne<UserEntity>().WithMany().HasForeignKey(x => x.FallbackId).OnDelete(DeleteBehavior.SetNull);
             });
+            modelBuilder.Entity<AvailabilityNoteEntity>(e => e.HasIndex(x => x.Date));
         }
 
         private static void ConfigureCookie(ModelBuilder modelBuilder)

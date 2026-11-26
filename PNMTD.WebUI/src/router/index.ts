@@ -433,7 +433,7 @@ export const routes: RouteRecordRaw[] = [
   {
     // The availability plan (docs/cookie-plan.md §8.2, §9.4): for Availability: View, and for everyone in the plan, who
     // needs no right for it. So no right here: the API decides, and the page says so when the plan is empty for the reader.
-    path: '/admin/availability/:tab(plan|people|settings)?',
+    path: '/admin/availability/:tab(plan|status|people|settings)?',
     name: 'availability',
     component: () => import('@/views/admin/availability/AvailabilityView.vue'),
     meta: { title: 'Availability plan' },

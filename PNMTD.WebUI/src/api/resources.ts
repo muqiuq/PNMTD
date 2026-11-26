@@ -260,6 +260,14 @@ export const api = {
     settings: () => call(client.GET('/api/v1/availability/settings')),
     saveSettings: (body: S['AvailabilitySettingsRequest']) =>
       call(client.PUT('/api/v1/availability/settings', { body })),
+    /** The Status tab's numbers for a year, by default this one (docs/availability-extensions-plan.md §11). */
+    stats: (year?: number) =>
+      call(client.GET('/api/v1/availability/stats', { params: { query: year ? { year } : {} } })),
+    /** Notes on days (§6): everyone in the plan and Edit write them; the author changes one; the author and Edit delete it. */
+    addNote: (body: S['AvailabilityNoteRequest']) => call(client.POST('/api/v1/availability/notes', { body })),
+    changeNote: (id: Id, text: string) =>
+      call(client.PUT('/api/v1/availability/notes/{id}', { params: { path: { id } }, body: { text } })),
+    deleteNote: (id: Id) => call(client.DELETE('/api/v1/availability/notes/{id}', { params: { path: { id } } })),
   },
 
   // --- groups and rights (docs/audit-redmine-zabbix-plan.md §5): admins; the catalog and one's own access everyone's ----
