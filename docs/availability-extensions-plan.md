@@ -1,6 +1,6 @@
 # Plan: Availability plan: a Status tab, days as responsible against a share per person, notes, a day to jump to, and the time zone shown
 
-**Status:** **Built (§15 *As built*), not yet released** (2026-11-26). Revision 2 takes your answers to revision 1's questions (§14). Planned for 1.28.0 (1.27.0 went out with the responsibilities' MCP work while this was built). It extends the availability plan of [cookie-plan.md](cookie-plan.md) §8.2 and §9.4 and [adjustments1.md](adjustments1.md). Below, *decision N* means this plan's §13.
+**Status:** **Built** (2026-11-26, §15 *As built*). Released in 1.28.0; [release-notes-1.28.md](release-notes-1.28.md). Revision 2 takes your answers to revision 1's questions (§14). It extends the availability plan of [cookie-plan.md](cookie-plan.md) §8.2 and §9.4 and [adjustments1.md](adjustments1.md). Below, *decision N* means this plan's §13.
 
 | | |
 |---|---|
@@ -360,7 +360,7 @@ AvailabilityStatsItem(
 
 ## 15. As built
 
-Built on 2026-11-26, for 1.28.0. Where it differs from the sections above, this section is right.
+Built on 2026-11-26. Released in 1.28.0; `docs/release-notes-1.28.md`. Where it differs from the sections above, this section is right.
 
 **The overlap message (§3.2), worked out in tests.** There were two causes; the first is what was reported.
 
