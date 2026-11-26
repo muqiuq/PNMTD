@@ -1,10 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import type { ResponsibilityMap } from '@/api/responsibilities'
-import { bodyRadius, buildGraph, initials, layoutOverview, noteObstacle, noteSize, type Layer } from './overviewLayout'
+import type { ResponsibilityMap, ResponsibilityRole, ResponsibilityStep } from '@/api/responsibilities'
+import {
+  bodyRadius,
+  buildGraph,
+  initials,
+  layoutOverview,
+  noteObstacle,
+  noteSize,
+  type Layer,
+  type Lines,
+} from './overviewLayout'
 
 const anna = { id: 'a1', name: 'Anna Muster', code: 'AMU', color: '#2f8fd8', active: true }
 const ben = { id: 'b1', name: 'Ben Keller', code: null, color: null, active: false }
+const cleo = { id: 'c1', name: 'Cleo Deputy', code: null, color: null, active: true }
 const gabi = { id: 'g1', name: 'Gabi Global', code: null, color: null, active: true }
+
+/** The escalation order as the server computes it (docs/responsibilities-mcp-and-map-plan.md §3): only active people. */
+const order = (...steps: [{ id: string; name: string; active: boolean }, ResponsibilityRole][]): ResponsibilityStep[] =>
+  steps.map(([p, role], i) => ({ step: i + 1, role, person: { id: p.id, name: p.name, active: p.active } }))
 
 function map(saved: Partial<Record<string, { x: number; y: number }>> = {}): ResponsibilityMap {
   const node = (id: string, more: Partial<ResponsibilityMap['responsibilities'][number]> = {}) => ({
@@ -19,17 +33,28 @@ function map(saved: Partial<Record<string, { x: number; y: number }>> = {}): Res
     deputyId: null,
     globalStandsIn: false,
     attention: false,
+    escalation: [] as ResponsibilityStep[],
     links: 0,
     combinations: 0,
     ...more,
   })
   return {
     responsibilities: [
-      node('network', { responsibleId: anna.id, deputyId: ben.id }),
-      node('backup', { responsibleId: anna.id }),
-      node('printers', { globalStandsIn: true }),
+      // Ben is inactive: the next in the queue, the global responsible, moves up.
+      node('network', {
+        responsibleId: anna.id,
+        deputyId: ben.id,
+        attention: true,
+        escalation: order([anna, 'Responsible'], [gabi, 'GlobalResponsible']),
+      }),
+      node('backup', {
+        responsibleId: anna.id,
+        deputyId: cleo.id,
+        escalation: order([anna, 'Responsible'], [cleo, 'Deputy'], [gabi, 'GlobalResponsible']),
+      }),
+      node('printers', { globalStandsIn: true, escalation: order([gabi, 'GlobalResponsible']) }),
     ],
-    people: [anna, ben, gabi],
+    people: [anna, ben, cleo, gabi],
     objects: [
       {
         kind: 'Host',
@@ -57,6 +82,10 @@ function map(saved: Partial<Record<string, { x: number; y: number }>> = {}): Res
 }
 
 const layers = (...l: Layer[]) => new Set<Layer>(l)
+const personLines = (lines: Lines) =>
+  buildGraph(map(), layers('people'), lines)
+    .edges.map((e) => `${e.source.slice('person:'.length)}→${e.target.slice('responsibility:'.length)} ${e.kind}`)
+    .sort()
 const distance = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
 
 describe("the overview's graph (docs/responsibilities-extensions-plan.md §6.1)", () => {
@@ -66,13 +95,9 @@ describe("the overview's graph (docs/responsibilities-extensions-plan.md §6.1)"
       'responsibility:backup',
       'responsibility:printers',
     ])
-    const { nodes, edges } = buildGraph(map(), layers('people', 'hosts'))
-    expect(nodes.filter((n) => n.kind === 'person').map((n) => n.code)).toEqual(['AMU', 'BK', 'GG'])
-    expect(nodes.find((n) => n.id === 'person:b1')?.inactive).toBe(true)
+    const { nodes, edges } = buildGraph(map(), layers('people', 'hosts'), 'both')
+    expect(nodes.filter((n) => n.kind === 'person').map((n) => n.code)).toEqual(['AMU', 'CD', 'GG'])
     expect(nodes.some((n) => n.kind === 'page')).toBe(false)
-    expect(edges).toContainEqual({ source: 'person:a1', target: 'responsibility:network', kind: 'responsible' })
-    expect(edges).toContainEqual({ source: 'person:b1', target: 'responsibility:network', kind: 'deputy' })
-    expect(edges).toContainEqual({ source: 'person:g1', target: 'responsibility:printers', kind: 'global' })
     expect(edges.filter((e) => e.source === 'host:h1')).toHaveLength(2)
   })
 
@@ -81,6 +106,37 @@ describe("the overview's graph (docs/responsibilities-extensions-plan.md §6.1)"
     expect(initials('Carla de la Rossi')).toBe('CR')
     expect(initials('ben')).toBe('B')
     expect(initials('  ')).toBe('?')
+  })
+})
+
+describe("the overview's lines (docs/responsibilities-mcp-and-map-plan.md §4)", () => {
+  it('draws only the first in each escalation order by default', () => {
+    expect(personLines('responsible')).toEqual([
+      'a1→backup responsible',
+      'a1→network responsible',
+      'g1→printers global',
+    ])
+    const people = buildGraph(map(), layers('people')).nodes.filter((n) => n.kind === 'person')
+    expect(people.map((n) => n.id)).toEqual(['person:a1', 'person:g1'])
+  })
+
+  it('draws the second for Deputy: whoever comes next in the queue, in the style of their role', () => {
+    expect(personLines('deputy')).toEqual(['c1→backup deputy', 'g1→network global'])
+  })
+
+  it('draws the first two for Both, and never an inactive person', () => {
+    expect(personLines('both')).toEqual([
+      'a1→backup responsible',
+      'a1→network responsible',
+      'c1→backup deputy',
+      'g1→network global',
+      'g1→printers global',
+    ])
+    expect(buildGraph(map(), layers('people'), 'both').nodes.some((n) => n.id === 'person:b1')).toBe(false)
+  })
+
+  it('draws no person without the People layer', () => {
+    expect(buildGraph(map(), layers('hosts'), 'both').edges.every((e) => e.kind === 'link')).toBe(true)
   })
 })
 

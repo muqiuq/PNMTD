@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   bulkSummary,
   combinationLabel,
+  escalationLabel,
   linkObjectLabel,
+  ordinal,
   personLabel,
+  skippedPeople,
   standsInLabel,
   type ResponsibilityGlobal,
 } from './responsibilities'
@@ -73,5 +76,39 @@ describe('linkObjectLabel', () => {
   it('names a page by its number and title, anything else by its name', () => {
     expect(linkObjectLabel({ kind: 'Page', name: 'Printer setup', number: 42 })).toBe('KB-42 Printer setup')
     expect(linkObjectLabel({ kind: 'Host', name: 'sw-core-01' })).toBe('sw-core-01')
+  })
+})
+
+describe('the escalation order (docs/responsibilities-mcp-and-map-plan.md §3)', () => {
+  it('reads as one queue, each person with their role', () => {
+    expect(
+      escalationLabel([
+        { step: 1, role: 'Deputy', person: ben },
+        { step: 2, role: 'GlobalResponsible', person: anna },
+      ]),
+    ).toBe('Ben Keller (deputy) → Anna Muster (global responsible)')
+    expect(escalationLabel([])).toBe('Nobody')
+  })
+
+  it('counts its steps', () => {
+    expect([1, 2, 3, 4, 11, 12, 13, 21].map(ordinal)).toEqual([
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
+      '11th',
+      '12th',
+      '13th',
+      '21st',
+    ])
+  })
+
+  it('names who is skipped because inactive, and not who is unset', () => {
+    const carl = { id: 'c', name: 'Carl Weber', active: false }
+    expect(skippedPeople(carl, ben, global(anna, null))).toEqual(['Carl Weber, the responsible, is inactive: skipped'])
+    expect(skippedPeople(null, null, global({ ...anna, active: false }, null))).toEqual([
+      'Anna Muster, the global responsible, is inactive: skipped',
+    ])
+    expect(skippedPeople(null, ben, global(null, null))).toEqual([])
   })
 })

@@ -12,10 +12,25 @@ public sealed record ResponsibilityPerson(Guid Id, string Name, bool Active);
 /// </summary>
 public sealed record ResponsibilityGlobal(ResponsibilityPerson? Responsible, ResponsibilityPerson? Deputy, DateTime UpdatedAt, string? UpdatedByName);
 
+/// <summary>A person's place in a responsibility's escalation order (docs/responsibilities-mcp-and-map-plan.md §3).</summary>
+public enum ResponsibilityRole
+{
+    Responsible,
+    Deputy,
+    GlobalResponsible,
+    GlobalDeputy,
+}
+
+/// <summary>
+/// One step of the escalation order: 1 is whom to ask first. Only people who are set and active, each once (§3.1); information
+/// only, nothing is sent.
+/// </summary>
+public sealed record ResponsibilityStep(int Step, ResponsibilityRole Role, ResponsibilityPerson Person);
+
 /// <summary>
 /// A row of the list (§9.2). <see cref="GlobalStandsIn"/>: neither its responsible nor its deputy is set and active.
 /// <see cref="Attention"/>: nobody set, or a person inactive. <see cref="Color"/>: <c>#rrggbb</c> or null
-/// (docs/responsibilities-extensions-plan.md §4).
+/// (docs/responsibilities-extensions-plan.md §4). <see cref="Escalation"/>: whom to ask, in order (docs/responsibilities-mcp-and-map-plan.md §3).
 /// </summary>
 public sealed record ResponsibilityItem(
     Guid Id,
@@ -26,6 +41,7 @@ public sealed record ResponsibilityItem(
     ResponsibilityPerson? Deputy,
     bool GlobalStandsIn,
     bool Attention,
+    IReadOnlyList<ResponsibilityStep> Escalation,
     int Links,
     int Combinations,
     DateTime UpdatedAt,
@@ -52,6 +68,7 @@ public sealed record ResponsibilityDetail(
     ResponsibilityPerson? Deputy,
     bool GlobalStandsIn,
     bool Attention,
+    IReadOnlyList<ResponsibilityStep> Escalation,
     ResponsibilityGlobal Global,
     IReadOnlyList<ResponsibilityLinkItem> Links,
     IReadOnlyList<FileItem> Files,
@@ -288,9 +305,13 @@ public sealed record ResponsibilityMap(
     bool Truncated,
     int SavedPositions);
 
-/// <summary>A responsibility on the map; <see cref="X"/> and <see cref="Y"/> null: placed automatically.</summary>
+/// <summary>
+/// A responsibility on the map; <see cref="X"/> and <see cref="Y"/> null: placed automatically. Its lines follow
+/// <see cref="Escalation"/> (docs/responsibilities-mcp-and-map-plan.md §4).
+/// </summary>
 public sealed record ResponsibilityMapNode(Guid Id, string Name, string? Summary, string? Color, double? X, double? Y,
-    ResponsibilityMapPosition? Position, Guid? ResponsibleId, Guid? DeputyId, bool GlobalStandsIn, bool Attention, int Links, int Combinations);
+    ResponsibilityMapPosition? Position, Guid? ResponsibleId, Guid? DeputyId, bool GlobalStandsIn, bool Attention,
+    IReadOnlyList<ResponsibilityStep> Escalation, int Links, int Combinations);
 
 public sealed record ResponsibilityMapPosition(DateTime UpdatedAt, string? UpdatedByName);
 

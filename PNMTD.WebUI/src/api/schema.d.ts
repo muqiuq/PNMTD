@@ -32645,6 +32645,7 @@ export interface components {
             deputy: null | components["schemas"]["ResponsibilityPerson"];
             globalStandsIn: boolean;
             attention: boolean;
+            escalation: components["schemas"]["ResponsibilityStep"][];
             global: components["schemas"]["ResponsibilityGlobal"];
             links: components["schemas"]["ResponsibilityLinkItem"][];
             files: components["schemas"]["FileItem"][];
@@ -32704,6 +32705,7 @@ export interface components {
             deputy: null | components["schemas"]["ResponsibilityPerson"];
             globalStandsIn: boolean;
             attention: boolean;
+            escalation: components["schemas"]["ResponsibilityStep"][];
             /** Format: int32 */
             links: number;
             /** Format: int32 */
@@ -32780,6 +32782,7 @@ export interface components {
             deputyId: null | string;
             globalStandsIn: boolean;
             attention: boolean;
+            escalation: components["schemas"]["ResponsibilityStep"][];
             /** Format: int32 */
             links: number;
             /** Format: int32 */
@@ -32911,12 +32914,20 @@ export interface components {
             /** Format: uuid */
             deputyId?: null | string;
         };
+        /** @enum {unknown} */
+        ResponsibilityRole: "Responsible" | "Deputy" | "GlobalResponsible" | "GlobalDeputy";
         ResponsibilitySkipped: {
             kind: components["schemas"]["KbLinkKind"];
             /** Format: uuid */
             id: string;
             name: string;
             reason: string;
+        };
+        ResponsibilityStep: {
+            /** Format: int32 */
+            step: number;
+            role: components["schemas"]["ResponsibilityRole"];
+            person: components["schemas"]["ResponsibilityPerson"];
         };
         ResponsibilityUnlinkedRow: {
             /** Format: uuid */

@@ -1,11 +1,12 @@
 import type { LocationQuery } from 'vue-router'
 import { parseFocus } from '@/components/graph/focus'
-import type { Layer } from './overviewLayout'
+import { allLines, type Layer, type Lines } from './overviewLayout'
 
 /**
  * The overview's state in the URL (docs/responsibilities-extensions-plan.md §6.1): ?layers=people,hosts and ?focus=responsibility:<id>,
  * as the knowledge map keeps its own. Without ?layers, the defaults: people and notes. ?layers= (empty) is nothing but the
- * responsibilities.
+ * responsibilities. ?lines=deputy or ?lines=both chooses the people's lines (docs/responsibilities-mcp-and-map-plan.md §4.1); without
+ * it, the first in each escalation order.
  */
 
 export const allLayers: readonly Layer[] = ['people', 'hosts', 'locations', 'pages', 'notes']
@@ -39,4 +40,15 @@ export function layersToQuery(layers: ReadonlySet<Layer>): string | undefined {
 export function focusFromQuery(query: LocationQuery): string | null {
   const f = parseFocus(one(query.focus), focusKinds)
   return f ? `${f.kind}:${f.id}` : null
+}
+
+/** The lines ?lines= names; the default, the first in each order, for nothing or anything else. */
+export function linesFromQuery(query: LocationQuery): Lines {
+  const text = one(query.lines)
+  return allLines.includes(text as Lines) ? (text as Lines) : 'responsible'
+}
+
+/** undefined for the default, so a plain URL stays plain. */
+export function linesToQuery(lines: Lines): string | undefined {
+  return lines === 'responsible' ? undefined : lines
 }

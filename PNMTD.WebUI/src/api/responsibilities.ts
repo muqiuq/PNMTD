@@ -14,6 +14,8 @@ export type ResponsibilityItem = S['ResponsibilityItem']
 export type ResponsibilityList = S['ResponsibilityList']
 export type ResponsibilityPerson = S['ResponsibilityPerson']
 export type ResponsibilityGlobal = S['ResponsibilityGlobal']
+export type ResponsibilityStep = S['ResponsibilityStep']
+export type ResponsibilityRole = S['ResponsibilityRole']
 export type ResponsibilityLink = S['ResponsibilityLinkItem']
 export type ResponsibilityRequest = S['ResponsibilityRequest']
 export type ResponsibilityHistoryItem = S['ResponsibilityHistoryItem']
@@ -205,6 +207,47 @@ export function standsInLabel(global: Pick<ResponsibilityGlobal, 'responsible' |
   if (responsible) return `Global responsible stands in: ${personLabel(responsible)}`
   if (deputy) return `Global deputy stands in: ${personLabel(deputy)}`
   return 'Nobody: no global responsible is set'
+}
+
+/** A role in the escalation order (docs/responsibilities-mcp-and-map-plan.md §3), in a sentence. */
+export const roleLabel: Record<ResponsibilityRole, string> = {
+  Responsible: 'responsible',
+  Deputy: 'deputy',
+  GlobalResponsible: 'global responsible',
+  GlobalDeputy: 'global deputy',
+}
+
+/** 1st, 2nd, 3rd, 4th: a step of the escalation order. */
+export function ordinal(step: number): string {
+  const tens = step % 100
+  const suffix =
+    tens >= 11 && tens <= 13 ? 'th' : step % 10 === 1 ? 'st' : step % 10 === 2 ? 'nd' : step % 10 === 3 ? 'rd' : 'th'
+  return `${step}${suffix}`
+}
+
+/** The escalation order in one line: "Anna Muster (responsible) → Ben Keller (deputy)", or "Nobody". */
+export function escalationLabel(steps: readonly ResponsibilityStep[]): string {
+  return steps.length ? steps.map((s) => `${s.person.name} (${roleLabel[s.role]})`).join(' → ') : 'Nobody'
+}
+
+/**
+ * Who is named but not in the escalation order, because they are inactive (§3.1): "Carl Weber, the responsible, is inactive:
+ * skipped". Nobody set isn't mentioned; the order shows that.
+ */
+export function skippedPeople(
+  responsible: ResponsibilityPerson | null | undefined,
+  deputy: ResponsibilityPerson | null | undefined,
+  global: Pick<ResponsibilityGlobal, 'responsible' | 'deputy'>,
+): string[] {
+  const named: [ResponsibilityPerson | null | undefined, ResponsibilityRole][] = [
+    [responsible, 'Responsible'],
+    [deputy, 'Deputy'],
+    [global.responsible, 'GlobalResponsible'],
+    [global.deputy, 'GlobalDeputy'],
+  ]
+  return named
+    .filter(([p]) => p && !p.active)
+    .map(([p, role]) => `${p!.name}, the ${roleLabel[role]}, is inactive: skipped`)
 }
 
 export const historyKindLabel: Record<ResponsibilityHistoryKind, string> = {

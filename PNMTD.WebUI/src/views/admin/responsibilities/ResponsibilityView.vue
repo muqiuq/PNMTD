@@ -9,9 +9,11 @@ import { ApiError } from '@/api/client'
 import { kbLinkIcon, kbLinkRoute } from '@/api/kb'
 import {
   combinationLabel,
+  escalationLabel,
   personLabel,
   responsibilitiesApi,
   responsibilityKeys,
+  skippedPeople,
   standsInLabel,
   type RedmineCombination,
   type ResponsibilityLink,
@@ -297,6 +299,13 @@ async function remove() {
               </dl>
             </div>
             <p v-if="r.globalStandsIn" class="stands-in" data-test="stands-in">{{ standsInLabel(r.global) }}</p>
+            <p class="escalation" data-test="escalation-order">
+              <span class="muted">Escalation order</span> {{ escalationLabel(r.escalation) }}
+              <span v-for="s in skippedPeople(r.responsible, r.deputy, r.global)" :key="s" class="muted">
+                · {{ s }}</span
+              >
+              <br /><span class="muted small">Whom to ask, in this order. Nothing is sent.</span>
+            </p>
           </section>
 
           <section class="panel" aria-labelledby="linked-title">
@@ -438,6 +447,16 @@ async function remove() {
   padding: 0 var(--pnmt-space-4) var(--pnmt-space-3);
   color: var(--pnmt-warn);
   font-size: 0.857rem;
+}
+
+.escalation {
+  margin: 0;
+  padding: 0 var(--pnmt-space-4) var(--pnmt-space-3);
+  font-size: 0.929rem;
+}
+
+.escalation .small {
+  font-size: 0.786rem;
 }
 
 .list {

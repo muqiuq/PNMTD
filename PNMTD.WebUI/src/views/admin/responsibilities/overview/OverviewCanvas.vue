@@ -14,6 +14,7 @@ import {
   nodeRadius,
   noteObstacle,
   noteSize,
+  type Lines,
   type NoteWidth,
   type OverviewEdge,
   type OverviewNode,
@@ -22,8 +23,9 @@ import {
 /**
  * The overview's drawing (docs/responsibilities-extensions-plan.md §6.1): Vue-rendered SVG on the network map's shared parts. A
  * responsibility is a circle in its colour with its name below, ⚠ when it needs attention and G when the global responsible stands in;
- * a person a smaller circle with their code; a linked object the knowledge map's small shapes. Lines: solid to the responsible, dashed
- * to the deputy, dotted from the global people, thin and grey to what is linked. The wheel and pinch zoom, the background pans;
+ * a person a smaller circle with their code; a linked object the knowledge map's small shapes. Lines follow the escalation order
+ * (docs/responsibilities-mcp-and-map-plan.md §4), styled by role: solid to the responsible, dashed to the deputy, dotted from the
+ * global people; thin and grey to what is linked. The wheel and pinch zoom, the background pans;
  * hovering a node fades what isn't next to it; a click selects, a double-click opens.
  *
  * Moving (§6.2): every node drags and moves with the arrow keys; only responsibilities are saved (the page's bar). With `editable`, a
@@ -46,7 +48,14 @@ const props = defineProps<{
   notes?: CanvasNote[]
   focus?: string | null
   editable?: boolean
+  /** Which of the escalation order the people's lines show, for the legend. */
+  lineView?: Lines
 }>()
+const linesNote: Record<Lines, string> = {
+  responsible: 'Lines: the first in each escalation order',
+  deputy: 'Lines: the second in each escalation order',
+  both: 'Lines: the first two in each escalation order',
+}
 const selected = defineModel<string | null>('selected', { default: null })
 const moved = defineModel<Map<string, Point>>('moved', { default: () => new Map() })
 const emit = defineEmits<{ open: [id: string]; 'edit-note': [id: string] }>()
@@ -339,12 +348,13 @@ defineExpose({ fit, positions, middle, at })
         <svg width="28" height="8">
           <line x1="0" y1="4" x2="28" y2="4" class="legend-line warn" stroke-width="2" stroke-dasharray="2 4" />
         </svg>
-        global stands in
+        global, standing in
       </span>
       <span>
         <svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" class="legend-line thin" stroke-width="1" /></svg>
         linked
       </span>
+      <span v-if="lineView" data-test="overview-lines-note">{{ linesNote[lineView] }}</span>
     </div>
   </div>
 </template>

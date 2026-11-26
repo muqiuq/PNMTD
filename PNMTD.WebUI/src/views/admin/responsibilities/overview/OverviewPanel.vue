@@ -3,9 +3,12 @@ import Button from 'primevue/button'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { kbLinkIcon, kbLinkRoute } from '@/api/kb'
 import {
+  ordinal,
   personLabel,
   responsibilitiesApi,
   responsibilityKeys,
+  roleLabel,
+  skippedPeople,
   standsInLabel,
   type ResponsibilityMap,
 } from '@/api/responsibilities'
@@ -18,9 +21,10 @@ import ColourPicker from '../ColourPicker.vue'
 import { nodeId } from './overviewLayout'
 
 /**
- * The overview's side panel (docs/responsibilities-extensions-plan.md §6.4): a responsibility with its people, counts and place, its
- * colour saved at once and *Back to automatic* (Edit); a person with what they are responsible or deputy for; a linked object with
- * the responsibilities that link it, each unlinked here with Edit. No contact details.
+ * The overview's side panel (docs/responsibilities-extensions-plan.md §6.4): a responsibility with its people, its escalation order
+ * (docs/responsibilities-mcp-and-map-plan.md §3.2), counts and place, its colour saved at once and *Back to automatic* (Edit); a
+ * person with their place in each responsibility's order; a linked object with the responsibilities that link it, each unlinked
+ * here with Edit. No contact details.
  */
 const props = defineProps<{ selection: string; map: ResponsibilityMap; edit: boolean }>()
 const emit = defineEmits<{
@@ -43,6 +47,9 @@ const person = (personId: string | null | undefined) => {
 
 // --- a responsibility -------------------------------------------------------------------------------------------------
 const r = computed(() => (kind.value === 'responsibility' ? byId.value.get(id.value) : undefined))
+const skipped = computed(() =>
+  r.value ? skippedPeople(person(r.value.responsibleId), person(r.value.deputyId), props.map.global) : [],
+)
 const colour = ref<string | null>(null)
 watch(
   r,
@@ -64,21 +71,18 @@ watch(colour, async (value) => {
 
 // --- a person ---------------------------------------------------------------------------------------------------------
 const p = computed(() => (kind.value === 'person' ? people.value.get(id.value) : undefined))
+/** Their place in each responsibility's escalation order; named there but inactive, they are in none. */
 const theirs = computed(() => {
   const who = id.value
-  const global = props.map.global
   return props.map.responsibilities
-    .map((x) => ({
-      r: x,
-      as:
-        x.responsibleId === who
-          ? 'responsible'
-          : x.deputyId === who
-            ? 'deputy'
-            : x.globalStandsIn && (global.responsible?.id === who || global.deputy?.id === who)
-              ? 'global, standing in'
-              : null,
-    }))
+    .map((x) => {
+      const step = x.escalation.find((s) => s.person.id === who)
+      const named = x.responsibleId === who ? 'responsible' : x.deputyId === who ? 'deputy' : null
+      return {
+        r: x,
+        as: step ? `${roleLabel[step.role]}, ${ordinal(step.step)}` : named ? `${named}, inactive: skipped` : null,
+      }
+    })
     .filter((x) => x.as)
 })
 
@@ -159,6 +163,17 @@ const unlink = (responsibilityId: string, linkId: string) =>
             <span v-else>Nobody</span>
           </dd>
         </template>
+        <dt title="Whom to ask, in this order. Nothing is sent.">Escalation</dt>
+        <dd data-test="overview-escalation">
+          <ol v-if="r.escalation.length" class="steps">
+            <li v-for="s in r.escalation" :key="s.person.id">
+              <a href="#" @click.prevent="emit('select', nodeId('person', s.person.id))">{{ s.person.name }}</a>
+              <span class="muted small">{{ roleLabel[s.role] }}</span>
+            </li>
+          </ol>
+          <span v-else class="warn">Nobody</span>
+          <div v-for="s in skipped" :key="s" class="muted small">{{ s }}.</div>
+        </dd>
         <dt>Links</dt>
         <dd>{{ r.links }}</dd>
         <dt>Redmine</dt>
@@ -343,6 +358,18 @@ const unlink = (responsibilityId: string, linkId: string) =>
 
 .warn {
   color: var(--pnmt-warn);
+}
+
+.steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pnmt-space-1);
+}
+
+.steps li .small {
+  margin-left: var(--pnmt-space-2);
 }
 
 .small {

@@ -1,5 +1,5 @@
 import { layoutGraph, type Layout, type Point } from '@/components/graph/forceLayout'
-import type { ResponsibilityMap } from '@/api/responsibilities'
+import type { ResponsibilityMap, ResponsibilityRole, ResponsibilityStep } from '@/api/responsibilities'
 
 /**
  * The overview's graph and layout (docs/responsibilities-extensions-plan.md §6.3): responsibilities, the people they name and the
@@ -10,6 +10,25 @@ import type { ResponsibilityMap } from '@/api/responsibilities'
 export type NodeKind = 'responsibility' | 'person' | 'host' | 'location' | 'page'
 export type EdgeKind = 'responsible' | 'deputy' | 'global' | 'link'
 export type Layer = 'people' | 'hosts' | 'locations' | 'pages' | 'notes'
+/**
+ * Which people get a line (docs/responsibilities-mcp-and-map-plan.md §4): the first in each escalation order, the second, or the
+ * first two. The order is one queue, so whoever is missing is replaced by the next.
+ */
+export type Lines = 'responsible' | 'deputy' | 'both'
+export const allLines: readonly Lines[] = ['responsible', 'deputy', 'both']
+
+/** The line's style says the person's role, not their step. */
+const roleEdge: Record<ResponsibilityRole, EdgeKind> = {
+  Responsible: 'responsible',
+  Deputy: 'deputy',
+  GlobalResponsible: 'global',
+  GlobalDeputy: 'global',
+}
+
+/** The steps of an escalation order that get a line in a view. */
+export function linedSteps(steps: readonly ResponsibilityStep[], lines: Lines): readonly ResponsibilityStep[] {
+  return lines === 'responsible' ? steps.slice(0, 1) : lines === 'deputy' ? steps.slice(1, 2) : steps.slice(0, 2)
+}
 
 export interface OverviewNode {
   /** responsibility:<id>, person:<id>, host:<id>, location:<id>, page:<id>. */
@@ -90,10 +109,14 @@ export function noteObstacle(note: { id: string; x: number; y: number; w: number
   return { id: note.id, x: note.x + note.w / 2, y: note.y + note.h / 2, r: Math.hypot(note.w, note.h) / 2 }
 }
 
-/** Which layers are on: people and linked objects; responsibilities always. */
+/**
+ * Which layers are on: people and linked objects; responsibilities always. People are those with a line in the chosen view of
+ * the escalation order.
+ */
 export function buildGraph(
   map: ResponsibilityMap,
   layers: ReadonlySet<Layer>,
+  lines: Lines = 'responsible',
 ): { nodes: OverviewNode[]; edges: OverviewEdge[] } {
   const nodes: OverviewNode[] = map.responsibilities.map((r) => ({
     id: nodeId('responsibility', r.id),
@@ -114,14 +137,8 @@ export function buildGraph(
       shown.add(personId)
       edges.push({ source: nodeId('person', personId), target: nodeId('responsibility', responsibilityId), kind })
     }
-    for (const r of map.responsibilities) {
-      if (r.globalStandsIn) {
-        add(map.global.responsible?.id, r.id, 'global')
-        add(map.global.deputy?.id, r.id, 'global')
-      }
-      add(r.responsibleId, r.id, 'responsible')
-      add(r.deputyId, r.id, 'deputy')
-    }
+    for (const r of map.responsibilities)
+      for (const step of linedSteps(r.escalation, lines)) add(step.person.id, r.id, roleEdge[step.role])
     for (const id of [...shown].sort()) {
       const p = people.get(id)!
       nodes.push({

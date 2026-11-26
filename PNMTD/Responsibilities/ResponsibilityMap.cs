@@ -39,7 +39,7 @@ public sealed class ResponsibilityMapService(PnmtdDbContext db, ResponsibilityQu
                 var p = positions.GetValueOrDefault(i.Id);
                 return new ResponsibilityMapNode(i.Id, i.Name, i.Summary, i.Color, p?.X, p?.Y,
                     p is null ? null : new ResponsibilityMapPosition(p.UpdatedAt, p.UpdatedByName), i.Responsible?.Id, i.Deputy?.Id, i.GlobalStandsIn,
-                    i.Attention, i.Links, i.Combinations);
+                    i.Attention, i.Escalation, i.Links, i.Combinations);
             })
             .ToList();
 

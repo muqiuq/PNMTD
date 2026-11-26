@@ -14,6 +14,7 @@ function item(name: string, more: Partial<ResponsibilityItem> = {}): Responsibil
     deputy: null,
     globalStandsIn: false,
     attention: false,
+    escalation: [],
     links: 0,
     combinations: 0,
     updatedAt: '2026-11-20T10:00:00Z',

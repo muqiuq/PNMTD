@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import Drawer from 'primevue/drawer'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
 import type { MenuItem } from 'primevue/menuitem'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
@@ -15,13 +16,13 @@ import MoreMenu from '@/components/MoreMenu.vue'
 import { useActions } from '@/composables/useActions'
 import NoteDialog from './NoteDialog.vue'
 import OverviewCanvas, { type CanvasNote } from './OverviewCanvas.vue'
-import { buildGraph, type Layer } from './overviewLayout'
+import { buildGraph, type Layer, type Lines } from './overviewLayout'
 import OverviewPanel from './OverviewPanel.vue'
-import { focusFromQuery, layersFromQuery, layersToQuery } from './overviewState'
+import { focusFromQuery, layersFromQuery, layersToQuery, linesFromQuery, linesToQuery } from './overviewState'
 
 /**
  * The Overview tab (docs/responsibilities-extensions-plan.md §6): the responsibilities on a map with their people and, as layers, the
- * objects they link. The layers and the focus are in the URL. Arranging works as on the network map (§6.2): the moves are kept here,
+ * objects they link. The layers, the people's lines (docs/responsibilities-mcp-and-map-plan.md §4) and the focus are in the URL. Arranging works as on the network map (§6.2): the moves are kept here,
  * across layers and refreshes; with Edit, a bar offers Save layout and Discard. Saving writes the moved responsibilities and the
  * shown ones never saved, so nothing moves afterwards. Leaving with unsaved moves asks first.
  */
@@ -50,6 +51,20 @@ watch(layers, (value) => {
   else query.layers = text
   void router.replace({ query })
 })
+// Whom the people's lines go to: the first in each escalation order by default, the second, or the first two.
+const lines = ref<Lines>(linesFromQuery(route.query))
+const lineChoices: { value: Lines; label: string }[] = [
+  { value: 'responsible', label: 'Responsible' },
+  { value: 'deputy', label: 'Deputy' },
+  { value: 'both', label: 'Both' },
+]
+watch(lines, (value) => {
+  const query = { ...route.query }
+  const text = linesToQuery(value)
+  if (text === undefined) delete query.lines
+  else query.lines = text
+  void router.replace({ query })
+})
 const params = computed(() => ({
   hosts: layers.value.has('hosts') || undefined,
   locations: layers.value.has('locations') || undefined,
@@ -61,7 +76,9 @@ const map = useQuery({
   placeholderData: keepPreviousData,
   refetchInterval: 60_000,
 })
-const graph = computed(() => (map.data.value ? buildGraph(map.data.value, layers.value) : { nodes: [], edges: [] }))
+const graph = computed(() =>
+  map.data.value ? buildGraph(map.data.value, layers.value, lines.value) : { nodes: [], edges: [] },
+)
 const notes = computed<CanvasNote[]>(() =>
   layers.value.has('notes')
     ? (map.data.value?.notes ?? []).map((n) => ({
@@ -278,6 +295,20 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
         />
         <span>{{ l.label }}</span>
       </label>
+      <span class="lines" :title="layers.has('people') ? undefined : 'Turn on People'">
+        <span class="muted">Lines to</span>
+        <SelectButton
+          v-model="lines"
+          :options="lineChoices"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          :disabled="!layers.has('people')"
+          size="small"
+          aria-label="Lines to"
+          data-test="overview-lines"
+        />
+      </span>
       <span class="spacer" />
       <Select
         v-model="find"
@@ -320,6 +351,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
       :notes="notes"
       :focus="findFocus ?? focus"
       :editable="edit"
+      :line-view="layers.has('people') ? lines : undefined"
       @open="openPage"
       @edit-note="editNote"
     >
@@ -379,6 +411,13 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload)
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  font-size: 0.929rem;
+}
+
+.lines {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pnmt-space-2);
   font-size: 0.929rem;
 }
 

@@ -66157,6 +66157,7 @@
           "deputy",
           "globalStandsIn",
           "attention",
+          "escalation",
           "global",
           "links",
           "files",
@@ -66220,6 +66221,12 @@
           },
           "attention": {
             "type": "boolean"
+          },
+          "escalation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityStep"
+            }
           },
           "global": {
             "$ref": "#/components/schemas/ResponsibilityGlobal"
@@ -66444,6 +66451,7 @@
           "deputy",
           "globalStandsIn",
           "attention",
+          "escalation",
           "links",
           "combinations",
           "updatedAt",
@@ -66495,6 +66503,12 @@
           },
           "attention": {
             "type": "boolean"
+          },
+          "escalation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityStep"
+            }
           },
           "links": {
             "type": "integer",
@@ -66734,6 +66748,7 @@
           "deputyId",
           "globalStandsIn",
           "attention",
+          "escalation",
           "links",
           "combinations"
         ],
@@ -66801,6 +66816,12 @@
           },
           "attention": {
             "type": "boolean"
+          },
+          "escalation": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsibilityStep"
+            }
           },
           "links": {
             "type": "integer",
@@ -67327,6 +67348,14 @@
           }
         }
       },
+      "ResponsibilityRole": {
+        "enum": [
+          "Responsible",
+          "Deputy",
+          "GlobalResponsible",
+          "GlobalDeputy"
+        ]
+      },
       "ResponsibilitySkipped": {
         "required": [
           "kind",
@@ -67348,6 +67377,26 @@
           },
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "ResponsibilityStep": {
+        "required": [
+          "step",
+          "role",
+          "person"
+        ],
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ResponsibilityRole"
+          },
+          "person": {
+            "$ref": "#/components/schemas/ResponsibilityPerson"
           }
         }
       },

@@ -56,16 +56,18 @@ public sealed partial class ResponsibilityQueries(PnmtdDbContext db, LocationTre
             .ToListAsync(ct);
         var people = await PeopleAsync(rows.SelectMany(r => new[] { r.ResponsibleId, r.DeputyId }), ct);
         var withRedmine = RedmineConfigured;
+        var global = await GlobalAsync(ct);
         var items = rows.Select(r =>
             {
                 var responsible = Person(people, r.ResponsibleId);
                 var deputy = Person(people, r.DeputyId);
                 return new ResponsibilityItem(r.Id, r.Name, r.Summary, r.Color, responsible, deputy, StandsIn(responsible, deputy),
-                    NeedsAttention(responsible, deputy) || (withRedmine && r.Unhandled), r.Links, withRedmine ? r.Combinations : 0, r.UpdatedAt, r.UpdatedByName);
+                    NeedsAttention(responsible, deputy) || (withRedmine && r.Unhandled), EscalationOrder.Of(responsible, deputy, global), r.Links,
+                    withRedmine ? r.Combinations : 0, r.UpdatedAt, r.UpdatedByName);
             })
             .Where(i => !attention || i.Attention)
             .ToList();
-        return new ResponsibilityList(await GlobalAsync(ct), items, withRedmine);
+        return new ResponsibilityList(global, items, withRedmine);
     }
 
     public async Task<ResponsibilityDetail> GetAsync(Guid id, CancellationToken ct)
@@ -75,8 +77,9 @@ public sealed partial class ResponsibilityQueries(PnmtdDbContext db, LocationTre
         var responsible = Person(people, r.ResponsibleId);
         var deputy = Person(people, r.DeputyId);
         var combinations = RedmineConfigured ? await CombinationsAsync(id, null, null, ct) : [];
+        var global = await GlobalAsync(ct);
         return new ResponsibilityDetail(r.Id, r.Name, r.Summary, r.Color, r.Description, r.Revision, responsible, deputy, StandsIn(responsible, deputy),
-            NeedsAttention(responsible, deputy) || combinations.Any(c => c.User is not { Active: true }), await GlobalAsync(ct),
+            NeedsAttention(responsible, deputy) || combinations.Any(c => c.User is not { Active: true }), EscalationOrder.Of(responsible, deputy, global), global,
             await LinksAsync(id, ct), await FilesAsync(r.Description, ct), RedmineConfigured, combinations, r.CreatedAt, r.CreatedByName,
             r.UpdatedAt, r.UpdatedByName);
     }
