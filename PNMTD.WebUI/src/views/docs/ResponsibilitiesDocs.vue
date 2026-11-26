@@ -2,8 +2,9 @@
 import { computed } from 'vue'
 
 /**
- * The documentation of responsibilities (docs/responsibilities-plan.md, docs/responsibilities-extensions-plan.md): who owns what, next
- * to the availability plan's words; the Links tab, the colours and the Overview.
+ * The documentation of responsibilities (docs/responsibilities-plan.md, docs/responsibilities-extensions-plan.md,
+ * docs/responsibilities-mcp-and-map-plan.md): who owns what, next to the availability plan's words; the escalation order, the Links
+ * tab, the colours, the Overview with its lines and Arrange, and what MCP does with them.
  */
 const props = defineProps<{ search: string }>()
 const text =
@@ -11,7 +12,9 @@ const text =
   'description links pages locations hosts redmine project tracker every tracker subproject combination history restore ' +
   'responsible of the day fallback availability plan mcp cookie responsibilities_list responsibility_get rights view manage ' +
   'edit sort sorted column colour color swatch links tab without a responsibility unlinked covered move also link bulk ' +
-  'overview map arrange layout save layout automatic notes note sticky people'
+  'overview map arrange layout save layout automatic notes note sticky people escalation order queue whom to ask lines ' +
+  'circle cluster grid hex responsibility_history responsibility_links_list responsibility_links_change responsibility_notes ' +
+  'responsibility_note responsibility_note_delete'
 const show = computed(() => {
   const q = props.search.trim().toLowerCase()
   return !q || text.toLowerCase().includes(q)
@@ -44,6 +47,12 @@ const show = computed(() => {
           <em>Global responsible stands in</em>.
         </li>
         <li>
+          <strong>The escalation order</strong> says whom to ask, one after another: the responsible, the deputy, the
+          global responsible, the global deputy. It is one simple queue: whoever is not set or is inactive is skipped
+          and the next moves up, and a person counts once. A responsibility's page and the Overview's side panel show
+          it. It is information too: nothing is sent, and alerts and Cookie's escalations don't follow it.
+        </li>
+        <li>
           <strong>The list</strong> sorts by a click on a column's header: by name, responsible, deputy, links, Redmine
           combinations or when it was last changed. Nobody comes last both ways; where the global responsible stands in,
           the row sorts by their name. The sort is kept in the address, so going back to the list keeps it.
@@ -70,12 +79,20 @@ const show = computed(() => {
         </li>
         <li>
           <strong>The <em>Overview</em> tab</strong> draws the responsibilities on a map, as the network map draws
-          routers: the people they name (solid to the responsible, dashed to the deputy, dotted where the global
-          responsible stands in), and as layers the hosts, locations and pages they link (at most 600, the most shared
-          first). Drag a responsibility or a note, or move a focused one with the arrow keys; <em>Save layout</em> keeps
-          the places for everyone, <em>Discard</em> puts them back, and
-          <em>Layout → Back to automatic for all responsibilities…</em>
-          clears them. People and linked objects are always placed automatically around them.
+          routers, with their people and, as layers, the hosts, locations and pages they link (at most 600, the most
+          shared first). <em>Lines to</em> chooses whom the people's lines go to: <em>Responsible</em>, the first in
+          each escalation order (the default), <em>Deputy</em>, the second, or <em>Both</em>. The line says the role:
+          solid for the responsible, dashed for the deputy, dotted for a global person standing in. Only people with a
+          line are drawn. The choice is kept in the page's address, as the layers are.
+        </li>
+        <li>
+          <strong>Arranging the Overview:</strong> drag a responsibility or a note, or move a focused one with the arrow
+          keys. <em>Arrange</em> places every responsibility at once: as a <em>Circle</em> (rings around each other
+          above 24), <em>Around their responsible</em> (a small ring for each main responsible, with them in the middle)
+          or as a <em>Grid</em>, never two names on each other and none under a note. <em>Save layout</em> keeps the
+          places for everyone, <em>Discard</em> puts them back, and
+          <em>Layout → Back to automatic for all responsibilities…</em> clears them. People and linked objects are
+          always placed automatically around them.
         </li>
         <li>
           <strong>Notes</strong> on the Overview: short Markdown (bold, italics, lists, links; no images or HTML, at
@@ -98,11 +115,16 @@ const show = computed(() => {
         <li>
           <strong>MCP and Cookie</strong> read them with <code>responsibilities_list</code> (by words, by a linked host,
           location or page, or by a Redmine project) and <code>responsibility_get</code>. A page marked sensitive is
-          never named. Over MCP, a token with <em>Responsibilities: Edit</em> also creates and changes them, their links
-          and Redmine combinations (<code>responsibility_create</code>, <code>_update</code>, <code>_link</code>,
-          <code>_redmine</code>); their history says <em>via MCP</em>. Colours, the Overview and its notes stay in the
-          web UI. Cookie only reads them, once its rights group holds <em>Responsibilities: View</em>; in a chat, the
-          person asking needs it too.
+          never named; both tools give the escalation order. Over MCP also: the colour, <em>Needs attention</em> and who
+          changed it, <code>responsibility_history</code>, the Links tab (<code>responsibility_links_list</code>), and
+          the Overview's notes (<code>responsibility_notes</code>). A token with <em>Responsibilities: Edit</em> also
+          creates and changes them, the colour as <code>#rrggbb</code>, restores a description from the history, and
+          changes links and Redmine combinations (<code>responsibility_create</code>, <code>_update</code>,
+          <code>_link</code>, <code>_links_change</code>, <code>_redmine</code>); it writes notes
+          (<code>responsibility_note</code>) and deletes them only while deleting is allowed
+          (<code>responsibility_note_delete</code>). Their history says <em>via MCP</em>. Deleting a responsibility, the
+          global people and the Overview's layout stay in the web UI. Cookie only reads them, once its rights group
+          holds <em>Responsibilities: View</em>; in a chat, the person asking needs it too.
         </li>
         <li>
           <strong>Rights</strong>, in the area <em>Responsibilities</em>: <em>View</em> reads the page, its tabs and the

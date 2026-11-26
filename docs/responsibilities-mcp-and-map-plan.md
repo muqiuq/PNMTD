@@ -1,6 +1,6 @@
 # Plan: Responsibilities in full over MCP, the escalation order, and the Overview's lines and arrangements
 
-**Status:** **Draft, revision 2** (2026-11-26), for 1.27.0. Revision 1's questions are decided in §12; none is open. It extends [responsibilities-extensions-plan.md](responsibilities-extensions-plan.md) (released in 1.26.0) and [mcp-extensions-plan.md](mcp-extensions-plan.md) (released in 1.25.0). Their decisions stay unless §13 names them: responsibilities are information only (first plan, decision 5), and nothing is inherited (first plan, decision 6). Below, *decision N* means this plan's §12.
+**Status:** **Built: P1–P6, on master** (2026-11-26, §15 *As built*), for 1.27.0. Revision 2's decisions are in §12. It extends [responsibilities-extensions-plan.md](responsibilities-extensions-plan.md) (released in 1.26.0) and [mcp-extensions-plan.md](mcp-extensions-plan.md) (released in 1.25.0). Their decisions stay unless §13 names them: responsibilities are information only (first plan, decision 5), and nothing is inherited (first plan, decision 6). Below, *decision N* means this plan's §12.
 
 | | |
 |---|---|
@@ -431,3 +431,67 @@ No questions are open.
 | **P4** | **MCP fields:** colour, `Colours.Palette` and its test, `_options`, `_create` (description), `_update` (`restoreFrom`), `_list` (`attention`), `_get`; the escalation order for Cookie | `McpExtensionsTests`, `McpToolsTests` |
 | **P5** | **MCP tools:** history, the Links list and bulk change, notes | 131 tools; the tests in §10 |
 | **P6** | **Documentation:** `ResponsibilitiesDocs.vue` (the escalation order, the lines, *Arrange*, the MCP part rewritten), README, `docs/release-notes-1.27.md`, this plan's *As built* | `run-tests.sh` green in both time zones; screenshots of the map in each view and form |
+
+---
+
+## 15. As built
+
+**Built: P1–P6, on master (2026-11-26).** For 1.27.0; `docs/release-notes-1.27.md` is written, the version isn't bumped.
+
+### Where the build differs from the plan
+
+1. **Rings are fitted by checking the cells, not by the chord formula alone** (§5.2). `w / (2·sin(π/n))` keeps neighbours a cell's width
+   apart, but a cell is wider than it is tall, so diagonal neighbours of short names still overlapped. `fitRing` starts at the formula and
+   grows the radius in steps of 2 until no two cells overlap (`cellsOverlap`), at the latest where every pair is a cell's diagonal apart.
+   Rings around each other aren't 1.5 cell heights apart either: each is the smallest that clears the ones inside it, holding as many as
+   fit a diagonal apart.
+2. **A cluster's ring is at least 150, not 110** (§5.2). The layout keeps a free person 137 from a responsibility (39 + 50 + the gap of
+   48), so a smaller ring pushed the person out of its middle. A lone responsibility sits 150 to the right of its middle.
+3. **A started node is pulled towards its start, not to the middle of everything** (§5.4). With the pull to the overall centre, a person
+   in a cluster far from the middle ended up hundreds of units off it. `layoutGraph`'s bodies with a start (`hx`, `hy`) are pulled
+   there; those without one, as every node on the network map, as before.
+4. **A cell is never 200 wide:** names are cut at 28 characters, about 185 units, so the cap in §5.2 never binds.
+5. **A note deleted over MCP is recorded as it was,** field by field (`AsItWas`), as every delete over MCP is. The entity's removal
+   alone records only *deleted*.
+6. **Links to sensitive pages are no links for `_links_change` either:** given by id to `unlink` or `move`, they are left out, and with
+   nothing left the answer is `not_found`.
+7. **No test pins 131 tools** (§10). `McpResponsibilitiesTests` checks the six new ones by name, kind and token, so later tools don't
+   touch it.
+8. ***Arrange* is a labelled button with its own menu,** not in the ⋯ *Layout* menu, since everyone may arrange (decision 6). Its toast
+   is *Arranged 3 responsibilities as a circle* with *Not saved yet: Save layout keeps it.*, or without *Edit* *Only for you, until you
+   leave the page.*
+9. **The page's escalation line also names who was skipped,** as the side panel does.
+10. **The history tool's rows say `restorable`** (a description change) and `viaMcp`.
+11. **The notes browser test selects its note from the keyboard.** With fewer lines by default, the automatic layout changed and the
+    note's fixed drag landed it under the Network circle, which a click then hit.
+12. **The MCP history test advances its frozen clock a second** between the two description changes: with one timestamp for both,
+    "newest first" tied and New York's run read the other row.
+
+### P1 and P2: the escalation order and the lines (d6d5a3b)
+
+- `PNMTD/Responsibilities/EscalationOrder.cs`; `ResponsibilityRole`, `ResponsibilityStep` and `Escalation` on `ResponsibilityItem`,
+  `ResponsibilityDetail` and `ResponsibilityMapNode`.
+- The page's line (`ResponsibilityView.vue`), the side panel's list and a person's places (`OverviewPanel.vue`), `escalationLabel`,
+  `skippedPeople`, `ordinal`, `roleLabel` (`api/responsibilities.ts`).
+- `buildGraph(map, layers, lines)` with `linedSteps`, `?lines=` (`overviewState.ts`), the SelectButton, the legend's line.
+- `EscalationOrderTests` (the table, a person once, the 81 combinations against `StandsIn`, the list, page and map).
+
+### P3: *Arrange* (8a0124f)
+
+- `overview/arrange.ts` (`cellSize`, `fitRing`, `circle`, `clusters`, `grid`, `place`, `cellsOverlap`) with its tests; the menu and the
+  anchors in `OverviewTab.vue`, `anchors` in `OverviewCanvas.vue`; `layoutOverview`'s anchors and starts; `layoutGraph`'s `starts`.
+- `e2e/responsibilities.spec.ts`: the escalation order on the page and panel, the three views of lines, *Arrange → Circle* and
+  *Discard*, *Around their responsible* saved and the same after a reload.
+
+### P4 and P5: MCP (f72a889)
+
+- `Colours.Palette`, `NameOf`, `FirstUnused`; `ResponsibilityWriteTools` (`color`, `description` on create, `restoreFrom`,
+  `responsibility_links_change`, `responsibility_note`), `ResponsibilityReadTools` (`attention`, the new fields, `responsibility_history`,
+  `responsibility_links_list`, `responsibility_notes`), `DeleteTools.responsibility_note_delete`.
+- `McpResponsibilitiesTests` (over MCP with real tokens), `ResponsibilityToolsTests` (sensitive pages in the Links list and in
+  `_links_change`, the unlinked views' rights, the palette against `colours.ts`).
+
+### P6: the finish
+
+`ResponsibilitiesDocs.vue`, the README, `docs/release-notes-1.27.md`, this section.
+
