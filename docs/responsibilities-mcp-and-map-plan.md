@@ -1,6 +1,6 @@
 # Plan: Responsibilities in full over MCP, the escalation order, and the Overview's lines and arrangements
 
-**Status:** **Built: P1–P6, on master** (2026-11-26, §15 *As built*), for 1.27.0. Revision 2's decisions are in §12. It extends [responsibilities-extensions-plan.md](responsibilities-extensions-plan.md) (released in 1.26.0) and [mcp-extensions-plan.md](mcp-extensions-plan.md) (released in 1.25.0). Their decisions stay unless §13 names them: responsibilities are information only (first plan, decision 5), and nothing is inherited (first plan, decision 6). Below, *decision N* means this plan's §12.
+**Status:** **Built: P1–P6** (2026-11-26, §15 *As built*). Released in 1.27.0. Revision 2's decisions are in §12. It extends [responsibilities-extensions-plan.md](responsibilities-extensions-plan.md) (released in 1.26.0) and [mcp-extensions-plan.md](mcp-extensions-plan.md) (released in 1.25.0). Their decisions stay unless §13 names them: responsibilities are information only (first plan, decision 5), and nothing is inherited (first plan, decision 6). Below, *decision N* means this plan's §12.
 
 | | |
 |---|---|
@@ -436,7 +436,7 @@ No questions are open.
 
 ## 15. As built
 
-**Built: P1–P6, on master (2026-11-26).** For 1.27.0; `docs/release-notes-1.27.md` is written, the version isn't bumped.
+**Built: P1–P6 (2026-11-26).** Released in 1.27.0; `docs/release-notes-1.27.md`.
 
 ### Where the build differs from the plan
 
