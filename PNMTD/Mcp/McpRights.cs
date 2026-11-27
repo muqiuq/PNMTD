@@ -32,6 +32,8 @@ public static class McpRights
         [Area.Responsibilities] = Level.Edit,
         // docs/mcp-extensions-plan.md §9: the boards without their URLs, and messages to them.
         [Area.Boards] = Level.Message,
+        // docs/licences-plan.md §9, §11: reading; keys and documents are no tool's at any level.
+        [Area.Licenses] = Level.View,
     };
 
     /// <summary>
@@ -52,6 +54,7 @@ public static class McpRights
         [Area.NetworkMap] = Level.Details,
         [Area.Responsibilities] = Level.View,
         [Area.Boards] = Level.View,
+        [Area.Licenses] = Level.View,
     };
 
     public static UserRights For(UserRights user, McpTokenKind kind)

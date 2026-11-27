@@ -69,7 +69,9 @@ public sealed record SensorDetail(
     Importance EffectiveImportance = Importance.Normal,
     ZabbixSensorDetail? Zabbix = null,
     CertificateSensorSummary? Certificate = null,
-    AdvancedSensorDetail? Advanced = null);
+    AdvancedSensorDetail? Advanced = null,
+    LicenseSensorSummary? License = null,
+    IReadOnlyList<LinkedItemSummary>? LinkedItems = null);
 
 /// <summary>
 /// How an application reports: <c>{WriteUrl}/{code}/{message}</c> (GET) or a POST of the message to

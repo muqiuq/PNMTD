@@ -14,7 +14,8 @@ namespace PNMTD.Files;
 /// folder and its disk, the largest files with where they are used, unused uploads and files waiting to leave the disk,
 /// and the files on disk that no row names. Also the folder's inventory for the check (FileCheckTask).
 /// </summary>
-public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore store, FileCheckState check, IOptionsMonitor<KnowledgeBaseOptions> options)
+public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore store, FileCheckState check, IOptionsMonitor<KnowledgeBaseOptions> options,
+    IHttpContextAccessor accessor, IConfiguration configuration)
 {
     /// <summary>Unknown files listed at most.</summary>
     public const int MaxUnknown = 500;
@@ -66,7 +67,17 @@ public sealed class FileAdmin(IDbContextFactory<PnmtdDbContext> dbs, FileStore s
         var boards = await (from u in db.FileUses where ids.Contains(u.FileId) && u.BoardId != null
                             join b in db.Boards on u.BoardId equals b.Id
                             select new { u.FileId, Use = new FileUseRef(FileUserKind.Board, b.Id, b.Name, null) }).ToListAsync(ct);
-        var uses = pages.Concat(locations).Concat(responsibilities).Concat(boards).ToLookup(x => x.FileId, x => x.Use);
+        // A licence's or service's document (docs/licences-plan.md §7.3): its number for whoever may read the item, while the feature is on.
+        var named = Licenses.LicenseSetup.Enabled(configuration)
+            && accessor.HttpContext?.User is { } user && Auth.Rights.RightsExtensions.Has(user, Auth.Rights.Area.Licenses, Auth.Rights.Level.View);
+        var off = !Licenses.LicenseSetup.Enabled(configuration);
+        var licenses = (await (from u in db.FileUses where ids.Contains(u.FileId) && u.LicenseId != null
+                               join l in db.Licenses on u.LicenseId equals l.Id
+                               select new { u.FileId, l.Id, l.Type, l.Number }).ToListAsync(ct))
+            .Select(x => new { x.FileId, Use = new FileUseRef(FileUserKind.License, x.Id,
+                off ? "Licences & services (turned off)" : named ? PNMTD.Licenses.LicenseWords.Number(x.Type, x.Number) : "a licence or service",
+                named ? x.Number : null) }).ToList();
+        var uses = pages.Concat(locations).Concat(responsibilities).Concat(boards).Concat(licenses).ToLookup(x => x.FileId, x => x.Use);
         var days = options.CurrentValue.DeletedFileDays;
         var items = page.Items.Select(f => new FileAdminItem(FileNames.Item(f), Clock.AsUtc(f.CreatedAt), f.CreatedByName, f.DeletedAt,
             f.DeletedAt?.AddDays(days), uses[f.Id].OrderBy(u => u.Kind).ThenBy(u => u.Name, StringComparer.OrdinalIgnoreCase).ToList())).ToList();

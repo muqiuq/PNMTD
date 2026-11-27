@@ -77,7 +77,12 @@ async function remove(item: FileAdminItem) {
   }
 }
 
+/** Where a use leads; a licence's document only for whoever may read the item (docs/licences-plan.md §7.3): null otherwise. */
 function useTarget(u: Schemas['FileUseRef']) {
+  if (u.kind === 'License')
+    return u.number !== null && u.number !== undefined
+      ? { name: 'licence', params: { number: String(u.number) } }
+      : null
   if (u.kind === 'Page' && u.number !== null && u.number !== undefined)
     return { name: 'kb-page', params: { number: u.number } }
   // A responsibility's description (docs/responsibilities-plan.md §10.4).
@@ -227,9 +232,12 @@ function useTarget(u: Schemas['FileUseRef']) {
               <template v-else>Not used</template>
             </span>
             <span v-else class="uses">
-              <RouterLink v-for="u in f.usedBy" :key="u.id" :to="useTarget(u)">
-                {{ u.kind === 'Page' && u.number ? `${kbNumber(u.number)} ${u.name}` : u.name }}
-              </RouterLink>
+              <template v-for="u in f.usedBy" :key="u.id">
+                <RouterLink v-if="useTarget(u)" :to="useTarget(u)!">
+                  {{ u.kind === 'Page' && u.number ? `${kbNumber(u.number)} ${u.name}` : u.name }}
+                </RouterLink>
+                <span v-else class="muted">{{ u.name }}</span>
+              </template>
             </span>
           </template>
         </Column>

@@ -12,7 +12,7 @@ namespace PNMTD.Services.Domain;
 
 public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, PublicUrls urls, NotificationRuleService rules, UdpNodeService udp,
     MikrotikRouterService mikrotik, Agents.AgentHub agents, Zabbix.ZabbixSensorService zabbix, Certificates.CertificateSensorService certificates,
-    Advanced.AdvancedSensorService advanced)
+    Advanced.AdvancedSensorService advanced, Licenses.LicenseQueries licenses, IConfiguration configuration)
 {
     private static readonly string[] SortFields = ["name", "host", "state", "type", "lastevent"];
 
@@ -81,7 +81,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             sensor.Importance, status.Info.EffectiveImportance,
             sensor.Type == SensorType.ZABBIX ? await zabbix.DetailAsync(id, ct) : null,
             sensor.Type == SensorType.SSL_CERTIFICATE ? await certificates.SummaryAsync(id, ct) : null,
-            sensor.Type == SensorType.ADVANCED ? await advanced.DetailAsync(id, ct) : null);
+            sensor.Type == SensorType.ADVANCED ? await advanced.DetailAsync(id, ct) : null,
+            // docs/licences-plan.md §5.3, §5.4: the item a sensor stands for, the items linked to it; nothing while the feature is off.
+            sensor.Type == SensorType.LICENSE && Licenses.LicenseSetup.Enabled(configuration) ? await licenses.SensorSummaryAsync(id, ct) : null,
+            Licenses.LicenseSetup.Enabled(configuration) ? await licenses.LinkedItemsAsync(id, ct) : []);
     }
 
     /// <summary>Many sensors' importance at once (docs/ai-operations-plan.md §11.1); null: their hosts'.</summary>
@@ -161,6 +164,18 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
             v.ThrowIfInvalid();
             sensor.Name = name!;
             sensor.ParentId = request.HostId;
+            sensor.Enabled = request.Enabled;
+            sensor.Ignore = request.Ignore;
+            sensor.Importance = request.Importance;
+            sensor.Notes = Text.Trimmed(request.Notes) is null ? null : request.Notes;
+        }
+        else if (sensor.Type == SensorType.LICENSE)
+        {
+            // An item sensor is its assignment's (docs/licences-plan.md §5.3): its name and host follow the item.
+            new ApiValidator()
+                .Check(request.Type == SensorType.LICENSE, "type", "These sensors are made by assigning a licence or service.")
+                .Check(request.Notes is null || request.Notes.Length <= UdpNodeService.MaxNotes, "notes", $"At most {UdpNodeService.MaxNotes} characters.")
+                .ThrowIfInvalid();
             sensor.Enabled = request.Enabled;
             sensor.Ignore = request.Ignore;
             sensor.Importance = request.Importance;
@@ -273,6 +288,10 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         {
             throw ApiException.Conflict("diagnostics_sensor", "A diagnostics sensor goes with its assignment: delete the assignment on Admin → Diagnostics.");
         }
+        if (type == SensorType.LICENSE)
+        {
+            throw ApiException.Conflict("license_sensor", "Unassign it on the licence or service instead.");
+        }
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         if (Agents.AgentPlatformInfo.IsAgentType(type))
         {
@@ -370,6 +389,7 @@ public sealed class SensorService(PnmtdDbContext db, MonitoringReader reader, Pu
         v.Check(request.Type != SensorType.WINDOWS || existing?.Type == SensorType.WINDOWS, "type", "A Windows server joins with a token: Add server.");
         v.Check(request.Type != SensorType.LINUX || existing?.Type == SensorType.LINUX, "type", "A Linux server joins with a token: Add server.");
         v.Check(request.Type != SensorType.DIAGNOSTICS || existing?.Type == SensorType.DIAGNOSTICS, "type", "A diagnostics sensor is created by assigning a set on Admin → Diagnostics.");
+        v.Check(request.Type != SensorType.LICENSE, "type", "These sensors are made by assigning a licence or service.");
         v.Check(request.Interval is >= 0 and <= 31_536_000, "interval", "Between 0 and 31536000 seconds.");
         v.Check(request.GracePeriod is >= 0 and <= 31_536_000, "gracePeriod", "Between 0 and 31536000 seconds.");
         v.Check(request.TextId is null || request.TextId.Length <= 200, "textId", "At most 200 characters.");

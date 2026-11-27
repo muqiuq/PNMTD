@@ -50,6 +50,9 @@ import AdvancedRulesTab from './advanced/AdvancedRulesTab.vue'
 import AdvancedStatusStrip from './advanced/AdvancedStatusStrip.vue'
 import FieldCards from './advanced/FieldCards.vue'
 import SensorNotesPanel from './SensorNotesPanel.vue'
+import LicenseStatusStrip from '@/views/licences/LicenseStatusStrip.vue'
+import LinkedItemsStrip from '@/views/licences/LinkedItemsStrip.vue'
+import { licenseKeys, licensesApi } from '@/api/licenses'
 import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
 import { useCookieNotes } from '@/views/cookie/cookieNotes'
 import BackupsTab from './mikrotik/BackupsTab.vue'
@@ -149,6 +152,8 @@ const isZabbix = computed(() => sensor.value?.type === 'ZABBIX' && !!sensor.valu
 // An SSL certificate sensor (docs/ssl-certificate-plan.md §6.4, §8.3): the sensor is Monitoring's, its certificate the
 // Certificates area's; every change of the sensor needs Certificates: Edit besides Monitoring: Edit.
 const isCertificateType = computed(() => sensor.value?.type === 'SSL_CERTIFICATE')
+/** An item sensor (docs/licences-plan.md §8.9): its name and host follow the item; Unassign… instead of Delete. */
+const isLicense = computed(() => sensor.value?.type === 'LICENSE')
 const isCertificate = computed(() => isCertificateType.value && !!sensor.value?.certificate)
 const canCertificates = computed(() => session.can('Certificates', 'View'))
 const canCheck = computed(() => session.can('Certificates', 'Edit'))
@@ -470,6 +475,26 @@ async function rotate() {
   }
 }
 
+/** An item sensor goes with its assignment (docs/licences-plan.md §5.3): unassigning removes it and its events. */
+async function unassign() {
+  const s = sensor.value!
+  const item = s.license
+  if (!item) return
+  const ok = await ask(
+    `Unassign ${item.display} from ${s.host.name}?`,
+    `The sensor and its events go; ${item.name} stays, on its other hosts too.`,
+  )
+  if (
+    ok &&
+    (await done(() => licensesApi.unassign(item.id, [s.host.id]), {
+      success: `${item.display} unassigned from ${s.host.name}`,
+      invalidate: [keys.host(s.host.id), keys.hosts, licenseKeys.all],
+    }))
+  ) {
+    await router.replace({ name: 'host', params: { id: s.host.id } })
+  }
+}
+
 async function remove() {
   const s = sensor.value!
   const ok = await ask(
@@ -522,10 +547,16 @@ const more = computed(() =>
     : [
         ...udpItems.value,
         ...mikrotikItems.value,
-        ...(sensor.value?.integration && !isAgent.value
+        ...(sensor.value?.integration && !isAgent.value && !isLicense.value
           ? [{ label: 'New tokens…', icon: 'pi pi-key', command: () => (rotating.value = true) }]
           : []),
-        ...(canEditSensor.value ? [{ label: 'Delete sensor…', icon: 'pi pi-trash', command: remove }] : []),
+        ...(isLicense.value
+          ? sensor.value?.license && session.can('Licenses', 'Edit')
+            ? [{ label: 'Unassign…', icon: 'pi pi-times', command: unassign }]
+            : []
+          : canEditSensor.value
+            ? [{ label: 'Delete sensor…', icon: 'pi pi-trash', command: remove }]
+            : []),
       ],
 )
 </script>
@@ -587,7 +618,12 @@ const more = computed(() =>
         <AdvancedStatusStrip :sensor="sensor" />
         <TabNav :items="advancedTabs" :active="tab" label="Sensor pages" />
       </template>
+      <template v-else-if="isLicense && sensor.license">
+        <LicenseStatusStrip :summary="sensor.license" />
+        <TabNav :items="plainTabs" :active="tab" label="Sensor pages" />
+      </template>
       <TabNav v-else :items="plainTabs" :active="tab" label="Sensor pages" />
+      <LinkedItemsStrip v-if="sensor.linkedItems?.length" :items="sensor.linkedItems" />
 
       <AuditHistory v-if="tab === 'history'" :subject-id="sensor.id" :name="sensor.name" />
       <CertificateTab
@@ -748,9 +784,10 @@ const more = computed(() =>
                   :value="sensor.name"
                   label="Name"
                   field="name"
-                  :readonly="!canEditSensor"
+                  :readonly="!canEditSensor || isLicense"
                   :save="(v) => save({ name: String(v) })"
                 />
+                <small v-if="isLicense" class="field-hint">Follows the licence or service.</small>
               </dd>
               <dt>Importance</dt>
               <dd>
@@ -844,7 +881,8 @@ const more = computed(() =>
               </template>
               <dt>Type</dt>
               <dd>
-                <span v-if="isSystem"
+                <span v-if="isLicense">Licence &amp; service · made by its assignment</span>
+                <span v-else-if="isSystem"
                   >PNMT's own condition<template v-if="sensor.parameters === 'uplink'">
                     · <RouterLink :to="{ name: 'uplink' }">the uplink page</RouterLink></template
                   ></span
@@ -860,18 +898,20 @@ const more = computed(() =>
                 />
                 <span v-else>DNS · <RouterLink :to="{ name: 'dns-zones' }">its zone</RouterLink></span>
               </dd>
-              <dt>Text id</dt>
-              <dd>
-                <InlineField
-                  :value="sensor.textId"
-                  label="Text id"
-                  field="textId"
-                  mono
-                  placeholder="none"
-                  :readonly="!canEditSensor"
-                  :save="(v) => save({ textId: v ? String(v) : null })"
-                />
-              </dd>
+              <template v-if="!isLicense">
+                <dt>Text id</dt>
+                <dd>
+                  <InlineField
+                    :value="sensor.textId"
+                    label="Text id"
+                    field="textId"
+                    mono
+                    placeholder="none"
+                    :readonly="!canEditSensor"
+                    :save="(v) => save({ textId: v ? String(v) : null })"
+                  />
+                </dd>
+              </template>
               <dt>Notes</dt>
               <dd>
                 <InlineField
@@ -916,7 +956,7 @@ const more = computed(() =>
             </div>
           </section>
           <section
-            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isAgent && !isCertificateType"
+            v-else-if="sensor.integration && !isMikrotik && !isSystem && !isAgent && !isCertificateType && !isLicense"
             class="panel"
             aria-labelledby="integration-title"
           >

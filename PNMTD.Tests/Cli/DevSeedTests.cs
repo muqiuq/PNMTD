@@ -155,6 +155,25 @@ public sealed class DevSeedTests
         Assert.AreEqual(2, await db.ResponsibilityRedmine.CountAsync(c => c.UserId != null), "Network's and Printers' Redmine projects");
         Assert.AreEqual(3, await db.Responsibilities.CountAsync(r => r.Color != null), "each a colour (docs/responsibilities-extensions-plan.md §9)");
         Assert.AreEqual(2, await db.ResponsibilityMapNotes.CountAsync(), "two notes on the overview");
+        // Licences & services (docs/licences-plan.md §16): off by default, so not seeded; on, every type, state and status, failing ones ignored.
+        Assert.AreEqual(0, await db.Licenses.CountAsync(), "off by default");
+        var on = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Licenses:Enabled"] = "true", ["DataProtection:KeysPath"] = Path.Combine(Path.GetTempPath(), $"pnmtd-seed-keys-{Guid.NewGuid():N}"),
+        }).Build();
+        await using (var licenses = Data.PnmtdDbContext.Create(connection))
+        {
+            StringAssert.StartsWith(DevSeedLicenses.Seed(licenses, on, DateTime.UtcNow), "Seeded 8 licence templates, 25 licences and services");
+        }
+        Assert.AreEqual(3, await db.Licenses.Select(l => l.Type).Distinct().CountAsync());
+        Assert.AreEqual(3, await db.Licenses.Select(l => l.Status).Distinct().CountAsync());
+        Assert.IsTrue(await db.Licenses.AnyAsync(l => l.VerdictCode == 446) && await db.Licenses.AnyAsync(l => l.VerdictCode == 448)
+            && await db.Licenses.AnyAsync(l => l.VerdictCode == 449) && await db.Licenses.AnyAsync(l => l.VerdictCode == 447));
+        Assert.IsTrue(await db.Licenses.AnyAsync(l => l.OwnerId == null && !db.LicenseAssignments.Any(a => a.LicenseId == l.Id)), "nobody hears about one");
+        Assert.IsTrue(await db.LicenseCharges.AnyAsync(c => c.Estimated));
+        Assert.AreEqual(1, await db.LicenseSensorLinks.CountAsync(), "the internet line on office-basel-gw's ping");
+        var failingItems = await db.Sensors.Where(s => s.Type == Lib.Models.Enum.SensorType.LICENSE && db.Events.Any(e => e.SensorId == s.Id && e.Code >= 400)).ToListAsync();
+        Assert.IsTrue(failingItems.Count > 0 && failingItems.All(s => s.Ignore), "the seed's failing item sensors are ignored");
         // Boards (docs/boards-plan.md §15): NOC from anywhere, Helpdesk TV from private networks only; layouts that read back.
         var boards = await db.Boards.AsNoTracking().OrderBy(b => b.Name).ToListAsync();
         CollectionAssert.AreEqual(new[] { "Helpdesk TV", "NOC" }, boards.Select(b => b.Name).ToArray());

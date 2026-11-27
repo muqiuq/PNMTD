@@ -54,6 +54,18 @@ describe('the route guard', () => {
     expect(decide(page, as(operators))).toEqual({ name: 'dashboard' })
   })
 
+  it('sends the pages of a feature that is off to not found, as unknown paths (docs/licences-plan.md §13.2)', () => {
+    const page = to('licence', '/licences/12/hosts?x=1', { right: ['Licenses', 'View'] })
+    const withFeature = { ...page, feature: 'licenses' as const }
+    expect(decide(withFeature, { ...as('admin'), has: () => false })).toEqual({
+      name: 'not-found',
+      params: { pathMatch: ['licences', '12', 'hosts'] },
+    })
+    expect(decide(withFeature, { ...as('admin'), has: () => true })).toBe(true)
+    expect(decide(withFeature, { ...as({ Licenses: 'View' }), has: () => true })).toBe(true)
+    expect(decide(withFeature, { ...as(operators), has: () => true })).toEqual({ name: 'dashboard' })
+  })
+
   it('sends a signed-out user to the login, with the page as returnUrl', () => {
     expect(decide(to('host', '/hosts/1'), as(null))).toEqual({ name: 'login', query: { returnUrl: '/hosts/1' } })
     expect(decide(to('login', '/login', { public: true }), as(null))).toBe(true)

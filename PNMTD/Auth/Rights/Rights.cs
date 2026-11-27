@@ -3,14 +3,15 @@ using System.Security.Claims;
 namespace PNMTD.Auth.Rights;
 
 /// <summary>
-/// What a group gives rights in (docs/audit-redmine-zabbix-plan.md §5.2): 17 areas, fixed in code (Cookie since
-/// docs/cookie-plan.md §10.1). Users and groups
+/// What a group gives rights in (docs/audit-redmine-zabbix-plan.md §5.2): 26 areas, fixed in code (Cookie since
+/// docs/cookie-plan.md §10.1, Licences &amp; services since docs/licences-plan.md §9). Users and groups
 /// themselves are no area: only the admin flag manages them (§5.1).
 /// </summary>
 public enum Area
 {
     Monitoring, Commands, Mail, Decisions, Locations, KnowledgeBase, Redmine, Zabbix, UdpNodes, Mikrotik, Servers, SshKeys,
     Diagnostics, Ai, System, AuditLog, Cookie, Availability, Mcp, Certificates, Connectors, NetworkMap, Lounge, Responsibilities, Boards,
+    Licenses,
 }
 
 /// <summary>
@@ -108,9 +109,25 @@ public static class RightsCatalog
             // docs/board-messages-plan.md §12.1.
             (Level.Message, "View, plus sending messages to boards (Admin → Debug) and withdrawing open ones."),
             (Level.Manage, "View, plus creating, changing and deleting boards, with their elements, status bar, look and networks; showing and renewing their URLs. Adding an element also needs its area's right.")]),
+        // docs/licences-plan.md §9: listed only while Licenses__Enabled is on (§13.2); the item sensors stay Monitoring's.
+        new(Area.Licenses, "Licences & services", [
+            (Level.View, "The Licences & services page and every item: products, dates, seats, hosts, prices and costs (the overview, the costs, the charges), renewals, reviews, notes, support details, the documents' names and the history; the templates and categories; the panels on hosts and locations; items in the search; the CSV exports. Also over MCP and for Cookie, never the keys or documents."),
+            (Level.Details, "View, plus showing the keys and downloading the documents (both audited)."),
+            (Level.Edit, "Details, plus adding, changing, duplicating, assigning and unassigning, linking sensors, renewing, reviewing, cancelling and retiring items; recording and correcting charges; adding and removing documents; choosing the notices about items nobody owns."),
+            (Level.Manage, "Edit, plus the templates, the categories, renaming manufacturers, vendors and cost centres, deleting items, renewals and people's charges.")]),
     ];
 
     private static readonly Dictionary<Area, AreaInfo> ByArea = Areas.ToDictionary(a => a.Area);
+
+    /// <summary>
+    /// The areas a deployment has: every one, but <i>Licences &amp; services</i> only while <c>Licenses__Enabled</c> is on
+    /// (docs/licences-plan.md §13.2). Every list of areas a person sees reads this; a group's stored rows of a hidden area stay.
+    /// </summary>
+    public static IReadOnlyList<AreaInfo> Visible(IConfiguration configuration) =>
+        PNMTD.Licenses.LicenseSetup.Enabled(configuration) ? Areas : Areas.Where(a => a.Area != Area.Licenses).ToList();
+
+    /// <summary>Whether a deployment has the area now (see <see cref="Visible"/>).</summary>
+    public static bool IsVisible(Area area, IConfiguration configuration) => area != Area.Licenses || PNMTD.Licenses.LicenseSetup.Enabled(configuration);
 
     public static AreaInfo Of(Area area) => ByArea[area];
 

@@ -95,5 +95,8 @@ public class FileUseEntity
     /// <summary>A board that shows the file in an image element (docs/board-messages-plan.md §9.4). Migration BoardImages.</summary>
     public Guid? BoardId { get; set; }
 
+    /// <summary>A licence's or service's document (docs/licences-plan.md §3.9): served only through the item. Migration Licenses.</summary>
+    public Guid? LicenseId { get; set; }
+
     public DateTime FirstUsedAt { get; set; }
 }

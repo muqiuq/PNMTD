@@ -358,6 +358,42 @@ public static class AuditEvents
     // Board messages (docs/board-messages-plan.md §12.2): by a person or by Cookie.
     public const string BoardMessageSent = "BoardMessageSent";
     public const string BoardMessageWithdrawn = "BoardMessageWithdrawn";
+
+    // Licences & services (docs/licences-plan.md §10.2): the items, their hosts, links, renewals, charges and documents; the templates
+    // and categories; PNMT's automatic renewals; what turning the feature off and on did to the item sensors.
+    public const string LicenseCreated = "LicenseCreated";
+    public const string LicenseChanged = "LicenseChanged";
+    public const string LicenseDeleted = "LicenseDeleted";
+    public const string LicenseRenewed = "LicenseRenewed";
+    public const string LicenseRenewedAutomatically = "LicenseRenewedAutomatically";
+    public const string LicenseReviewed = "LicenseReviewed";
+    public const string LicenseCancelled = "LicenseCancelled";
+    public const string LicenseReactivated = "LicenseReactivated";
+    public const string LicenseRetired = "LicenseRetired";
+    public const string LicenseKeysShown = "LicenseKeysShown";
+    public const string LicenseAssigned = "LicenseAssigned";
+    public const string LicenseAssignmentChanged = "LicenseAssignmentChanged";
+    public const string LicenseUnassigned = "LicenseUnassigned";
+    public const string LicenseSensorLinked = "LicenseSensorLinked";
+    public const string LicenseSensorUnlinked = "LicenseSensorUnlinked";
+    public const string LicenseRenewalChanged = "LicenseRenewalChanged";
+    public const string LicenseRenewalDeleted = "LicenseRenewalDeleted";
+    public const string LicenseChargeRecorded = "LicenseChargeRecorded";
+    public const string LicenseChargeChanged = "LicenseChargeChanged";
+    public const string LicenseChargeDeleted = "LicenseChargeDeleted";
+    public const string LicenseDocumentAdded = "LicenseDocumentAdded";
+    public const string LicenseDocumentChanged = "LicenseDocumentChanged";
+    public const string LicenseDocumentDownloaded = "LicenseDocumentDownloaded";
+    public const string LicenseDocumentRemoved = "LicenseDocumentRemoved";
+    public const string LicenseNamesRenamed = "LicenseNamesRenamed";
+    public const string LicenseTemplateCreated = "LicenseTemplateCreated";
+    public const string LicenseTemplateChanged = "LicenseTemplateChanged";
+    public const string LicenseTemplateDeleted = "LicenseTemplateDeleted";
+    public const string LicenseCategoryCreated = "LicenseCategoryCreated";
+    public const string LicenseCategoryChanged = "LicenseCategoryChanged";
+    public const string LicenseCategoryDeleted = "LicenseCategoryDeleted";
+    public const string LicenseSensorsRemoved = "LicenseSensorsRemoved";
+    public const string LicenseSensorsMade = "LicenseSensorsMade";
 }
 
 /// <summary>What an entry is about: its category on the page and in the filter (docs/audit-redmine-zabbix-plan.md §3.2).</summary>
@@ -365,7 +401,7 @@ public enum AuditCategory
 {
     Auth, Users, Hosts, Sensors, Notifications, Locations, Knowledge, Files, Udp, Mikrotik, WireGuard, Agents, SshKeys,
     Diagnostics, Dns, Mail, Ai, Decisions, System, Redmine, Zabbix, Cookie, Availability, Mcp, Certificates, Connectors, Network,
-    Responsibilities, Boards,
+    Responsibilities, Boards, Licenses,
 }
 
 /// <summary>The colour of an event's tag.</summary>
@@ -421,6 +457,9 @@ public static class AuditTargets
     public const string ResponsibilityNote = "ResponsibilityNote";
     public const string Board = "Board";
     public const string BoardMessage = "BoardMessage";
+    public const string License = "License";
+    public const string LicenseTemplate = "LicenseTemplate";
+    public const string LicenseCategory = "LicenseCategory";
 }
 
 /// <summary>An event type of the catalog: its category, a label for people, the tone of its tag, what it is about.</summary>
@@ -582,6 +621,18 @@ public static class AuditCatalog
         Add(AuditCategory.Boards, AuditTargets.Board, AuditEvents.BoardCreated, AuditEvents.BoardChanged, AuditEvents.BoardDeleted,
             AuditEvents.BoardUrlShown, AuditEvents.BoardUrlRenewed, AuditEvents.BoardRefused);
         Add(AuditCategory.Boards, AuditTargets.BoardMessage, AuditEvents.BoardMessageSent, AuditEvents.BoardMessageWithdrawn);
+        Add(AuditCategory.Licenses, AuditTargets.License, AuditEvents.LicenseCreated, AuditEvents.LicenseChanged, AuditEvents.LicenseDeleted,
+            AuditEvents.LicenseRenewed, AuditEvents.LicenseRenewedAutomatically, AuditEvents.LicenseReviewed, AuditEvents.LicenseCancelled,
+            AuditEvents.LicenseReactivated, AuditEvents.LicenseRetired, AuditEvents.LicenseKeysShown, AuditEvents.LicenseAssigned,
+            AuditEvents.LicenseAssignmentChanged, AuditEvents.LicenseUnassigned, AuditEvents.LicenseSensorLinked, AuditEvents.LicenseSensorUnlinked,
+            AuditEvents.LicenseRenewalChanged, AuditEvents.LicenseRenewalDeleted, AuditEvents.LicenseChargeRecorded, AuditEvents.LicenseChargeChanged,
+            AuditEvents.LicenseChargeDeleted, AuditEvents.LicenseDocumentAdded, AuditEvents.LicenseDocumentChanged,
+            AuditEvents.LicenseDocumentDownloaded, AuditEvents.LicenseDocumentRemoved);
+        Add(AuditCategory.Licenses, null, AuditEvents.LicenseNamesRenamed, AuditEvents.LicenseSensorsRemoved, AuditEvents.LicenseSensorsMade);
+        Add(AuditCategory.Licenses, AuditTargets.LicenseTemplate, AuditEvents.LicenseTemplateCreated, AuditEvents.LicenseTemplateChanged,
+            AuditEvents.LicenseTemplateDeleted);
+        Add(AuditCategory.Licenses, AuditTargets.LicenseCategory, AuditEvents.LicenseCategoryCreated, AuditEvents.LicenseCategoryChanged,
+            AuditEvents.LicenseCategoryDeleted);
     }
 
     public static IReadOnlyList<AuditEventInfo> All => Entries;
@@ -596,7 +647,7 @@ public static class AuditCatalog
     {
         ["Totp"] = "2FA", ["Udp"] = "UDP", ["Kb"] = "KB", ["Ai"] = "AI", ["Ssh"] = "SSH", ["Dns"] = "DNS", ["Wmi"] = "WMI",
         ["Ota"] = "OTA", ["Mikrotik"] = "MikroTik", ["Wireguard"] = "WireGuard", ["Csv"] = "CSV", ["Redmine"] = "Redmine",
-        ["Zabbix"] = "Zabbix", ["Windows"] = "Windows", ["Mcp"] = "MCP", ["Os"] = "OS",
+        ["Zabbix"] = "Zabbix", ["Windows"] = "Windows", ["Mcp"] = "MCP", ["Os"] = "OS", ["License"] = "Licence",
     };
 
     /// <summary>"MikrotikJoinScriptViewed" → "MikroTik join script viewed".</summary>
@@ -621,6 +672,8 @@ public static class AuditCatalog
         : type is AuditEvents.BoardMessageSent ? AuditTone.Warn
         // docs/linux-os-updates-plan.md §6.5: a high-risk finding accepted for a while.
         : type is AuditEvents.OsUpdateFindingAcknowledged ? AuditTone.Warn
+        // docs/licences-plan.md §10.2: a key shown, a document downloaded, item sensors made or removed by the switch.
+        : type is AuditEvents.LicenseKeysShown or AuditEvents.LicenseDocumentDownloaded or AuditEvents.LicenseSensorsMade ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Deleted|Reset|Revoked|Disabled|Cancelled|Retired|Removed|Redacted|Detached") ? AuditTone.Warn
         : System.Text.RegularExpressions.Regex.IsMatch(type, "Succeeded|Enabled|Created|Joined|Registered|Attached|Uploaded") ? AuditTone.Success
         : AuditTone.Neutral;

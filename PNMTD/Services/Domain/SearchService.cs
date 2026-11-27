@@ -35,7 +35,18 @@ public sealed partial class SearchService(PnmtdDbContext db, LocationTree locati
             .Select(s => new SearchSensor(s.Id, s.Name, s.Type, s.ParentId, s.Parent.Name))
             .ToListAsync(ct);
         return new SearchResult(hosts, sensors, await LocationsAsync(pattern!, limit, ct), await PagesAsync(term, pattern!, limit, ct), tickets,
-            await ZabbixHostsAsync(pattern!, limit, ct));
+            await ZabbixHostsAsync(pattern!, limit, ct), await LicensesAsync(term, pattern!, limit, ct));
+    }
+
+    /// <summary>Licences &amp; services (docs/licences-plan.md §8.10): for their View, while the feature is on.</summary>
+    private async Task<IReadOnlyList<SearchLicense>> LicensesAsync(string term, string pattern, int limit, CancellationToken ct)
+    {
+        if (accessor.HttpContext?.User is not { } user || !Auth.Rights.RightsExtensions.Has(user, Auth.Rights.Area.Licenses, Auth.Rights.Level.View)
+            || !Licenses.LicenseSetup.Enabled(services.GetRequiredService<IConfiguration>()))
+        {
+            return [];
+        }
+        return await services.GetRequiredService<Licenses.LicenseQueries>().SearchAsync(term, pattern, limit, ct);
     }
 
     /// <summary>

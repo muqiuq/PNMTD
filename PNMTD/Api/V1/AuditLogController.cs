@@ -66,7 +66,10 @@ public sealed class AuditLogController(PnmtdDbContext db) : V1ControllerBase
     [RequireRight(Area.Monitoring, Level.View)]
     public async Task<ActionResult<Paged<AuditLogItem>>> Subject(Guid id, [FromQuery] PageQuery query, CancellationToken ct)
     {
+        // docs/licences-plan.md §10.1: what concerns licences and services, their prices above all, only for the area's View.
+        var licenses = User.Has(Area.Licenses, Level.View);
         var page = await Services.Domain.Paging.PageAsync(db.AuditLog.AsNoTracking().Where(l => l.Subjects.Contains(id))
+            .Where(l => licenses || l.Category != AuditCategory.Licenses)
             .OrderByDescending(l => l.CreatedAt).ThenBy(l => l.Id), query, ct);
         return new Paged<AuditLogItem>(page.Items.Select(l => ToItem(l) with { IpAddress = null, UserAgent = null }).ToList(), page.Page,
             page.PageSize, page.TotalCount);
@@ -147,7 +150,7 @@ public sealed class AuditLogController(PnmtdDbContext db) : V1ControllerBase
     }
 
     /// <summary>A CSV field: quoted when it must be, and never a formula a spreadsheet would run.</summary>
-    private static string Csv(string? value)
+    internal static string Csv(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {

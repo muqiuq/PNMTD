@@ -24,6 +24,7 @@ public static class ToolCatalog
         .. RouterReadTools.All,
         .. SensorReadTools.All,
         .. BoardReadTools.All,
+        .. LicenseReadTools.All,
         .. CookieCaseTools.All,
         .. CookieChatTools.All,
         .. Write.MonitoringWriteTools.All,

@@ -16,7 +16,8 @@ public sealed record SearchResult(
     IReadOnlyList<SearchLocation> Locations,
     IReadOnlyList<SearchPage> Pages,
     IReadOnlyList<SearchTicket> Tickets,
-    IReadOnlyList<SearchZabbixHost> ZabbixHosts);
+    IReadOnlyList<SearchZabbixHost> ZabbixHosts,
+    IReadOnlyList<SearchLicense>? Licenses = null);
 
 /// <summary>A Zabbix host: its visible name, the technical one, its first address.</summary>
 public sealed record SearchZabbixHost(long Id, string Name, string TechnicalName, string? Address);

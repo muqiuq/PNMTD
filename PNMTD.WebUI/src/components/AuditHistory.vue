@@ -2,28 +2,36 @@
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import { computed, ref } from 'vue'
-import { api, keys } from '@/api/resources'
+import { api, keys, type ListQuery } from '@/api/resources'
 import AuditChanges from '@/components/AuditChanges.vue'
 import ListTable from '@/components/ListTable.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import { useAuditCatalog, type AuditItem } from '@/composables/useAuditCatalog'
-import { useServerTable } from '@/composables/useServerTable'
+import { useServerTable, type Paged } from '@/composables/useServerTable'
 import { useSession } from '@/stores/session'
 
 /**
  * An object's history (docs/audit-redmine-zabbix-plan.md §4.3): who changed what, from the audit log, for everyone who sees
  * monitoring; a host's includes its sensors'. Without addresses and browsers, which stay on the audit log page, linked
- * for those who may read it.
+ * for those who may read it. `load` reads another endpoint instead of the audit log's subject (an item's history, with its hosts,
+ * renewals and charges: docs/licences-plan.md §8.7), under `loadKey`.
  */
-const props = defineProps<{ subjectId: string; name: string }>()
+const props = defineProps<{
+  subjectId: string
+  name: string
+  load?: (query: ListQuery) => Promise<Paged<AuditItem>>
+  loadKey?: readonly unknown[]
+}>()
 const session = useSession()
 const canReadLog = computed(() => session.can('AuditLog', 'View'))
 const { label, severity } = useAuditCatalog(canReadLog)
 const expanded = ref<Record<string, boolean>>({})
 
 const table = useServerTable<AuditItem>({
-  key: [...keys.audit, 'subject', props.subjectId],
-  fetch: (q) => api.audit.subject(props.subjectId, q),
+  key: props.load
+    ? (props.loadKey ?? [...keys.audit, 'load', props.subjectId])
+    : [...keys.audit, 'subject', props.subjectId],
+  fetch: (q) => (props.load ? props.load(q) : api.audit.subject(props.subjectId, q)),
   pageSize: 25,
 })
 const who = (e: AuditItem) => (e.actor === 'User' ? e.username || '–' : e.actor === 'Cli' ? 'CLI' : e.actor)

@@ -27,6 +27,12 @@ public static class Clock
     public static DateTime ToLocal(DateTime instant) =>
         TimeZoneInfo.ConvertTimeFromUtc(AsUtc(instant), TimeZone);
 
+    /// <summary>Today in <see cref="TimeZone"/>: the day an item expiring yesterday counts as expired on (docs/licences-plan.md §5.5).</summary>
+    public static DateOnly Today => DateOnly.FromDateTime(LocalNow);
+
+    /// <summary>A day as messages write it, <c>d MMM yyyy</c> in the invariant culture: <c>31 Dec 2026</c> (docs/licences-plan.md §5.5).</summary>
+    public static string FormatDay(DateOnly day) => day.ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
     /// <summary>A wall-clock time in <see cref="TimeZone"/> as a UTC instant. A time that a DST switch
     /// skips is taken an hour later.</summary>
     public static DateTime ToUtc(DateTime local)

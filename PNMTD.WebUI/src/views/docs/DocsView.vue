@@ -23,6 +23,7 @@ import NetworkMapDocs from './NetworkMapDocs.vue'
 import OsUpdatesDocs from './OsUpdatesDocs.vue'
 import ResponsibilitiesDocs from './ResponsibilitiesDocs.vue'
 import BoardsDocs from './BoardsDocs.vue'
+import LicencesDocs from './LicencesDocs.vue'
 
 /**
  * The documentation (§5.6), from the API so it never drifts: the sensor API with examples for this
@@ -170,6 +171,7 @@ const visibleRules = computed(() => ruleTypes.list.value.filter((r) => has(r.typ
     <LoungeDocs :search="search" />
     <AvailabilityDocs :search="search" />
     <ResponsibilitiesDocs :search="search" />
+    <LicencesDocs :search="search" />
     <BoardsDocs :search="search" />
     <NetworkMapDocs :search="search" />
 

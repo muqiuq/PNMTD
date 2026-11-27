@@ -38,7 +38,7 @@ public sealed record FileKindTotal(FileKind Kind, int Count, long Bytes);
 public sealed record FileStorageInfo(string Path, bool Writable, string? Problem, long? FreeBytes, long? TotalBytes, long MinFreeBytes);
 
 [JsonConverter(typeof(JsonStringEnumConverter<FileUserKind>))]
-public enum FileUserKind { Page, Location, Responsibility, Board }
+public enum FileUserKind { Page, Location, Responsibility, Board, License }
 
 /// <summary>A page (<see cref="Number"/>, its title as <see cref="Name"/>), a location or a responsibility that uses a file.</summary>
 public sealed record FileUseRef(FileUserKind Kind, Guid Id, string Name, int? Number);

@@ -34,7 +34,7 @@ namespace PNMTD.Data
     /// a new installation, the first admin (§4.8).
     /// </summary>
     public sealed class DatabaseMigrationService(IDbContextFactory<PnmtdDbContext> factory, IConfiguration configuration,
-        ILogger<DatabaseMigrationService> logger) : IHostedService
+        IServiceProvider services, ILogger<DatabaseMigrationService> logger) : IHostedService
     {
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -54,6 +54,8 @@ namespace PNMTD.Data
                     logger.LogInformation("Created the first admin {Username} with Auth:InitialAdmin:Password.", admin.Username);
                 }
             }
+            // The item sensors follow Licenses__Enabled (docs/licences-plan.md §13.3): removed while off, made again when on.
+            await Licenses.LicenseSensorSync.RunAsync(db, services, logger, cancellationToken);
         }
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

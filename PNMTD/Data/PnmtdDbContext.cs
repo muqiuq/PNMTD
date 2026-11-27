@@ -211,6 +211,16 @@ namespace PNMTD.Data
         // Boards (docs/boards-plan.md §11): monitoring dashboards for a wall, at /pnmt-board/<token>.
         public DbSet<BoardEntity> Boards { get; set; }
 
+        // Licences & services (docs/licences-plan.md §3): the items, their hosts, links, renewals, charges and documents.
+        public DbSet<LicenseCategoryEntity> LicenseCategories { get; set; }
+        public DbSet<LicenseTemplateEntity> LicenseTemplates { get; set; }
+        public DbSet<LicenseEntity> Licenses { get; set; }
+        public DbSet<LicenseAssignmentEntity> LicenseAssignments { get; set; }
+        public DbSet<LicenseSensorLinkEntity> LicenseSensorLinks { get; set; }
+        public DbSet<LicenseRenewalEntity> LicenseRenewals { get; set; }
+        public DbSet<LicenseChargeEntity> LicenseCharges { get; set; }
+        public DbSet<LicenseDocumentEntity> LicenseDocuments { get; set; }
+
         public DbSet<BoardMessageEntity> BoardMessages { get; set; }
 
         // Cookie (docs/cookie-plan.md §19.2): its settings' versions, its state, the case book, the duties and the outbox.
@@ -821,6 +831,7 @@ namespace PNMTD.Data
             });
             ConfigureCookie(modelBuilder);
             ConfigureAvailability(modelBuilder);
+            ConfigureLicenses(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
         }
@@ -1101,7 +1112,7 @@ namespace PNMTD.Data
             modelBuilder.Entity<FileUseEntity>(e =>
             {
                 e.ToTable(t => t.HasCheckConstraint("CK_file_uses_one_owner",
-                    "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\", \"BoardId\") = 1"));
+                    "num_nonnulls(\"PageId\", \"LocationId\", \"ResponsibilityId\", \"BoardId\", \"LicenseId\") = 1"));
                 e.HasOne<FileEntity>().WithMany().HasForeignKey(u => u.FileId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<KbPageEntity>().WithMany().HasForeignKey(u => u.PageId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne<LocationEntity>().WithMany().HasForeignKey(u => u.LocationId).OnDelete(DeleteBehavior.Cascade);
@@ -1109,12 +1120,15 @@ namespace PNMTD.Data
                 e.HasOne<ResponsibilityEntity>().WithMany().HasForeignKey(u => u.ResponsibilityId).OnDelete(DeleteBehavior.Cascade);
                 // A board's image element (docs/board-messages-plan.md §9.4): deleting the board drops its uses.
                 e.HasOne<BoardEntity>().WithMany().HasForeignKey(u => u.BoardId).OnDelete(DeleteBehavior.Cascade);
+                // A licence's or service's document (docs/licences-plan.md §3.9): deleting the item drops its uses.
+                e.HasOne<LicenseEntity>().WithMany().HasForeignKey(u => u.LicenseId).OnDelete(DeleteBehavior.Cascade);
                 // Once per file and owner. The owner leads: a page's attachments (§6.1) and the cascades; where a file is
                 // used, and whether at all, by FileId.
                 e.HasIndex(u => new { u.PageId, u.FileId }).IsUnique().HasFilter("\"PageId\" IS NOT NULL");
                 e.HasIndex(u => new { u.LocationId, u.FileId }).IsUnique().HasFilter("\"LocationId\" IS NOT NULL");
                 e.HasIndex(u => new { u.ResponsibilityId, u.FileId }).IsUnique().HasFilter("\"ResponsibilityId\" IS NOT NULL");
                 e.HasIndex(u => new { u.BoardId, u.FileId }).IsUnique().HasFilter("\"BoardId\" IS NOT NULL");
+                e.HasIndex(u => new { u.LicenseId, u.FileId }).IsUnique().HasFilter("\"LicenseId\" IS NOT NULL");
                 e.HasIndex(u => u.FileId);
             });
         }
@@ -1187,6 +1201,94 @@ namespace PNMTD.Data
         }
 
         /// <summary>The availability plan (docs/cookie-plan.md §8.2): a cell per person and day, a row per day.</summary>
+        /// <summary>
+        /// Licences &amp; services (docs/licences-plan.md §3): enums by name; a category in use can't go (RESTRICT, moved first); a
+        /// template's deletion leaves its items; everything of an item goes with it; a host's deletion takes its assignments, and
+        /// the sensor's the assignment's link to it (SET NULL, while the feature is off, §13.3); a deleted user's or location's
+        /// place becomes empty. One automatic charge per billing period (§3.8).
+        /// </summary>
+        private static void ConfigureLicenses(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LicenseCategoryEntity>(e =>
+            {
+                e.Property(c => c.DefaultFor).HasConversion<string>().HasMaxLength(20);
+                e.HasIndex(c => c.NormalizedName).IsUnique();
+                e.HasIndex(c => c.DefaultFor).IsUnique().HasFilter("\"DefaultFor\" IS NOT NULL");
+            });
+            modelBuilder.Entity<LicenseTemplateEntity>(e =>
+            {
+                e.Property(t => t.Type).HasConversion<string>().HasMaxLength(20);
+                e.Property(t => t.Kind).HasConversion<string>().HasMaxLength(20);
+                e.Property(t => t.PriceBasis).HasConversion<string>().HasMaxLength(20);
+                e.Property(t => t.Billing).HasConversion<string>().HasMaxLength(20);
+                e.Property(t => t.Renewal).HasConversion<string>().HasMaxLength(20);
+                e.HasIndex(t => t.NormalizedName).IsUnique();
+                e.HasOne<LicenseCategoryEntity>().WithMany().HasForeignKey(t => t.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            });
+            modelBuilder.Entity<LicenseEntity>(e =>
+            {
+                // LIC-12: an identity, not the key, never reused (§3.3), as KB-42.
+                e.Property(l => l.Number).UseIdentityByDefaultColumn();
+                e.HasIndex(l => l.Number).IsUnique();
+                e.Property(l => l.Type).HasConversion<string>().HasMaxLength(20);
+                e.Property(l => l.Kind).HasConversion<string>().HasMaxLength(20);
+                e.Property(l => l.PriceBasis).HasConversion<string>().HasMaxLength(20);
+                e.Property(l => l.Billing).HasConversion<string>().HasMaxLength(20);
+                e.Property(l => l.Renewal).HasConversion<string>().HasMaxLength(20);
+                e.Property(l => l.Status).HasConversion<string>().HasMaxLength(20);
+                e.HasOne<LicenseTemplateEntity>().WithMany().HasForeignKey(l => l.TemplateId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<LicenseCategoryEntity>().WithMany().HasForeignKey(l => l.CategoryId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne<LocationEntity>().WithMany().HasForeignKey(l => l.LocationId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<UserEntity>().WithMany().HasForeignKey(l => l.OwnerId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(l => l.Status);
+                e.HasIndex(l => l.LicenseKeyHint);
+                e.HasIndex(l => l.ProductKeyHint);
+            });
+            modelBuilder.Entity<LicenseAssignmentEntity>(e =>
+            {
+                e.HasOne<LicenseEntity>().WithMany().HasForeignKey(a => a.LicenseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<HostEntity>().WithMany().HasForeignKey(a => a.HostId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(a => a.SensorId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(a => new { a.LicenseId, a.HostId }).IsUnique();
+                e.HasIndex(a => a.SensorId).IsUnique().HasFilter("\"SensorId\" IS NOT NULL");
+                e.HasIndex(a => a.HostId);
+            });
+            modelBuilder.Entity<LicenseSensorLinkEntity>(e =>
+            {
+                e.HasOne<LicenseEntity>().WithMany().HasForeignKey(l => l.LicenseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<SensorEntity>().WithMany().HasForeignKey(l => l.SensorId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(l => new { l.LicenseId, l.SensorId }).IsUnique();
+                e.HasIndex(l => l.SensorId);
+            });
+            modelBuilder.Entity<LicenseRenewalEntity>(e =>
+            {
+                e.Property(r => r.Kind).HasConversion<string>().HasMaxLength(20);
+                e.HasOne<LicenseEntity>().WithMany().HasForeignKey(r => r.LicenseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasIndex(r => new { r.LicenseId, r.On });
+            });
+            modelBuilder.Entity<LicenseChargeEntity>(e =>
+            {
+                e.Property(c => c.Kind).HasConversion<string>().HasMaxLength(20);
+                e.Property(c => c.Source).HasConversion<string>().HasMaxLength(20);
+                e.HasOne<LicenseEntity>().WithMany().HasForeignKey(c => c.LicenseId).OnDelete(DeleteBehavior.Cascade);
+                // A billing period can't be recorded twice by PNMT, whatever restarts (§6.2).
+                e.HasIndex(c => new { c.LicenseId, c.PeriodFrom }).IsUnique()
+                    .HasFilter("\"Source\" = 'Automatic' AND \"Kind\" = 'Period'").HasDatabaseName("IX_license_charges_automatic_period");
+                e.HasIndex(c => c.On);
+                e.HasIndex(c => c.LicenseId);
+            });
+            modelBuilder.Entity<LicenseDocumentEntity>(e =>
+            {
+                e.Property(d => d.Kind).HasConversion<string>().HasMaxLength(20);
+                e.HasOne<LicenseEntity>().WithMany().HasForeignKey(d => d.LicenseId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<FileEntity>().WithMany().HasForeignKey(d => d.FileId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne<LicenseChargeEntity>().WithMany().HasForeignKey(d => d.ChargeId).OnDelete(DeleteBehavior.SetNull);
+                e.HasOne<LicenseRenewalEntity>().WithMany().HasForeignKey(d => d.RenewalId).OnDelete(DeleteBehavior.SetNull);
+                e.HasIndex(d => new { d.LicenseId, d.FileId }).IsUnique();
+                e.HasIndex(d => d.FileId);
+            });
+        }
+
         private static void ConfigureAvailability(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<AvailabilityEntryEntity>(e =>

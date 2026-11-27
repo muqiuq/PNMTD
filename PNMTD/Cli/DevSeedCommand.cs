@@ -96,6 +96,11 @@ internal static class DevSeedCommand
         {
             Console.WriteLine(DevSeedBoards.Seed(boardsDb, settings, Clock.UtcNow));
         }
+        // Licences & services (docs/licences-plan.md §16, L7): only with Licenses__Enabled=true, as dev.env has it.
+        using (var licensesDb = database())
+        {
+            Console.WriteLine(DevSeedLicenses.Seed(licensesDb, settings, Clock.UtcNow));
+        }
         return 0;
     }
 

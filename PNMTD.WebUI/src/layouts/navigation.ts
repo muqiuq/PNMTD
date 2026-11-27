@@ -7,13 +7,16 @@ export interface NavItem {
   name: string
   /** What its page needs (docs/audit-redmine-zabbix-plan.md §10.1); without, every signed-in user's. */
   right?: Right
-  /** An integration's page: only while it is configured (§10.1). */
-  feature?: 'redmine' | 'zabbix'
+  /** An integration's page: only while it is configured (§10.1); Licences & services only while Licenses__Enabled is on. */
+  feature?: Feature
   /** A menu the deployment can hide (Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu): only the entry goes. */
   menu?: 'redmine' | 'mail' | 'zabbix'
   /** Also for everyone in the availability plan, who needs no right for it (docs/cookie-plan.md §9.4). */
   inPlan?: boolean
 }
+
+/** What the deployment has configured or turned on: GET /system/info's flags of the same names. */
+export type Feature = 'redmine' | 'zabbix' | 'licenses'
 
 export interface NavGroup {
   label: string
@@ -107,7 +110,18 @@ export const navigation: NavGroup[] = [
   {
     // The knowledge base (docs/locations-knowledge-plan.md §10.1).
     label: 'Knowledge',
-    items: [{ label: 'Knowledge base', icon: 'pi pi-book', to: '/kb', name: 'kb', right: ['KnowledgeBase', 'View'] }],
+    items: [
+      { label: 'Knowledge base', icon: 'pi pi-book', to: '/kb', name: 'kb', right: ['KnowledgeBase', 'View'] },
+      // docs/licences-plan.md §8.1: what IT pays for, only while Licenses__Enabled is on (§13.2).
+      {
+        label: 'Licences & services',
+        icon: 'pi pi-id-card',
+        to: '/licences',
+        name: 'licences',
+        right: ['Licenses', 'View'],
+        feature: 'licenses',
+      },
+    ],
   },
   {
     // Redmine and Zabbix (docs/audit-redmine-zabbix-plan.md §10.1): each only when configured.
@@ -250,7 +264,7 @@ export const navigation: NavGroup[] = [
 
 export function visibleNavigation(
   allows: (right: Right) => boolean,
-  configured: (feature: 'redmine' | 'zabbix') => boolean = () => true,
+  configured: (feature: Feature) => boolean = () => true,
   hiddenMenus: readonly string[] = [],
   inPlan = false,
 ): NavGroup[] {

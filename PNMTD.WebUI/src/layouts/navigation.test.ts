@@ -147,4 +147,22 @@ describe('visibleNavigation', () => {
       ).map((g) => g.label),
     ).not.toContain('Mail')
   })
+  it('shows Licences & services in Knowledge only while the feature is on, and with its View (docs/licences-plan.md §8.1, §13.2)', () => {
+    const everything = () => true
+    expect(names(visibleNavigation(everything, (f) => f !== 'licenses'))).not.toContain('licences')
+    expect(names(visibleNavigation(everything, everything))).toContain('licences')
+    expect(
+      names(
+        visibleNavigation(
+          by((area) => area !== 'Licenses'),
+          everything,
+        ),
+      ),
+    ).not.toContain('licences')
+    expect(
+      visibleNavigation(everything, everything)
+        .find((g) => g.label === 'Knowledge')
+        ?.items.map((i) => i.name),
+    ).toEqual(['kb', 'licences'])
+  })
 })

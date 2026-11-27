@@ -60,6 +60,9 @@
         // The notification task's second timer: notifications to people (docs/knowledge-base-extensions-plan.md §10.5).
         LAST_USER_NOTIFICATION_RUN = 350,
 
+        // Licences & services' evaluation: renewals, charges, states, sensors and notices (docs/licences-plan.md §5.5).
+        LAST_LICENSE_EVALUATION = 360,
+
         UNUSED = 999,
     }
 }

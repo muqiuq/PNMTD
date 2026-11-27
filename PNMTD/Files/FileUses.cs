@@ -19,6 +19,9 @@ public readonly record struct FileOwner(FileUserKind Kind, Guid Id)
     public static FileOwner Responsibility(Guid id) => new(FileUserKind.Responsibility, id);
 
     public static FileOwner Board(Guid id) => new(FileUserKind.Board, id);
+
+    /// <summary>A licence's or service's document (docs/licences-plan.md §7.3).</summary>
+    public static FileOwner License(Guid id) => new(FileUserKind.License, id);
 }
 
 /// <summary>
@@ -49,18 +52,21 @@ public static class FileUses
             FileUserKind.Page => await db.FileUses.Where(u => u.PageId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
             FileUserKind.Location => await db.FileUses.Where(u => u.LocationId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
             FileUserKind.Board => await db.FileUses.Where(u => u.BoardId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
-            _ => await db.FileUses.Where(u => u.ResponsibilityId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
+            FileUserKind.Responsibility => await db.FileUses.Where(u => u.ResponsibilityId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
+            FileUserKind.License => await db.FileUses.Where(u => u.LicenseId == ownerId && ids.Contains(u.FileId)).Select(u => u.FileId).ToListAsync(ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(owner), owner.Kind, "No such owner of a file."),
         };
-        var (pageId, locationId, responsibilityId, boardId) = owner.Kind switch
+        var (pageId, locationId, responsibilityId, boardId, licenseId) = owner.Kind switch
         {
-            FileUserKind.Page => ((Guid?)ownerId, (Guid?)null, (Guid?)null, (Guid?)null),
-            FileUserKind.Location => (null, ownerId, null, null),
-            FileUserKind.Board => (null, null, null, ownerId),
-            _ => (null, null, ownerId, null),
+            FileUserKind.Page => ((Guid?)ownerId, (Guid?)null, (Guid?)null, (Guid?)null, (Guid?)null),
+            FileUserKind.Location => (null, ownerId, null, null, null),
+            FileUserKind.Board => (null, null, null, ownerId, null),
+            FileUserKind.Responsibility => (null, null, ownerId, null, null),
+            _ => (null, null, null, null, ownerId),
         };
         // Uses added earlier in the same unit of work, not saved yet.
         used.AddRange(db.FileUses.Local.Where(u => u.PageId == pageId && u.LocationId == locationId && u.ResponsibilityId == responsibilityId
-            && u.BoardId == boardId).Select(u => u.FileId));
+            && u.BoardId == boardId && u.LicenseId == licenseId).Select(u => u.FileId));
         var now = Clock.UtcNow;
         var added = new List<Guid>();
         foreach (var file in ids.Select(id => files.FirstOrDefault(f => f.Id == id)).OfType<FileEntity>())
@@ -82,7 +88,7 @@ public static class FileUses
                 db.FileUses.Add(new FileUseEntity
                 {
                     Id = Guid.NewGuid(), FileId = file.Id, PageId = pageId, LocationId = locationId, ResponsibilityId = responsibilityId,
-                    BoardId = boardId, FirstUsedAt = now,
+                    BoardId = boardId, LicenseId = licenseId, FirstUsedAt = now,
                 });
                 used.Add(file.Id);
                 added.Add(file.Id);

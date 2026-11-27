@@ -48,5 +48,5 @@ public sealed class GroupsController(GroupService groups) : V1ControllerBase
 public sealed class RightsController : V1ControllerBase
 {
     [HttpGet]
-    public IReadOnlyList<RightsAreaItem> Catalog() => GroupService.Catalog();
+    public IReadOnlyList<RightsAreaItem> Catalog([FromServices] IConfiguration configuration) => GroupService.Catalog(configuration);
 }

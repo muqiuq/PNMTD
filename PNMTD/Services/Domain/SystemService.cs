@@ -52,6 +52,8 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new("User notifications", KeyValueKeyEnums.LAST_USER_NOTIFICATION_RUN, 30, c => c.GetValue("UserNotifications:Enabled", true)),
         new("Network map schedule", KeyValueKeyEnums.LAST_NETWORK_SCAN_SCHEDULE_RUN, 60,
             c => c.GetValue("Mikrotik:Enabled", true) && c.GetValue("NetworkMap:Enabled", true)),
+        // docs/licences-plan.md §5.5: every minute, only while Licenses__Enabled is on (off otherwise, §13.2).
+        new("Licence checks", KeyValueKeyEnums.LAST_LICENSE_EVALUATION, 60, Licenses.LicenseSetup.Enabled),
     ];
 
     public static bool MailboxConfigured(IConfiguration c) =>
@@ -69,7 +71,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         }
         return new SystemInfo(ServerInfo.Identity, ServerInfo.Version, urls.Configured, Clock.TimeZone.Id,
             configuration["Auth:TotpPolicy"] ?? "Optional", configuration.GetValue("WireGuard:Enabled", false), Redmine.RedmineSetup.Configured(configuration),
-            Zabbix.ZabbixSetup.Configured(configuration), HiddenMenus(configuration));
+            Zabbix.ZabbixSetup.Configured(configuration), HiddenMenus(configuration), Licenses.LicenseSetup.Enabled(configuration));
     }
 
     /// <summary>The menus a deployment doesn't want in the drawer.</summary>
@@ -120,7 +122,12 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
             ? DateTime.SpecifyKind(t, DateTimeKind.Utc)
             : null;
 
-    public static IReadOnlyList<StatusCodeInfo> StatusCodes() =>
+    /// <summary>The codes, the licences' seven only while the feature is on (docs/licences-plan.md §13.2).</summary>
+    public static IReadOnlyList<StatusCodeInfo> StatusCodes(bool licenses = true) =>
+        licenses ? AllStatusCodes : AllStatusCodes.Where(c => c.Code is < PNMTStatusCodes.LICENSE_OK or > PNMTStatusCodes.LICENSE_RENEWED
+            and (< PNMTStatusCodes.LICENSE_ABOUT_TO_EXPIRE or > PNMTStatusCodes.LICENSE_OVER_ASSIGNED)).ToList();
+
+    private static readonly IReadOnlyList<StatusCodeInfo> AllStatusCodes =
     [
         new(PNMTStatusCodes.OK, "OK", true, "The default success code. Any code from 0 to 399 counts as success."),
         new(PNMTStatusCodes.DNS_OK, "DNS_OK", true, "Every record of the DNS zone matches what the resolvers answer."),
@@ -195,10 +202,22 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(PNMTStatusCodes.SSL_UNREACHABLE, "SSL_UNREACHABLE", false, "Two checks of an SSL certificate in a row failed: no such name, refused, timeout, the handshake failed, or no certificate."),
         new(PNMTStatusCodes.ADVANCED_FAILED, "ADVANCED_FAILED", false, "At least one rule marked fail doesn't hold for an Advanced sensor's latest report; the message names them with their values."),
         new(PNMTStatusCodes.ADVANCED_INVALID, "ADVANCED_INVALID", false, "An Advanced sensor's latest report couldn't be read: not JSON, not an object, too large, too deep, or a key twice."),
+        // docs/licences-plan.md §4: an item's state, which its host sensors show.
+        new(PNMTStatusCodes.LICENSE_OK, "LICENSE_OK", true, "A licence, service or piece of hardware is valid, with no finding."),
+        new(PNMTStatusCodes.LICENSE_RENEWED, "LICENSE_RENEWED", true, "An item was renewed (by a person or automatically); written once, the state stays until the verdict changes."),
+        new(PNMTStatusCodes.LICENSE_ABOUT_TO_EXPIRE, "LICENSE_ABOUT_TO_EXPIRE", false, "An item expires within its warning days, or its cancellation deadline is within them (with a warning before an automatic renewal)."),
+        new(PNMTStatusCodes.LICENSE_EXPIRED, "LICENSE_EXPIRED", false, "An item expired: the day after its expiry, in PNMT's time zone, and it wasn't renewed automatically."),
+        new(PNMTStatusCodes.LICENSE_EOL_SOON, "LICENSE_EOL_SOON", false, "An item's product reaches its end of life (or end of service) within the warning days."),
+        new(PNMTStatusCodes.LICENSE_EOL, "LICENSE_EOL", false, "An item's product passed its end of life (or end of service)."),
+        new(PNMTStatusCodes.LICENSE_OVER_ASSIGNED, "LICENSE_OVER_ASSIGNED", false, "More seats are used on hosts than an item covers (for items whose seats are counted on hosts)."),
         new(PNMTStatusCodes.ERROR, "ERROR", false, "The default failure code. Any code above 399 counts as a failure."),
     ];
 
-    public static IReadOnlyList<SensorTypeInfo> SensorTypes() =>
+    /// <summary>The sensor types; LICENSE only while the feature is on (docs/licences-plan.md §13.2).</summary>
+    public static IReadOnlyList<SensorTypeInfo> SensorTypes(bool licenses = true) =>
+        licenses ? AllSensorTypes : AllSensorTypes.Where(t => t.Type != SensorType.LICENSE).ToList();
+
+    private static readonly IReadOnlyList<SensorTypeInfo> AllSensorTypes =
     [
         new(SensorType.SIMPLE, "Reports through the sensor API; the last report is the state.", null, true, false),
         new(SensorType.HEARTBEAT, "Must report every Interval seconds; after Interval + GracePeriod without a report it gets 460.", null, true, true),
@@ -218,6 +237,7 @@ public sealed class SystemService(PnmtdDbContext db, IConfiguration configuratio
         new(SensorType.SSL_CERTIFICATE, "PNMTD reads the TLS certificate of host:port every Interval seconds (daily by default) and evaluates it every minute, trusting public CAs, private CAs or a pinned certificate: 285 while valid, 286 for a new certificate it accepts, 485 within the sensor's warning days, 486 once expired, 487 for a change it alarms on until accepted, 488 when not trusted or the name doesn't match, 489 after two failed checks in a row.", "host[:port], or an https:// URL", true, true),
         new(SensorType.ADVANCED, "An app POSTs a JSON object to /report with the write token (Authorization: Bearer); PNMT stores it, and its evaluator judges it by the sensor's rules within moments: 295 when every rule holds, 296 when only warning rules don't, 495 when a rule fails, 496 when the report can't be read; with an interval, 460 after Interval + GracePeriod without a report.", null, true, true),
         new(SensorType.LINUX, "A Linux server running the PNMT agent, added with a join token (Add server): 260 with each heartbeat, 261 after a restart, 263 for a notable change, 264 for an admin login; 461 for an agent problem, 462 for pending security updates, 463 for a new critical journal entry, 464 for failed-login bursts, 465 for an unregistered SSH key; 460 after Interval + GracePeriod without a heartbeat.", null, false, true),
+        new(SensorType.LICENSE, "A licence, service or piece of hardware (Licences & services), on a host it is assigned to. PNMTD evaluates it every minute: 245 while valid, 246 once after a renewal, 445 within the item's warning days before it expires or before its cancellation deadline, 446 once expired, 447 within the warning days before its end of life, 448 after it, 449 when more seats are used than bought.", null, false, false),
     ];
 
     public static IReadOnlyList<NotificationRuleTypeInfo> NotificationRuleTypes() =>

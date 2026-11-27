@@ -12,13 +12,13 @@ namespace PNMTD.Auth;
 /// Groups and their rights (docs/audit-redmine-zabbix-plan.md §5.1, §5.5), for admins only. A change drops its members'
 /// cached sessions, so it applies from their next request; nobody is signed out.
 /// </summary>
-public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttpContextAccessor accessor)
+public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttpContextAccessor accessor, IConfiguration configuration)
 {
     public async Task<IReadOnlyList<GroupItem>> ListAsync(CancellationToken ct)
     {
         var groups = await db.Groups.AsNoTracking().Include(g => g.Rights).OrderBy(g => g.NormalizedName)
             .Select(g => new { Group = g, Members = g.Members.Count }).ToListAsync(ct);
-        return groups.Select(g => new GroupItem(g.Group.Id, g.Group.Name, g.Group.Description, Levels(g.Group), g.Members, g.Group.CreatedAt,
+        return groups.Select(g => new GroupItem(g.Group.Id, g.Group.Name, g.Group.Description, VisibleLevels(g.Group), g.Members, g.Group.CreatedAt,
             g.Group.UpdatedAt)).ToList();
     }
 
@@ -27,7 +27,7 @@ public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttp
         var group = await db.Groups.AsNoTracking().Include(g => g.Rights).SingleOrDefaultAsync(g => g.Id == id, ct) ?? throw ApiException.NotFound("Group");
         var members = await db.UserGroups.AsNoTracking().Where(m => m.GroupId == id)
             .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => u).OrderBy(u => u.Username).Select(u => new Ref(u.Id, u.Username)).ToListAsync(ct);
-        return new GroupDetail(group.Id, group.Name, group.Description, Levels(group), members, group.CreatedAt, group.UpdatedAt);
+        return new GroupDetail(group.Id, group.Name, group.Description, VisibleLevels(group), members, group.CreatedAt, group.UpdatedAt);
     }
 
     public async Task<GroupDetail> CreateAsync(GroupRequest request, CancellationToken ct)
@@ -58,6 +58,11 @@ public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttp
             group.Description = description;
         }
         var before = Levels(group);
+        // An area the deployment hides (docs/licences-plan.md §9, §13.2) keeps its stored row: the form doesn't show it.
+        foreach (var hidden in before.Where(kv => !RightsCatalog.IsVisible(kv.Key, configuration)))
+        {
+            rights[hidden.Key] = hidden.Value;
+        }
         var changes = RightsCatalog.Areas.Select(a => a.Area)
             .Where(a => before.GetValueOrDefault(a, Level.None) != rights.GetValueOrDefault(a, Level.None))
             .Select(a => $"{RightsCatalog.Of(a).Label}: {Show(before.GetValueOrDefault(a, Level.None))} → {Show(rights.GetValueOrDefault(a, Level.None))}")
@@ -126,12 +131,13 @@ public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttp
         var groups = await db.Groups.AsNoTracking().Include(g => g.Rights).Where(g => g.Members.Any(m => m.UserId == userId))
             .OrderBy(g => g.NormalizedName).ToListAsync(ct);
         var combined = UserRights.Combine(groups.SelectMany(g => g.Rights.Select(r => (r.Area, r.Level))));
-        var rights = RightsCatalog.Areas.Where(a => combined.ContainsKey(a.Area)).Select(a => new AccessLevel(a.Area, combined[a.Area],
+        var rights = RightsCatalog.Visible(configuration).Where(a => combined.ContainsKey(a.Area)).Select(a => new AccessLevel(a.Area, combined[a.Area],
             groups.Where(g => g.Rights.Any(r => r.Area == a.Area && r.Level == combined[a.Area])).Select(g => g.Name).ToList())).ToList();
         return new AccessItem(user.IsAdmin, groups.Select(g => new Ref(g.Id, g.Name)).ToList(), rights);
     }
 
-    public static IReadOnlyList<RightsAreaItem> Catalog() => RightsCatalog.Areas
+    /// <summary>The areas a group can be given, those the deployment hides left out (docs/licences-plan.md §13.2).</summary>
+    public static IReadOnlyList<RightsAreaItem> Catalog(IConfiguration configuration) => RightsCatalog.Visible(configuration)
         .Select(a => new RightsAreaItem(a.Area, a.Label, a.Levels.Select(l => new RightsLevelItem(l.Level, l.Allows)).ToList())).ToList();
 
     private async Task<(string Name, string? Description, Dictionary<Area, Level> Rights)> ValidateAsync(GroupRequest request, Guid? id, CancellationToken ct)
@@ -146,6 +152,11 @@ public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttp
         {
             if (level == Level.None)
             {
+                continue;
+            }
+            if (!RightsCatalog.IsVisible(area, configuration))
+            {
+                // A hidden area's stored row stays as it is (UpdateAsync); the request can't change it.
                 continue;
             }
             if (RightsCatalog.Of(area).Rank(level) == 0)
@@ -171,6 +182,10 @@ public sealed class GroupService(PnmtdDbContext db, SessionCache sessions, IHttp
         db.UserGroups.Where(m => m.GroupId == id).Join(db.Users, m => m.UserId, u => u.Id, (m, u) => u.Username).OrderBy(n => n).ToListAsync(ct);
 
     private static IReadOnlyDictionary<Area, Level> Levels(GroupEntity group) => group.Rights.ToDictionary(r => r.Area, r => r.Level);
+
+    /// <summary>What the group page shows: the stored rows of hidden areas stay out of sight (docs/licences-plan.md §13.2).</summary>
+    private IReadOnlyDictionary<Area, Level> VisibleLevels(GroupEntity group) =>
+        group.Rights.Where(r => RightsCatalog.IsVisible(r.Area, configuration)).ToDictionary(r => r.Area, r => r.Level);
 
     private static string Summary(IReadOnlyDictionary<Area, Level> rights) => rights.Count == 0 ? "no rights"
         : string.Join(", ", RightsCatalog.Areas.Where(a => rights.ContainsKey(a.Area)).Select(a => $"{a.Label} {rights[a.Area]}"));

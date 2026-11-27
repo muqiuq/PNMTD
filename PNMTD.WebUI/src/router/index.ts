@@ -11,6 +11,8 @@ declare module 'vue-router' {
     public?: boolean
     /** What it needs (docs/audit-redmine-zabbix-plan.md §5.4); the API enforces the same. */
     right?: Right
+    /** Only while the deployment has it on: Licences & services (docs/licences-plan.md §13.2). */
+    feature?: 'licenses'
     title?: string
   }
 }
@@ -438,6 +440,34 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/availability/AvailabilityView.vue'),
     meta: { title: 'Availability plan' },
   },
+  // Licences & services (docs/licences-plan.md §8.1, §8.7): the page's tabs, an item by its number with its tabs, the form. Only while
+  // Licenses__Enabled is on (§13.2): otherwise not found.
+  {
+    path: '/licences/:tab(overview|licences|services|hardware|upcoming|costs|templates)?',
+    name: 'licences',
+    component: () => import('@/views/licences/LicencesView.vue'),
+    meta: { title: 'Licences & services', right: ['Licenses', 'View'], feature: 'licenses' },
+  },
+  {
+    path: '/licences/new',
+    name: 'licence-new',
+    component: () => import('@/views/licences/LicenceFormView.vue'),
+    meta: { title: 'New licence or service', right: ['Licenses', 'Edit'], feature: 'licenses' },
+  },
+  {
+    path: '/licences/:number(\\d+)/edit',
+    name: 'licence-edit',
+    component: () => import('@/views/licences/LicenceFormView.vue'),
+    props: true,
+    meta: { title: 'Edit licence or service', right: ['Licenses', 'Edit'], feature: 'licenses' },
+  },
+  {
+    path: '/licences/:number(\\d+)/:tab(overview|hosts|costs|renewals|documents|history)?',
+    name: 'licence',
+    component: () => import('@/views/licences/LicenceView.vue'),
+    props: true,
+    meta: { title: 'Licence or service', right: ['Licenses', 'View'], feature: 'licenses' },
+  },
   // Responsibilities (docs/responsibilities-plan.md §9.1): who owns what; information only.
   {
     path: '/admin/responsibilities/:tab(list|links|overview|redmine)?',
@@ -538,8 +568,8 @@ router.beforeEach(async (to) => {
   const session = useSession()
   await session.load()
   return decide(
-    { name: to.name, fullPath: to.fullPath, public: to.meta.public, right: to.meta.right },
-    { signedIn: session.user !== null, flags: session.flags, allows: session.allows },
+    { name: to.name, fullPath: to.fullPath, public: to.meta.public, right: to.meta.right, feature: to.meta.feature },
+    { signedIn: session.user !== null, flags: session.flags, allows: session.allows, has: (f) => !!session.info?.[f] },
   )
 })
 

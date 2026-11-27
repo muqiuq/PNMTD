@@ -139,6 +139,18 @@ namespace PNMTD.Lib.Models
         public const int ADVANCED_FAILED = 495;
         public const int ADVANCED_INVALID = 496;
 
+        /// <summary>
+        /// Licences &amp; services (docs/licences-plan.md §4): valid, renewed (once); about to expire or its cancellation deadline near,
+        /// expired, its end of life near, its end of life passed, more seats used than bought.
+        /// </summary>
+        public const int LICENSE_OK = 245;
+        public const int LICENSE_RENEWED = 246;
+        public const int LICENSE_ABOUT_TO_EXPIRE = 445;
+        public const int LICENSE_EXPIRED = 446;
+        public const int LICENSE_EOL_SOON = 447;
+        public const int LICENSE_EOL = 448;
+        public const int LICENSE_OVER_ASSIGNED = 449;
+
         public static readonly int[] ONE_OR_ALL_WITHIN_CODES = new int[]{ ONE_WITHIN_TIMESPAN_FAILED, ONE_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_OK, ALL_WITHIN_TIMESPAN_FAILED };
     }
 }

@@ -14,6 +14,8 @@
 **/azds.yaml
 **/bin
 **/charts
+# The web UI's chart components (docs/licences-plan.md §8.12), not Helm charts.
+!PNMTD.WebUI/src/components/charts
 **/docker-compose*
 **/Dockerfile*
 **/node_modules

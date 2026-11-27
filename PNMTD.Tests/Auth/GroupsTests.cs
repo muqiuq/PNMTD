@@ -97,7 +97,7 @@ public sealed class GroupsTests
     {
         var catalog = await (await app.Client(Roles.Viewer).GetAsync("/api/v1/rights")).ReadAsync<List<RightsAreaItem>>();
         Assert.AreEqual(25, catalog.Count,
-            "16, Cookie since docs/cookie-plan.md §10.1, Availability since §9.4, MCP since docs/mcp-plan.md §10.4, Certificates since docs/ssl-certificate-plan.md §6.4, Connectors since docs/connectors-plan.md §12.1, Network map since docs/network-map-plan.md §9.1, Lounge since docs/lounge-plan.md §3.1, Responsibilities since docs/responsibilities-plan.md §12.1, and Boards since docs/boards-plan.md §13.1");
+            "26 in the catalog, Licences & services hidden while Licenses__Enabled is off (docs/licences-plan.md §13.2); 16, Cookie since docs/cookie-plan.md §10.1, Availability since §9.4, MCP since docs/mcp-plan.md §10.4, Certificates since docs/ssl-certificate-plan.md §6.4, Connectors since docs/connectors-plan.md §12.1, Network map since docs/network-map-plan.md §9.1, Lounge since docs/lounge-plan.md §3.1, Responsibilities since docs/responsibilities-plan.md §12.1, and Boards since docs/boards-plan.md §13.1");
         // docs/mcp-extensions-plan.md §8.1: Edit between them, so that MCP can create and change responsibilities.
         CollectionAssert.AreEqual(new[] { Level.View, Level.Edit, Level.Manage },
             catalog.Single(a => a.Area == Area.Responsibilities).Levels.Select(l => l.Level).ToArray());

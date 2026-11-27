@@ -367,6 +367,37 @@ A board is a monitoring dashboard for a wall, at a URL of its own: `https://pnmt
   | `Boards__MessageHistoryDays` | `30` | How long ended messages are kept for *Admin → Debug*'s list. |
   | `Boards__MaxImageBytes` | `10485760` | The largest image an image element takes (10 MB); a page's images keep `KnowledgeBase__MaxImageBytes` (2 MB). |
 
+## Licences & services (optional, off by default)
+
+What IT pays for: licences, services and hardware, with their hosts, dates, seats, costs and documents (docs/licences-plan.md). **Off
+until `.env` has `Licenses__Enabled=true`:** while it is off, nothing of it is usable or visible (no menu entry, page, API, rights
+area, sensors, panels, e-mails or MCP tools), and an update adds only its empty tables.
+
+- **Turning it on:** set `Licenses__Enabled=true`, restart (`docker compose up -d`), and grant the rights area *Licences & services*
+  to the groups that need it: *View* (everything but keys and documents, the costs included), *Details* (keys and documents),
+  *Edit*, *Manage* (templates, categories, deleting). No group has it after the update.
+- **Turning it off** keeps every item, charge, document, key, grant and choice. Only the item sensors on hosts are removed, with their
+  events, at the next start; they are made again from the assignments when it is turned on. A rule or board element made for one
+  single item sensor goes with it.
+- **The owner's e-mails** are notifications to people (*Notifications to people* below): they need the `Smtp__*` settings and an
+  address on the owner's account. Each person chooses on *Account → Notifications*.
+- **Keys and documents:** the keys are encrypted with Data Protection (the `pnmtd-keys` volume, `keys.tar.gz` in the backups): a
+  restore without it leaves the keys unreadable, to be entered again. The documents are files in the files folder (*Uploaded files*
+  below) and in `files.tar`: **licence and key files may contain keys; keep the backups as safe as the database dump.**
+- **The settings,** all optional:
+
+  | Setting | Default | |
+  |---|---|---|
+  | `Licenses__Enabled` | `false` | **The switch.** Off: nothing of the feature is usable or visible; its data stays. Read at start. |
+  | `Licenses__WarnDays` | `30` | New items warn this many days before their expiry. |
+  | `Licenses__EolWarnDays` | `90` | New items warn this many days before their end of life. |
+  | `Licenses__RemindDays` | `7` | The owner's reminder this many days before a warning's date; `0` is none. |
+  | `Licenses__ReviewMonths` | `12` | The review rhythm of new items; `0` is none. |
+  | `Licenses__Currency` | `EUR` | The currency of new prices, and the overview's main one. Nothing is converted. |
+  | `Licenses__RecordCharges` | `true` | New items have PNMT record each billing period's charge. |
+  | `Licenses__EstimateDays` | `45` | An estimated charge older than this without an invoice is *worth a look*. |
+  | `Licenses__MaxAssignments` | `1000` | Hosts per item: each is a sensor. |
+
 ## AI (optional)
 
 PNMT can use AI models through [OpenRouter](https://openrouter.ai): to propose rules for mails no rule handles and to rate RouterOS releases (docs/ai-operations-plan.md). Cookie, the assistant, uses the same key (see *Cookie* below). It is off until `.env` has `Ai__Enabled=true` and `Ai__ApiKey`.
@@ -481,6 +512,8 @@ Since 1.20, the authors of a knowledge base page get an e-mail when someone like
 - **Batched:** the likes of a page within `UserNotifications__BatchMinutes` (15) go out as one e-mail; at most `UserNotifications__MaxPerUserDay` (20) a day per person.
 - **Sent by the notification task's second timer**, every `UserNotifications__IntervalSeconds` (30), with a guard of its own: a slow mail server for these never delays an alert. *System → Task health* shows it as *User notifications*. A failed e-mail is tried four more times (after 1, 5 and 30 minutes and 2 hours).
 - **A sensitive page** is named by its number only: an e-mail leaves PNMT.
+- **Licences & services** (1.30, while `Licenses__Enabled` is on) adds three: the owner's warnings and reviews due (on by default),
+  and the warnings about items nobody owns (off by default, for *Licences & services: Edit*).
 - **`UserNotifications__Enabled=false`** turns them off for everyone; the choices stay.
 
 ## What lives where

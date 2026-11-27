@@ -6,8 +6,9 @@ namespace PNMTD.Api.V1.Contracts;
 /// <summary>
 /// <c>GET /system/info</c>. Signed out, only <see cref="Identity"/> (for the login screen); signed in,
 /// also the version, the public address, the time zone of per-day values, the 2FA policy, whether the WireGuard
-/// gateway is on (docs/mikrotik-plan.md §3.1), whether Redmine and Zabbix are configured, and the menus the deployment
-/// hides from the drawer (redmine, mail, zabbix: Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu).
+/// gateway is on (docs/mikrotik-plan.md §3.1), whether Redmine and Zabbix are configured, the menus the deployment
+/// hides from the drawer (redmine, mail, zabbix: Redmine__HideMenu, Mail__HideMenu, Zabbix__HideMenu), and whether Licences &amp; services
+/// is turned on (Licenses__Enabled, docs/licences-plan.md §13.2).
 /// </summary>
 public sealed record SystemInfo(
     string Identity,
@@ -18,7 +19,8 @@ public sealed record SystemInfo(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? WireGuard = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Redmine = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Zabbix = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? HiddenMenus = null);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? HiddenMenus = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? Licenses = null);
 
 /// <summary>
 /// <c>GET /system/uplink</c>: UplinkCheckTask's view of the internet connection. Without the

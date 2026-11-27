@@ -69,7 +69,8 @@ public static class SensorReadTools
     private static Task<object> TypesAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
     {
         ctx.Summary = "the sensor types";
-        return Task.FromResult<object>(SystemService.SensorTypes().Select(t => new
+        var licenses = Licenses.LicenseSetup.Enabled(ctx.Services.GetRequiredService<IConfiguration>());
+        return Task.FromResult<object>(SystemService.SensorTypes(licenses).Select(t => new
         {
             Type = t.Type.ToString(), t.Description, t.Parameters, t.UsesInterval, CreatableOverMcp = MonitoringWriteTools.CreatableTypes.Contains(t.Type),
             OwnSettings = t.Type switch
@@ -86,7 +87,8 @@ public static class SensorReadTools
     private static Task<object> CodesAsync(JsonElement args, ToolContext ctx, PnmtdDbContext db, CancellationToken ct)
     {
         ctx.Summary = "the status codes";
-        return Task.FromResult<object>(SystemService.StatusCodes().Select(c => new { c.Code, c.Name, c.Success, c.Description }).ToList());
+        var licenses = Licenses.LicenseSetup.Enabled(ctx.Services.GetRequiredService<IConfiguration>());
+        return Task.FromResult<object>(SystemService.StatusCodes(licenses).Select(c => new { c.Code, c.Name, c.Success, c.Description }).ToList());
     }
 
     private static object Row(NotificationMatrixRow r) => new

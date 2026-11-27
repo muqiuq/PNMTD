@@ -2,13 +2,18 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { api, keys } from '@/api/resources'
 
-/** "HEARTBEAT_MISSING" → "Heartbeat missing", "SSL_ABOUT_TO_EXPIRE" → "SSL about to expire". */
+/**
+ * "HEARTBEAT_MISSING" → "Heartbeat missing", "SSL_ABOUT_TO_EXPIRE" → "SSL about to expire", "LICENSE_EXPIRED" → "Licence expired"
+ * (people read British English, docs/licences-plan.md §Words).
+ */
 export function humanize(name: string): string {
   const words = name
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/\bsuccessfull\b/, 'successful')
     .replace(/\bssl\b/g, 'SSL')
+    .replace(/\blicense\b/g, 'licence')
+    .replace(/\beol\b/g, 'end of life')
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
@@ -68,7 +73,9 @@ export const typeLabel = (type: string) =>
                   ? 'SSL certificate'
                   : type === 'ADVANCED'
                     ? 'Advanced (JSON)'
-                    : humanize(type)
+                    : type === 'LICENSE'
+                      ? 'Licence & service'
+                      : humanize(type)
 
 /**
  * Types that report themselves and turn 460 after Interval + GracePeriod without a report (Advanced sensors with an interval
@@ -112,6 +119,8 @@ export function typeIcon(type: string): string {
       return 'pi pi-check-circle'
     case 'ZABBIX':
       return 'pi pi-chart-bar'
+    case 'LICENSE':
+      return 'pi pi-id-card'
     case 'SSL_CERTIFICATE':
       return 'pi pi-lock'
     case 'ADVANCED':

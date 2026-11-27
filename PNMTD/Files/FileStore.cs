@@ -211,6 +211,11 @@ public sealed partial class FileStore(IDbContextFactory<PnmtdDbContext> dbs, IOp
         {
             return false;
         }
+        // docs/licences-plan.md §7.3: an item's document is removed on its item, so turning the feature off can't lose one either.
+        if (await db.LicenseDocuments.AnyAsync(d => d.FileId == id, ct))
+        {
+            throw Api.ApiException.Conflict("license_document", "Remove it on the licence or service.");
+        }
         RemoveFromDisk(file);
         db.Files.Remove(file);
         var who = actor.Audit.Origin == "cli" ? AuditWho.Cli

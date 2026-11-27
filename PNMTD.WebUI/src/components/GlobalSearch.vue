@@ -15,7 +15,7 @@ import { useSession } from '@/stores/session'
  * subject (docs/audit-redmine-zabbix-plan.md §6.6); with Zabbix, its hosts by name or address (§7.6).
  */
 interface Suggestion {
-  kind: 'host' | 'sensor' | 'token' | 'location' | 'page' | 'ticket' | 'zabbix-host'
+  kind: 'host' | 'sensor' | 'token' | 'location' | 'page' | 'ticket' | 'zabbix-host' | 'licence'
   id: string
   label: string
   detail: string
@@ -93,6 +93,15 @@ async function complete(event: { query: string }) {
       detail: t.isClosed ? `ticket, ${t.status}` : t.status,
       icon: 'pi pi-ticket',
     })),
+    // Licences & services (docs/licences-plan.md §8.10): for their View, while the feature is on (the server sends none otherwise).
+    ...(result.licenses ?? []).map((l) => ({
+      kind: 'licence' as const,
+      id: l.id,
+      number: l.number,
+      label: `${l.display} · ${l.name}`,
+      detail: [l.product, l.type === 'License' ? 'licence' : l.type.toLowerCase()].filter(Boolean).join(' · '),
+      icon: 'pi pi-id-card',
+    })),
     ...(result.zabbixHosts ?? []).map((z) => ({
       kind: 'zabbix-host' as const,
       id: String(z.id),
@@ -115,10 +124,12 @@ async function open(event: { value: Suggestion }) {
         ? { name: 'redmine-issue', params: { id: item.number } }
         : item.kind === 'zabbix-host'
           ? { name: 'zabbix-host', params: { hostId: item.number } }
-          : {
-              name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
-              params: { id: item.id },
-            },
+          : item.kind === 'licence'
+            ? { name: 'licence', params: { number: String(item.number) } }
+            : {
+                name: item.kind === 'host' ? 'host' : item.kind === 'location' ? 'location' : 'sensor',
+                params: { id: item.id },
+              },
   )
   ;(document.activeElement as HTMLElement | null)?.blur()
 }

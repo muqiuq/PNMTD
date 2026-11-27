@@ -82,6 +82,10 @@ public class SensorApiController(PnmtdDbContext db) : ControllerBase
 
         // Single() throws for a duplicate token: a 500, as in v0.12 (§3.3).
         var sensor = sensorR.Single();
+        if (sensor.Type == SensorType.LICENSE)
+        {
+            return LicenseSensor();
+        }
 
         // A $ marks a message that is Base64 of UTF-8 text. Culture-sensitive StartsWith, as in v0.12.
         if (message != null && message.StartsWith("$"))
@@ -117,6 +121,10 @@ public class SensorApiController(PnmtdDbContext db) : ControllerBase
         }
 
         var sensor = sensorR.Single();
+        if (sensor.Type == SensorType.LICENSE)
+        {
+            return LicenseSensor();
+        }
 
         using var transaction = BeginSensorTransaction(sensor.Id);
 
@@ -278,4 +286,12 @@ public class SensorApiController(PnmtdDbContext db) : ControllerBase
         var address = HttpContext.Connection.RemoteIpAddress;
         return address == null ? "0.0.0.0" : $"{address}:{HttpContext.Connection.RemotePort}";
     }
+
+    /// <summary>
+    /// An item sensor's events are the licence evaluation's (docs/licences-plan.md §5.3): one posted with its write token would stand for weeks,
+    /// since the verdict writes only when it changes.
+    /// </summary>
+    private ObjectResult LicenseSensor() =>
+        StatusCode(StatusCodes.Status409Conflict, new DefaultResponse { Success = false, Message = "license_sensor: this sensor is a licence's or service's; PNMT writes its events." });
+
 }

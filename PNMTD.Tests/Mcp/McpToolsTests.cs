@@ -87,11 +87,13 @@ public sealed class McpToolsTests
         Assert.IsTrue(all.Where(t => t.CookieOnly).All(t => t.ForCookie), "a tool only for Cookie is Cookie's");
         Assert.IsTrue(all.Where(t => t.ForCookie).All(t => t.Kind == ToolKind.Read), "Cookie only reads");
         // The access watch (docs/cookie-access-plan.md §5.2) added four: logins, PNMT's sign-ins (Cookie's only), a profile, an account everywhere;
-        // responsibilities (docs/responsibilities-plan.md §7) two.
+        // responsibilities (docs/responsibilities-plan.md §7) two; licences & services (docs/licences-plan.md §11) three, offered only while the
+        // feature is on, so Cookie has seventeen while it is off.
         CollectionAssert.AreEquivalent(new[] { "cases_list", "case_get", "hosts_search", "host_get", "sensor_events", "location_get", "kb_search", "kb_page",
             "ticket_get", "zabbix_problems", "availability_get", "logins_list", "pnmt_signins", "access_profile", "account_logins",
-            "responsibilities_list", "responsibility_get" },
-            all.Where(t => t.ForCookie).Select(t => t.Name).ToList(), "Cookie keeps its seventeen");
+            "responsibilities_list", "responsibility_get", "licenses_list", "license_get", "licenses_costs" },
+            all.Where(t => t.ForCookie).Select(t => t.Name).ToList(), "Cookie has its twenty");
+        Assert.IsTrue(all.Where(t => t.Name.StartsWith("license", StringComparison.Ordinal)).All(t => t.Available is not null), "only while the feature is on");
         foreach (var tool in all)
         {
             Assert.AreEqual("object", tool.InputSchema["type"]!.GetValue<string>(), tool.Name);

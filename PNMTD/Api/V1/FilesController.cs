@@ -68,6 +68,13 @@ public sealed class FilesController(FileStore store, FileAdmin admin, UploadGuar
     {
         await using var db = await dbs.CreateDbContextAsync(ct);
         var file = await db.Files.AsNoTracking().SingleOrDefaultAsync(f => f.Id == id, ct) ?? throw ApiException.NotFound("File");
+        // docs/licences-plan.md §7.2: a file that only licences and services use is theirs to serve, with Details; one a page also uses
+        // (the same bytes, deduplicated) is on that page already.
+        if (await db.FileUses.AnyAsync(u => u.FileId == id && u.LicenseId != null, ct)
+            && !await db.FileUses.AnyAsync(u => u.FileId == id && u.LicenseId == null, ct))
+        {
+            throw ApiException.NotFound("File");
+        }
         var path = store.Locate(file.Path) ?? throw ApiException.NotFound("File");
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         Response.Headers.CacheControl = "private, max-age=31536000, immutable";

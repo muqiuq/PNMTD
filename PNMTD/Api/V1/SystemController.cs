@@ -29,11 +29,13 @@ public sealed class SystemController(SystemService system) : V1ControllerBase
 
     [HttpGet("status-codes")]
     [RequireRight(Area.Monitoring, Level.View)]
-    public ActionResult<IReadOnlyList<StatusCodeInfo>> StatusCodes() => Ok(SystemService.StatusCodes());
+    public ActionResult<IReadOnlyList<StatusCodeInfo>> StatusCodes([FromServices] IConfiguration configuration) =>
+        Ok(SystemService.StatusCodes(Licenses.LicenseSetup.Enabled(configuration)));
 
     [HttpGet("sensor-types")]
     [RequireRight(Area.Monitoring, Level.View)]
-    public ActionResult<IReadOnlyList<SensorTypeInfo>> SensorTypes() => Ok(SystemService.SensorTypes());
+    public ActionResult<IReadOnlyList<SensorTypeInfo>> SensorTypes([FromServices] IConfiguration configuration) =>
+        Ok(SystemService.SensorTypes(Licenses.LicenseSetup.Enabled(configuration)));
 
     [HttpGet("notification-rule-types")]
     [RequireRight(Area.Monitoring, Level.View)]

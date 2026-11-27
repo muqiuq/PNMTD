@@ -50,6 +50,9 @@ export const levelOrder: Record<Area, readonly Level[]> = {
   // docs/boards-plan.md §13.1: Manage changes boards and shows their URLs; adding an element also needs its area's right.
   // docs/board-messages-plan.md §12.1: Message sends messages to boards and withdraws them.
   Boards: ['View', 'Message', 'Manage'],
+  // docs/licences-plan.md §9: View includes the costs; Details shows the keys and downloads the documents. Listed by the server only
+  // while Licenses__Enabled is on (§13.2).
+  Licenses: ['View', 'Details', 'Edit', 'Manage'],
 }
 
 /** Admin → Cookie: its Redmine tab is Redmine: Manage's, every other tab Cookie: Manage's. */

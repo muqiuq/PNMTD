@@ -11916,6 +11916,2145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/licenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["LicenseType"];
+                    status?: components["schemas"]["LicenseStatus"][];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseRow"][];
+                        "text/json": components["schemas"]["LicenseRow"][];
+                        "text/plain": components["schemas"]["LicenseRow"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseRequest"];
+                    "text/json": components["schemas"]["LicenseRequest"];
+                    "application/*+json": components["schemas"]["LicenseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    type?: components["schemas"]["LicenseType"];
+                    status?: components["schemas"]["LicenseStatus"][];
+                    ids?: string[];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    currency?: string;
+                    type?: components["schemas"]["LicenseType"];
+                    category?: string;
+                    costCenter?: string;
+                    location?: string;
+                    owner?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseOverview"];
+                        "text/json": components["schemas"]["LicenseOverview"];
+                        "text/plain": components["schemas"]["LicenseOverview"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/costs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    group?: string;
+                    show?: string;
+                    years?: boolean;
+                    currency?: string;
+                    type?: components["schemas"]["LicenseType"];
+                    category?: string;
+                    costCenter?: string;
+                    location?: string;
+                    owner?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseCosts"];
+                        "text/json": components["schemas"]["LicenseCosts"];
+                        "text/plain": components["schemas"]["LicenseCosts"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/costs/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    group?: string;
+                    show?: string;
+                    years?: boolean;
+                    currency?: string;
+                    type?: components["schemas"]["LicenseType"];
+                    category?: string;
+                    costCenter?: string;
+                    location?: string;
+                    owner?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    type?: components["schemas"]["LicenseType"];
+                    category?: string;
+                    license?: string;
+                    kind?: components["schemas"]["LicenseChargeKind"];
+                    source?: components["schemas"]["LicenseChargeSource"];
+                    estimated?: boolean;
+                    currency?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseChargeItem"][];
+                        "text/json": components["schemas"]["LicenseChargeItem"][];
+                        "text/plain": components["schemas"]["LicenseChargeItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/charges/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    type?: components["schemas"]["LicenseType"];
+                    category?: string;
+                    license?: string;
+                    kind?: components["schemas"]["LicenseChargeKind"];
+                    source?: components["schemas"]["LicenseChargeSource"];
+                    estimated?: boolean;
+                    currency?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/csv": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/upcoming": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    months?: number;
+                    type?: components["schemas"]["LicenseType"];
+                    owner?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseUpcoming"];
+                        "text/json": components["schemas"]["LicenseUpcoming"];
+                        "text/plain": components["schemas"]["LicenseUpcoming"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseNames"];
+                        "text/json": components["schemas"]["LicenseNames"];
+                        "text/plain": components["schemas"]["LicenseNames"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicensePerson"][];
+                        "text/json": components["schemas"]["LicensePerson"][];
+                        "text/plain": components["schemas"]["LicensePerson"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/linked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    host?: string;
+                    location?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseLinkedItem"][];
+                        "text/json": components["schemas"]["LicenseLinkedItem"][];
+                        "text/plain": components["schemas"]["LicenseLinkedItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/activations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    license?: string;
+                    host?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseActivation"][];
+                        "text/json": components["schemas"]["LicenseActivation"][];
+                        "text/plain": components["schemas"]["LicenseActivation"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    kind?: string;
+                    q?: string;
+                    license?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseTarget"][];
+                        "text/json": components["schemas"]["LicenseTarget"][];
+                        "text/plain": components["schemas"]["LicenseTarget"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseRequest"];
+                    "text/json": components["schemas"]["LicenseRequest"];
+                    "application/*+json": components["schemas"]["LicenseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: {
+                    number?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/number/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    number: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseKeys"];
+                        "text/json": components["schemas"]["LicenseKeys"];
+                        "text/plain": components["schemas"]["LicenseKeys"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    search?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedOfAuditLogItem"];
+                        "text/json": components["schemas"]["PagedOfAuditLogItem"];
+                        "text/plain": components["schemas"]["PagedOfAuditLogItem"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseRenewRequest"];
+                    "text/json": components["schemas"]["LicenseRenewRequest"];
+                    "application/*+json": components["schemas"]["LicenseRenewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseRenewalItem"];
+                        "text/json": components["schemas"]["LicenseRenewalItem"];
+                        "text/plain": components["schemas"]["LicenseRenewalItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseReviewRequest"];
+                    "text/json": components["schemas"]["LicenseReviewRequest"];
+                    "application/*+json": components["schemas"]["LicenseReviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseReviewRequest"];
+                    "text/json": components["schemas"]["LicenseReviewRequest"];
+                    "application/*+json": components["schemas"]["LicenseReviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseBulkResult"];
+                        "text/json": components["schemas"]["LicenseBulkResult"];
+                        "text/plain": components["schemas"]["LicenseBulkResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseCancelRequest"];
+                    "text/json": components["schemas"]["LicenseCancelRequest"];
+                    "application/*+json": components["schemas"]["LicenseCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseRetireRequest"];
+                    "text/json": components["schemas"]["LicenseRetireRequest"];
+                    "application/*+json": components["schemas"]["LicenseRetireRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDetail"];
+                        "text/json": components["schemas"]["LicenseDetail"];
+                        "text/plain": components["schemas"]["LicenseDetail"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/plain": components["schemas"]["LicenseAssignmentItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseAssignRequest"];
+                    "text/json": components["schemas"]["LicenseAssignRequest"];
+                    "application/*+json": components["schemas"]["LicenseAssignRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/plain": components["schemas"]["LicenseAssignmentItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/assignments/{hostId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    hostId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseAssignmentRequest"];
+                    "text/json": components["schemas"]["LicenseAssignmentRequest"];
+                    "application/*+json": components["schemas"]["LicenseAssignmentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/plain": components["schemas"]["LicenseAssignmentItem"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/assignments/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseUnassignRequest"];
+                    "text/json": components["schemas"]["LicenseUnassignRequest"];
+                    "application/*+json": components["schemas"]["LicenseUnassignRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/json": components["schemas"]["LicenseAssignmentItem"][];
+                        "text/plain": components["schemas"]["LicenseAssignmentItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/sensor-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseSensorLinkItem"][];
+                        "text/json": components["schemas"]["LicenseSensorLinkItem"][];
+                        "text/plain": components["schemas"]["LicenseSensorLinkItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseLinkRequest"];
+                    "text/json": components["schemas"]["LicenseLinkRequest"];
+                    "application/*+json": components["schemas"]["LicenseLinkRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseSensorLinkItem"][];
+                        "text/json": components["schemas"]["LicenseSensorLinkItem"][];
+                        "text/plain": components["schemas"]["LicenseSensorLinkItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/sensor-links/{sensorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    sensorId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseSensorLinkItem"][];
+                        "text/json": components["schemas"]["LicenseSensorLinkItem"][];
+                        "text/plain": components["schemas"]["LicenseSensorLinkItem"][];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/renewals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseRenewalItem"][];
+                        "text/json": components["schemas"]["LicenseRenewalItem"][];
+                        "text/plain": components["schemas"]["LicenseRenewalItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/renewals/{renewalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    renewalId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseRenewalChangeRequest"];
+                    "text/json": components["schemas"]["LicenseRenewalChangeRequest"];
+                    "application/*+json": components["schemas"]["LicenseRenewalChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseRenewalItem"][];
+                        "text/json": components["schemas"]["LicenseRenewalItem"][];
+                        "text/plain": components["schemas"]["LicenseRenewalItem"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    renewalId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseRenewalItem"][];
+                        "text/json": components["schemas"]["LicenseRenewalItem"][];
+                        "text/plain": components["schemas"]["LicenseRenewalItem"][];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/charges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseChargeItem"][];
+                        "text/json": components["schemas"]["LicenseChargeItem"][];
+                        "text/plain": components["schemas"]["LicenseChargeItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseChargeRequest"];
+                    "text/json": components["schemas"]["LicenseChargeRequest"];
+                    "application/*+json": components["schemas"]["LicenseChargeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseChargeItem"];
+                        "text/json": components["schemas"]["LicenseChargeItem"];
+                        "text/plain": components["schemas"]["LicenseChargeItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/charges/{chargeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    chargeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseChargeRequest"];
+                    "text/json": components["schemas"]["LicenseChargeRequest"];
+                    "application/*+json": components["schemas"]["LicenseChargeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseChargeItem"];
+                        "text/json": components["schemas"]["LicenseChargeItem"];
+                        "text/plain": components["schemas"]["LicenseChargeItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    chargeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDocumentItem"][];
+                        "text/json": components["schemas"]["LicenseDocumentItem"][];
+                        "text/plain": components["schemas"]["LicenseDocumentItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    name?: string;
+                    kind?: string;
+                    chargeId?: string;
+                    renewalId?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDocumentItem"];
+                        "text/json": components["schemas"]["LicenseDocumentItem"];
+                        "text/plain": components["schemas"]["LicenseDocumentItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/documents/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseDocumentChangeRequest"];
+                    "text/json": components["schemas"]["LicenseDocumentChangeRequest"];
+                    "application/*+json": components["schemas"]["LicenseDocumentChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseDocumentItem"][];
+                        "text/json": components["schemas"]["LicenseDocumentItem"][];
+                        "text/plain": components["schemas"]["LicenseDocumentItem"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/{id}/documents/{fileId}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fileId: string;
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": components["schemas"]["FileContentResult"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/licenses/names/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseRenameRequest"];
+                    "text/json": components["schemas"]["LicenseRenameRequest"];
+                    "application/*+json": components["schemas"]["LicenseRenameRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseRenameResult"];
+                        "text/json": components["schemas"]["LicenseRenameResult"];
+                        "text/plain": components["schemas"]["LicenseRenameResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/license-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseTemplateItem"][];
+                        "text/json": components["schemas"]["LicenseTemplateItem"][];
+                        "text/plain": components["schemas"]["LicenseTemplateItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseTemplateRequest"];
+                    "text/json": components["schemas"]["LicenseTemplateRequest"];
+                    "application/*+json": components["schemas"]["LicenseTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseTemplateItem"];
+                        "text/json": components["schemas"]["LicenseTemplateItem"];
+                        "text/plain": components["schemas"]["LicenseTemplateItem"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/license-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseTemplateItem"];
+                        "text/json": components["schemas"]["LicenseTemplateItem"];
+                        "text/plain": components["schemas"]["LicenseTemplateItem"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseTemplateRequest"];
+                    "text/json": components["schemas"]["LicenseTemplateRequest"];
+                    "application/*+json": components["schemas"]["LicenseTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseTemplateItem"];
+                        "text/json": components["schemas"]["LicenseTemplateItem"];
+                        "text/plain": components["schemas"]["LicenseTemplateItem"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/license-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/plain": components["schemas"]["LicenseCategoryItem"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseCategoryRequest"];
+                    "text/json": components["schemas"]["LicenseCategoryRequest"];
+                    "application/*+json": components["schemas"]["LicenseCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/plain": components["schemas"]["LicenseCategoryItem"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/license-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseCategoryRequest"];
+                    "text/json": components["schemas"]["LicenseCategoryRequest"];
+                    "application/*+json": components["schemas"]["LicenseCategoryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/plain": components["schemas"]["LicenseCategoryItem"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: {
+                    moveTo?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/plain": components["schemas"]["LicenseCategoryItem"][];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/license-categories/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LicenseCategoryOrderRequest"];
+                    "text/json": components["schemas"]["LicenseCategoryOrderRequest"];
+                    "application/*+json": components["schemas"]["LicenseCategoryOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/json": components["schemas"]["LicenseCategoryItem"][];
+                        "text/plain": components["schemas"]["LicenseCategoryItem"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/linux/servers/{id}/sections/{section}": {
         parameters: {
             query?: never;
@@ -25224,13 +27363,13 @@ export interface components {
             removalsHash: string;
         };
         /** @enum {unknown} */
-        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap" | "Lounge" | "Responsibilities" | "Boards";
+        Area: "Monitoring" | "Commands" | "Mail" | "Decisions" | "Locations" | "KnowledgeBase" | "Redmine" | "Zabbix" | "UdpNodes" | "Mikrotik" | "Servers" | "SshKeys" | "Diagnostics" | "Ai" | "System" | "AuditLog" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "NetworkMap" | "Lounge" | "Responsibilities" | "Boards" | "Licenses";
         /** @enum {unknown} */
         AssignMode: "Add" | "Remove";
         /** @enum {unknown} */
         AuditActor: "User" | "Cli" | "Agent" | "System" | "Cookie" | "Mcp" | "Connector";
         /** @enum {unknown} */
-        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "Network" | "Responsibilities" | "Boards";
+        AuditCategory: "Auth" | "Users" | "Hosts" | "Sensors" | "Notifications" | "Locations" | "Knowledge" | "Files" | "Udp" | "Mikrotik" | "WireGuard" | "Agents" | "SshKeys" | "Diagnostics" | "Dns" | "Mail" | "Ai" | "Decisions" | "System" | "Redmine" | "Zabbix" | "Cookie" | "Availability" | "Mcp" | "Certificates" | "Connectors" | "Network" | "Responsibilities" | "Boards" | "Licenses";
         AuditChange: {
             object: null | string;
             field: string;
@@ -28343,7 +30482,7 @@ export interface components {
             number: null | number;
         };
         /** @enum {unknown} */
-        FileUserKind: "Page" | "Location" | "Responsibility" | "Board";
+        FileUserKind: "Page" | "Location" | "Responsibility" | "Board" | "License";
         FirewallInfo: {
             profiles: components["schemas"]["FirewallProfileState"][];
             inboundRules: components["schemas"]["FirewallRuleInfo"][];
@@ -29015,6 +31154,891 @@ export interface components {
         };
         /** @enum {unknown} */
         Level: "None" | "View" | "Edit" | "Manage" | "Run" | "Read" | "Decide" | "Link" | "Details" | "Use" | "Instruct" | "Message";
+        LicenseActivation: {
+            /** Format: uuid */
+            hostId: string;
+            hostName: string;
+            partialKey: null | string;
+            channel: null | string;
+            kmsClientKey: boolean;
+            assigned: boolean;
+            matches: components["schemas"]["LicenseActivationMatch"][];
+        };
+        LicenseActivationMatch: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            name: string;
+        };
+        LicenseAssignmentItem: {
+            /** Format: uuid */
+            hostId: string;
+            hostName: string;
+            hostEnabled: boolean;
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            /** Format: uuid */
+            sensorId: null | string;
+            sensorEnabled: null | boolean;
+            sensorIgnore: null | boolean;
+            /** Format: int32 */
+            lastCode: null | number;
+            lastMessage: null | string;
+            /** Format: int32 */
+            seats: number;
+            note: null | string;
+            /** Format: date-time */
+            assignedAt: string;
+            assignedBy: null | string;
+        };
+        LicenseAssignmentRequest: {
+            /** Format: int32 */
+            seats: null | number;
+            note: null | string;
+        };
+        LicenseAssignRequest: {
+            hostIds: null | string[];
+            /** Format: int32 */
+            seats: null | number;
+            note: null | string;
+        };
+        LicenseAttention: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            /** Format: int32 */
+            code: number;
+            text: string;
+            /** Format: date */
+            on: null | string;
+        };
+        LicenseBar: {
+            key: string;
+            label: string;
+            /** Format: double */
+            amount: number;
+            /** Format: int32 */
+            items: number;
+        };
+        /** @enum {unknown} */
+        LicenseBilling: "OneTime" | "Recurring" | "Variable";
+        LicenseBulkResult: {
+            /** Format: int32 */
+            changed: number;
+        };
+        LicenseCancelRequest: {
+            /** Format: date */
+            endsOn: null | string;
+        };
+        LicenseCategoryItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            sortOrder: number;
+            defaultFor: null | components["schemas"]["LicenseType"];
+            /** Format: int32 */
+            items: number;
+            /** Format: int32 */
+            templates: number;
+            perYear: components["schemas"]["MoneyAmount"][];
+        };
+        LicenseCategoryOrderRequest: {
+            ids: null | string[];
+        };
+        LicenseCategoryRequest: {
+            name?: null | string;
+            description?: null | string;
+            defaultFor?: null | components["schemas"]["LicenseType"];
+        };
+        LicenseChargeItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            licenseId: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            kind: components["schemas"]["LicenseChargeKind"];
+            source: components["schemas"]["LicenseChargeSource"];
+            /** Format: date */
+            on: string;
+            /** Format: date */
+            periodFrom: null | string;
+            /** Format: date */
+            periodTo: null | string;
+            /** Format: double */
+            amount: number;
+            currency: string;
+            estimated: boolean;
+            reference: null | string;
+            note: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            updatedAt: null | string;
+            updatedBy: null | string;
+            /** Format: uuid */
+            invoiceFileId: null | string;
+            invoiceName: null | string;
+        };
+        /** @enum {unknown} */
+        LicenseChargeKind: "Purchase" | "Period" | "Extra" | "Credit";
+        LicenseChargeRequest: {
+            kind?: components["schemas"]["LicenseChargeKind"];
+            /** Format: date */
+            on?: null | string;
+            /** Format: date */
+            periodFrom?: null | string;
+            /** Format: date */
+            periodTo?: null | string;
+            /** Format: double */
+            amount?: null | number;
+            currency?: null | string;
+            reference?: null | string;
+            note?: null | string;
+            estimated?: null | boolean;
+        };
+        /** @enum {unknown} */
+        LicenseChargeSource: "Automatic" | "Person";
+        LicenseCostLine: {
+            key: string;
+            label: string;
+            /** Format: uuid */
+            itemId: null | string;
+            display: null | string;
+            values: number[];
+            /** Format: double */
+            total: number;
+            /** Format: double */
+            perYearNow: number;
+            items: components["schemas"]["LicenseCostLine"][];
+        };
+        LicenseCosts: {
+            currency: string;
+            currencies: string[];
+            group: string;
+            show: string;
+            columns: string[];
+            forecast: boolean[];
+            groups: components["schemas"]["LicenseCostLine"][];
+            totals: number[];
+            /** Format: double */
+            total: number;
+            /** Format: double */
+            perYearNow: number;
+            /** Format: double */
+            ifRenewed: number;
+            otherCurrencies: components["schemas"]["MoneyAmount"][];
+            sharedByHosts: boolean;
+        };
+        LicenseDetail: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            /** Format: uuid */
+            templateId: null | string;
+            templateName: null | string;
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            manufacturer: null | string;
+            productName: null | string;
+            edition: null | string;
+            vendor: null | string;
+            kind: components["schemas"]["LicenseKind"];
+            licensedTo: null | string;
+            reference: null | string;
+            customerNumber: null | string;
+            portalUrl: null | string;
+            supportContact: null | string;
+            supportUrl: null | string;
+            sla: null | string;
+            costCenter: null | string;
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            /** Format: uuid */
+            ownerId: null | string;
+            ownerName: null | string;
+            hasLicenseKey: boolean;
+            licenseKeyHint: null | string;
+            hasProductKey: boolean;
+            productKeyHint: null | string;
+            /** Format: int32 */
+            seats: null | number;
+            seatUnit: string;
+            seatsFromHosts: boolean;
+            /** Format: int32 */
+            usedSeats: number;
+            /** Format: double */
+            priceAmount: null | number;
+            currency: string;
+            priceBasis: components["schemas"]["LicensePriceBasis"];
+            billing: components["schemas"]["LicenseBilling"];
+            /** Format: int32 */
+            billingMonths: null | number;
+            recordCharges: boolean;
+            /** Format: date */
+            chargesFrom: null | string;
+            /** Format: date */
+            startsOn: null | string;
+            /** Format: date */
+            expiresOn: null | string;
+            /** Format: int32 */
+            termMonths: null | number;
+            renewal: components["schemas"]["LicenseRenewal"];
+            /** Format: int32 */
+            warnDays: number;
+            /** Format: int32 */
+            noticeDays: null | number;
+            /** Format: date */
+            cancelBy: null | string;
+            warnBeforeRenewal: boolean;
+            endOfLifeFromTemplate: boolean;
+            /** Format: date */
+            endOfLifeOn: null | string;
+            endOfLifeNote: null | string;
+            /** Format: date */
+            ownEndOfLifeOn: null | string;
+            ownEndOfLifeNote: null | string;
+            /** Format: int32 */
+            eolWarnDays: number;
+            /** Format: date */
+            reviewedOn: null | string;
+            reviewedBy: null | string;
+            reviewNote: null | string;
+            /** Format: int32 */
+            reviewMonths: null | number;
+            /** Format: date */
+            reviewDueOn: null | string;
+            reviewDue: boolean;
+            status: components["schemas"]["LicenseStatus"];
+            /** Format: date-time */
+            statusChangedAt: null | string;
+            statusChangedBy: null | string;
+            note: null | string;
+            /** Format: int32 */
+            verdictCode: null | number;
+            verdictMessage: null | string;
+            /** Format: date-time */
+            verdictAt: null | string;
+            findings: components["schemas"]["LicenseFindingItem"][];
+            /** Format: double */
+            unitPrice: null | number;
+            /** Format: double */
+            perMonth: number;
+            /** Format: double */
+            perYear: number;
+            /** Format: double */
+            spentThisYear: number;
+            /** Format: int32 */
+            hosts: number;
+            /** Format: int32 */
+            links: number;
+            /** Format: int32 */
+            renewals: number;
+            /** Format: int32 */
+            charges: number;
+            /** Format: int32 */
+            documents: number;
+            notifying: components["schemas"]["LicenseNotifying"];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        LicenseDocumentChangeRequest: {
+            kind: null | components["schemas"]["LicenseDocumentKind"];
+            description: null | string;
+            /** Format: uuid */
+            chargeId: null | string;
+            /** Format: uuid */
+            renewalId: null | string;
+        };
+        LicenseDocumentItem: {
+            /** Format: uuid */
+            fileId: string;
+            name: string;
+            kind: components["schemas"]["LicenseDocumentKind"];
+            description: null | string;
+            /** Format: int64 */
+            size: number;
+            /** Format: uuid */
+            chargeId: null | string;
+            /** Format: uuid */
+            renewalId: null | string;
+            /** Format: date-time */
+            addedAt: string;
+            addedBy: null | string;
+        };
+        /** @enum {unknown} */
+        LicenseDocumentKind: "Invoice" | "Contract" | "Quote" | "LicenseFile" | "KeyFile" | "Warranty" | "Other";
+        LicenseEndOfLife: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            name: string;
+            /** Format: date */
+            on: string;
+            /** Format: int32 */
+            hosts: number;
+        };
+        LicenseFindingItem: {
+            /** Format: int32 */
+            code: number;
+            text: string;
+            /** Format: date */
+            on: null | string;
+        };
+        LicenseKeys: {
+            licenseKey: null | string;
+            productKey: null | string;
+        };
+        /** @enum {unknown} */
+        LicenseKind: "Perpetual" | "Subscription" | "Contract" | "Support" | "Usage" | "OneOff" | "Purchase" | "Lease" | "Trial" | "Free" | "Other";
+        LicenseLinkedItem: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            /** Format: int32 */
+            verdictCode: null | number;
+            verdictMessage: null | string;
+            /** Format: date */
+            expiresOn: null | string;
+            status: components["schemas"]["LicenseStatus"];
+            perMonth: components["schemas"]["MoneyAmount"][];
+            via: string;
+        };
+        LicenseLinkRequest: {
+            sensorIds: null | string[];
+            note: null | string;
+        };
+        LicenseMonth: {
+            month: string;
+            /** Format: double */
+            spent: number;
+            /** Format: double */
+            forecast: number;
+            /** Format: double */
+            ifRenewed: number;
+            topCategories: components["schemas"]["MoneyAmount"][];
+        };
+        LicenseNames: {
+            manufacturers: components["schemas"]["LicenseNameUse"][];
+            vendors: components["schemas"]["LicenseNameUse"][];
+            costCenters: components["schemas"]["LicenseNameUse"][];
+            seatUnits: components["schemas"]["LicenseNameUse"][];
+        };
+        LicenseNameUse: {
+            name: string;
+            /** Format: int32 */
+            items: number;
+            /** Format: int32 */
+            templates: number;
+        };
+        LicenseNotifying: {
+            hasOwner: boolean;
+            ownerHasEmail: boolean;
+            /** Format: int32 */
+            hosts: number;
+            /** Format: int32 */
+            unownedChoosers: number;
+            nobody: boolean;
+        };
+        LicenseOverview: {
+            currency: string;
+            currencies: string[];
+            perMonth: components["schemas"]["MoneyAmount"][];
+            perYear: components["schemas"]["MoneyAmount"][];
+            next12Months: components["schemas"]["MoneyAmount"][];
+            next12MonthsIfRenewed: components["schemas"]["MoneyAmount"][];
+            spentThisYear: components["schemas"]["MoneyAmount"][];
+            spentLastYear: components["schemas"]["MoneyAmount"][];
+            /** Format: int32 */
+            year: number;
+            /** Format: int32 */
+            needsAttention: number;
+            /** Format: int32 */
+            failing: number;
+            /** Format: int32 */
+            cancelWithin90Days: number;
+            /** Format: date */
+            nextCancelBy: null | string;
+            months: components["schemas"]["LicenseMonth"][];
+            byCategory: components["schemas"]["LicenseBar"][];
+            byProvider: components["schemas"]["LicenseBar"][];
+            attention: components["schemas"]["LicenseAttention"][];
+            /** Format: int32 */
+            attentionTotal: number;
+            seats: components["schemas"]["LicenseSeatMeter"][];
+            worthALook: components["schemas"]["LicenseWorthALook"];
+            endsOfLife: components["schemas"]["LicenseEndOfLife"][];
+            /** Format: int32 */
+            items: number;
+        };
+        LicensePerson: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            username: string;
+        };
+        /** @enum {unknown} */
+        LicensePriceBasis: "Total" | "PerSeat";
+        LicenseRenameRequest: {
+            field: null | string;
+            from: null | string;
+            to: null | string;
+        };
+        LicenseRenameResult: {
+            /** Format: int32 */
+            items: number;
+            /** Format: int32 */
+            templates: number;
+        };
+        /** @enum {unknown} */
+        LicenseRenewal: "None" | "Manual" | "Automatic";
+        LicenseRenewalChangeRequest: {
+            reference: null | string;
+            note: null | string;
+        };
+        LicenseRenewalItem: {
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["LicenseRenewalKind"];
+            /** Format: date */
+            on: string;
+            /** Format: date */
+            previousExpiresOn: null | string;
+            /** Format: date */
+            newExpiresOn: string;
+            /** Format: double */
+            priceAmount: null | number;
+            currency: null | string;
+            reference: null | string;
+            note: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            documentIds: string[];
+        };
+        /** @enum {unknown} */
+        LicenseRenewalKind: "Renewal" | "AutomaticRenewal";
+        LicenseRenewRequest: {
+            /** Format: date */
+            newExpiresOn: null | string;
+            /** Format: double */
+            priceAmount: null | number;
+            currency: null | string;
+            reference: null | string;
+            note: null | string;
+            reactivate: boolean;
+            /** Format: double */
+            chargeAmount: null | number;
+            /** Format: date */
+            chargeOn: null | string;
+        };
+        LicenseRequest: {
+            type?: components["schemas"]["LicenseType"];
+            name?: null | string;
+            /** Format: uuid */
+            templateId?: null | string;
+            /** Format: uuid */
+            categoryId?: null | string;
+            manufacturer?: null | string;
+            productName?: null | string;
+            edition?: null | string;
+            vendor?: null | string;
+            kind?: components["schemas"]["LicenseKind"];
+            licensedTo?: null | string;
+            reference?: null | string;
+            customerNumber?: null | string;
+            portalUrl?: null | string;
+            supportContact?: null | string;
+            supportUrl?: null | string;
+            sla?: null | string;
+            costCenter?: null | string;
+            /** Format: uuid */
+            locationId?: null | string;
+            /** Format: uuid */
+            ownerId?: null | string;
+            licenseKey?: null | string;
+            productKey?: null | string;
+            /** Format: int32 */
+            seats?: null | number;
+            seatUnit?: null | string;
+            seatsFromHosts?: boolean;
+            /** Format: double */
+            priceAmount?: null | number;
+            currency?: null | string;
+            priceBasis?: components["schemas"]["LicensePriceBasis"];
+            billing?: components["schemas"]["LicenseBilling"];
+            /** Format: int32 */
+            billingMonths?: null | number;
+            recordCharges?: null | boolean;
+            /** Format: date */
+            startsOn?: null | string;
+            /** Format: date */
+            expiresOn?: null | string;
+            /** Format: int32 */
+            termMonths?: null | number;
+            renewal?: components["schemas"]["LicenseRenewal"];
+            /** Format: int32 */
+            warnDays?: null | number;
+            /** Format: int32 */
+            noticeDays?: null | number;
+            warnBeforeRenewal?: boolean;
+            endOfLifeFromTemplate?: boolean;
+            /** Format: date */
+            endOfLifeOn?: null | string;
+            endOfLifeNote?: null | string;
+            /** Format: int32 */
+            eolWarnDays?: null | number;
+            /** Format: date */
+            reviewedOn?: null | string;
+            /** Format: int32 */
+            reviewMonths?: null | number;
+            note?: null | string;
+            recordPastCharges?: boolean;
+            acknowledgeCredentials?: boolean;
+        };
+        LicenseRetireRequest: {
+            confirmed: boolean;
+        };
+        LicenseReviewRequest: {
+            /** Format: date */
+            on: null | string;
+            note: null | string;
+            ids: null | string[];
+        };
+        LicenseRow: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            kind: components["schemas"]["LicenseKind"];
+            status: components["schemas"]["LicenseStatus"];
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            /** Format: uuid */
+            templateId: null | string;
+            manufacturer: null | string;
+            productName: null | string;
+            edition: null | string;
+            vendor: null | string;
+            licensedTo: null | string;
+            reference: null | string;
+            customerNumber: null | string;
+            costCenter: null | string;
+            /** Format: uuid */
+            locationId: null | string;
+            locationName: null | string;
+            /** Format: uuid */
+            ownerId: null | string;
+            ownerName: null | string;
+            /** Format: int32 */
+            seats: null | number;
+            seatUnit: string;
+            seatsFromHosts: boolean;
+            /** Format: int32 */
+            usedSeats: number;
+            /** Format: int32 */
+            hosts: number;
+            hostNames: string[];
+            /** Format: double */
+            priceAmount: null | number;
+            currency: string;
+            priceBasis: components["schemas"]["LicensePriceBasis"];
+            billing: components["schemas"]["LicenseBilling"];
+            /** Format: int32 */
+            billingMonths: null | number;
+            /** Format: double */
+            perMonth: number;
+            /** Format: double */
+            perYear: number;
+            /** Format: date */
+            startsOn: null | string;
+            /** Format: date */
+            expiresOn: null | string;
+            /** Format: int32 */
+            termMonths: null | number;
+            renewal: components["schemas"]["LicenseRenewal"];
+            /** Format: int32 */
+            noticeDays: null | number;
+            /** Format: date */
+            cancelBy: null | string;
+            /** Format: date */
+            endOfLifeOn: null | string;
+            /** Format: date */
+            reviewedOn: null | string;
+            /** Format: date */
+            reviewDueOn: null | string;
+            reviewDue: boolean;
+            /** Format: int32 */
+            verdictCode: null | number;
+            verdictMessage: null | string;
+            findings: components["schemas"]["LicenseFindingItem"][];
+            nobodyNotified: boolean;
+            licenseKeyHint: null | string;
+            productKeyHint: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        LicenseSeatMeter: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            name: string;
+            /** Format: int32 */
+            used: number;
+            /** Format: int32 */
+            seats: number;
+            unit: string;
+        };
+        LicenseSensorLinkItem: {
+            /** Format: uuid */
+            sensorId: string;
+            sensorName: string;
+            /** Format: uuid */
+            hostId: string;
+            hostName: string;
+            /** Format: int32 */
+            lastCode: null | number;
+            lastMessage: null | string;
+            note: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+        };
+        LicenseSensorSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            kind: components["schemas"]["LicenseKind"];
+            status: components["schemas"]["LicenseStatus"];
+            manufacturer: null | string;
+            productName: null | string;
+            /** Format: date */
+            expiresOn: null | string;
+            /** Format: date */
+            endOfLifeOn: null | string;
+            /** Format: int32 */
+            usedSeats: number;
+            /** Format: int32 */
+            seats: null | number;
+            seatUnit: string;
+            /** Format: int32 */
+            assignmentSeats: number;
+        };
+        /** @enum {unknown} */
+        LicenseStatus: "Active" | "Cancelled" | "Retired";
+        LicenseTarget: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            hostName: null | string;
+            locationName: null | string;
+            assigned: boolean;
+        };
+        LicenseTemplateItem: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            type: components["schemas"]["LicenseType"];
+            /** Format: uuid */
+            categoryId: string;
+            categoryName: string;
+            manufacturer: null | string;
+            productName: string;
+            edition: null | string;
+            vendor: null | string;
+            productUrl: null | string;
+            kind: null | components["schemas"]["LicenseKind"];
+            /** Format: int32 */
+            seats: null | number;
+            seatUnit: null | string;
+            seatsFromHosts: null | boolean;
+            /** Format: double */
+            priceAmount: null | number;
+            currency: null | string;
+            priceBasis: null | components["schemas"]["LicensePriceBasis"];
+            billing: null | components["schemas"]["LicenseBilling"];
+            /** Format: int32 */
+            billingMonths: null | number;
+            /** Format: int32 */
+            termMonths: null | number;
+            renewal: null | components["schemas"]["LicenseRenewal"];
+            /** Format: int32 */
+            warnDays: null | number;
+            /** Format: int32 */
+            noticeDays: null | number;
+            warnBeforeRenewal: null | boolean;
+            /** Format: int32 */
+            reviewMonths: null | number;
+            supportContact: null | string;
+            supportUrl: null | string;
+            sla: null | string;
+            /** Format: date */
+            endOfLifeOn: null | string;
+            endOfLifeNote: null | string;
+            note: null | string;
+            /** Format: int32 */
+            items: number;
+            /** Format: int32 */
+            followEndOfLife: number;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: null | string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        LicenseTemplateRequest: {
+            name?: null | string;
+            type?: components["schemas"]["LicenseType"];
+            /** Format: uuid */
+            categoryId?: null | string;
+            manufacturer?: null | string;
+            productName?: null | string;
+            edition?: null | string;
+            vendor?: null | string;
+            productUrl?: null | string;
+            kind?: null | components["schemas"]["LicenseKind"];
+            /** Format: int32 */
+            seats?: null | number;
+            seatUnit?: null | string;
+            seatsFromHosts?: null | boolean;
+            /** Format: double */
+            priceAmount?: null | number;
+            currency?: null | string;
+            priceBasis?: null | components["schemas"]["LicensePriceBasis"];
+            billing?: null | components["schemas"]["LicenseBilling"];
+            /** Format: int32 */
+            billingMonths?: null | number;
+            /** Format: int32 */
+            termMonths?: null | number;
+            renewal?: null | components["schemas"]["LicenseRenewal"];
+            /** Format: int32 */
+            warnDays?: null | number;
+            /** Format: int32 */
+            noticeDays?: null | number;
+            warnBeforeRenewal?: null | boolean;
+            /** Format: int32 */
+            reviewMonths?: null | number;
+            supportContact?: null | string;
+            supportUrl?: null | string;
+            sla?: null | string;
+            /** Format: date */
+            endOfLifeOn?: null | string;
+            endOfLifeNote?: null | string;
+            note?: null | string;
+        };
+        /** @enum {unknown} */
+        LicenseType: "License" | "Service" | "Hardware";
+        LicenseUnassignRequest: {
+            hostIds: null | string[];
+        };
+        LicenseUpcoming: {
+            /** Format: int32 */
+            months: number;
+            cost: components["schemas"]["MoneyAmount"][];
+            ifRenewed: components["schemas"]["MoneyAmount"][];
+            overdue: components["schemas"]["LicenseUpcomingEntry"][];
+            byMonth: components["schemas"]["LicenseUpcomingMonth"][];
+        };
+        LicenseUpcomingEntry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            /** Format: date */
+            day: string;
+            what: string;
+            renewal: components["schemas"]["LicenseRenewal"];
+            /** Format: double */
+            price: null | number;
+            currency: null | string;
+            /** Format: int32 */
+            hosts: number;
+            ownerName: null | string;
+            nobodyNotified: boolean;
+            /** Format: int32 */
+            verdictCode: null | number;
+        };
+        LicenseUpcomingMonth: {
+            month: string;
+            cost: components["schemas"]["MoneyAmount"][];
+            entries: components["schemas"]["LicenseUpcomingEntry"][];
+        };
+        LicenseWorthALook: {
+            /** Format: int32 */
+            unusedSeats: number;
+            /** Format: double */
+            unusedSeatsPerYear: number;
+            /** Format: int32 */
+            unusedSeatItems: number;
+            /** Format: int32 */
+            paidPastEndOfLife: number;
+            /** Format: int32 */
+            nobodyNotified: number;
+            /** Format: int32 */
+            estimatesWithoutInvoice: number;
+            /** Format: int32 */
+            withoutPrice: number;
+            /** Format: int32 */
+            reviewsOverdue: number;
+        };
+        LinkedItemSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            provider: null | string;
+            supportContact: null | string;
+            supportUrl: null | string;
+            customerNumber: null | string;
+            sla: null | string;
+            /** Format: int32 */
+            verdictCode: null | number;
+            note: null | string;
+        };
         LinkedSensor: {
             /** Format: uuid */
             sensorId: string;
@@ -30660,6 +33684,11 @@ export interface components {
             bigBrotherBackup?: null | string;
             /** Format: int32 */
             seraphSampleEvery?: number;
+        };
+        MoneyAmount: {
+            currency: string;
+            /** Format: double */
+            amount: number;
         };
         NeedsRestartInfo: {
             services: string[];
@@ -33630,6 +36659,18 @@ export interface components {
             location: null | string;
             enabled: boolean;
         };
+        SearchLicense: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            number: number;
+            display: string;
+            type: components["schemas"]["LicenseType"];
+            name: string;
+            product: null | string;
+            /** Format: int32 */
+            verdictCode: null | number;
+        };
         SearchLocation: {
             /** Format: uuid */
             id: string;
@@ -33655,6 +36696,7 @@ export interface components {
             pages: components["schemas"]["SearchPage"][];
             tickets: components["schemas"]["SearchTicket"][];
             zabbixHosts: components["schemas"]["SearchZabbixHost"][];
+            licenses?: null | components["schemas"]["SearchLicense"][];
         };
         SearchSensor: {
             /** Format: uuid */
@@ -33751,6 +36793,8 @@ export interface components {
             zabbix?: null | components["schemas"]["ZabbixSensorDetail"];
             certificate?: null | components["schemas"]["CertificateSensorSummary"];
             advanced?: null | components["schemas"]["AdvancedSensorDetail"];
+            license?: null | components["schemas"]["LicenseSensorSummary"];
+            linkedItems?: null | components["schemas"]["LinkedItemSummary"][];
         };
         SensorIntegration: {
             writeToken: string;
@@ -33831,7 +36875,7 @@ export interface components {
             childCount: number;
         };
         /** @enum {unknown} */
-        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX" | "SSL_CERTIFICATE" | "ADVANCED";
+        SensorType: "SIMPLE" | "DNS" | "HEARTBEAT" | "HEARTBEAT_VALUECHECK" | "PING" | "VALUECHECK" | "ENCAPSULADED" | "ONE_WITHIN_TIMESPAN" | "ALL_WITHIN_TIMESPAN" | "UDP_NODE" | "MIKROTIK" | "SYSTEM" | "WINDOWS" | "DIAGNOSTICS" | "LINUX" | "ZABBIX" | "SSL_CERTIFICATE" | "ADVANCED" | "LICENSE";
         SensorTypeInfo: {
             type: components["schemas"]["SensorType"];
             description: string;
@@ -34399,6 +37443,7 @@ export interface components {
             redmine?: null | boolean;
             zabbix?: null | boolean;
             hiddenMenus?: null | string[];
+            licenses?: null | boolean;
         };
         SystemSection: {
             hostname: string;

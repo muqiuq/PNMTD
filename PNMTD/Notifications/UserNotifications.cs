@@ -49,7 +49,7 @@ public sealed class UserNotifications(IDbContextFactory<PnmtdDbContext> dbs, Not
         var o = options.CurrentValue;
         var kind = UserNotificationKinds.Find(notice.Kind) ?? throw new ArgumentException($"No such kind: {notice.Kind}", nameof(notice));
         var recipients = notice.Recipients.Where(r => r != notice.ActorId).Distinct().ToList();
-        if (!o.Enabled || recipients.Count == 0)
+        if (!o.Enabled || recipients.Count == 0 || !kind.IsAvailable(configuration))
         {
             return;
         }
@@ -88,7 +88,7 @@ public sealed class UserNotifications(IDbContextFactory<PnmtdDbContext> dbs, Not
         var email = await db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => u.Email).SingleOrDefaultAsync(ct);
         var stored = await db.UserNotificationPreferences.AsNoTracking().Where(p => p.UserId == id).ToListAsync(ct);
         var o = options.CurrentValue;
-        var kinds = UserNotificationKinds.All.Where(k => rights.Has(k.Area, k.Level)).Select(k => new UserNotificationKindItem(k.Key, k.Label, k.Help,
+        var kinds = UserNotificationKinds.All.Where(k => k.IsAvailable(configuration) && rights.Has(k.Area, k.Level)).Select(k => new UserNotificationKindItem(k.Key, k.Label, k.Help,
             [new UserNotificationChannelItem(UserNotificationChannel.Email,
                 stored.FirstOrDefault(p => p.Kind == k.Key && p.Channel == UserNotificationChannel.Email)?.Enabled ?? k.EmailByDefault, k.EmailByDefault)]))
             .ToList();
@@ -105,7 +105,7 @@ public sealed class UserNotifications(IDbContextFactory<PnmtdDbContext> dbs, Not
         foreach (var choice in request.Items ?? [])
         {
             var kind = UserNotificationKinds.Find(choice.Kind ?? "");
-            if (kind is null || !rights.Has(kind.Area, kind.Level))
+            if (kind is null || !kind.IsAvailable(configuration) || !rights.Has(kind.Area, kind.Level))
             {
                 throw ApiException.Invalid("items", $"“{choice.Kind}” is not a notification you can choose.");
             }
@@ -205,6 +205,10 @@ public sealed class UserNotifications(IDbContextFactory<PnmtdDbContext> dbs, Not
         if (kind is null)
         {
             return Skip(rows, $"No such kind: {first.Kind}.");
+        }
+        if (!kind.IsAvailable(configuration))
+        {
+            return Skip(rows, "Licences & services is turned off.");
         }
         var person = await db.Users.AsNoTracking().Where(u => u.Id == first.UserId).Select(u => new { u.Id, u.DisplayName, u.IsActive, u.IsAdmin, u.Email })
             .SingleOrDefaultAsync(ct);

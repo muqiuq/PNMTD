@@ -145,6 +145,8 @@ public partial class Program
         PNMTD.Connectors.ConnectorSetup.AddConnectors(builder.Services, builder.Configuration);
         // Boards (docs/boards-plan.md): monitoring dashboards for a wall, at /pnmt-board/<token>.
         PNMTD.Boards.BoardsSetup.AddBoards(builder.Services, builder.Configuration);
+        // Licences & services (docs/licences-plan.md): off unless Licenses__Enabled=true (§13).
+        PNMTD.Licenses.LicenseSetup.AddLicenses(builder.Services, builder.Configuration);
 
         // The build writes the OpenAPI document by starting the host without a database (GetDocument.Insider).
         var documentBuild = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
@@ -215,6 +217,8 @@ public partial class Program
             builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Availability.AvailabilityFillTask>());
             // The connectors' worker on its timer (docs/connectors-plan.md §9.1); nudges wake it in any case.
             builder.Services.AddHostedService<PNMTD.Connectors.ConnectorWorkerTask>();
+            // docs/licences-plan.md §5.5: every minute, only while Licenses__Enabled is on.
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<PNMTD.Licenses.LicenseEvaluatorTask>());
         }
 
         // UDP nodes (docs/udp-iot-plan.md §4.4): on unless Udp:Enabled=false, not tied to the
@@ -264,6 +268,7 @@ public partial class Program
         app.UseBoardFiles();               // /pnmt-board/** files, anonymous (docs/boards-plan.md §4.2)
         app.UseRouting();
         app.UsePlainNotFound();            // no endpoint: empty 404; routing's 405: empty, with Allow
+        PNMTD.Licenses.LicenseSetup.UseLicensesSwitch(app); // Licenses__Enabled off: its endpoints answer 404 licenses_disabled (docs/licences-plan.md §13.2)
         app.UseRateLimiter();              // the login endpoints only
         // The sensor API is anonymous and must not see the session cookie (a sliding renewal would
         // add a Set-Cookie header v0.12 never sent).

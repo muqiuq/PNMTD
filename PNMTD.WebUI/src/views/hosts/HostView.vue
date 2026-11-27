@@ -29,6 +29,8 @@ import AddServerDialog from '@/views/admin/servers/AddServerDialog.vue'
 import HostLocationField from '@/views/locations/HostLocationField.vue'
 import KbPanel from '@/views/kb/KbPanel.vue'
 import ResponsibilitiesPanel from '@/views/responsibilities/ResponsibilitiesPanel.vue'
+import AssignToHostDialog from '@/views/licences/AssignToHostDialog.vue'
+import LicencesPanel from '@/views/licences/LicencesPanel.vue'
 import RedminePanel from '@/views/redmine/RedminePanel.vue'
 import CookieNotesPanel from '@/views/cookie/CookieNotesPanel.vue'
 import { useCookieNotes } from '@/views/cookie/cookieNotes'
@@ -96,11 +98,17 @@ async function remove() {
 // A server, Windows or Linux, joins with a token (docs/windows-sensor-plan.md §3.3; docs/linux-sensor-plan.md §11.1): Admin,
 // with this host preselected.
 const addingServer = ref(false)
+// docs/licences-plan.md §8.8: a licence or service assigned from the host, while the feature is on, with Licences & services: Edit.
+const assigningLicence = ref(false)
+const canAssignLicence = computed(() => !!session.info?.licenses && session.can('Licenses', 'Edit'))
 const more = computed(() => [
-  ...(session.can('Servers', 'Manage')
+  ...(canWrite.value && session.can('Servers', 'Manage')
     ? [{ label: 'Add server…', icon: 'pi pi-desktop', command: () => (addingServer.value = true) }]
     : []),
-  { label: 'Delete host…', icon: 'pi pi-trash', class: 'danger', command: remove },
+  ...(canAssignLicence.value
+    ? [{ label: 'Assign a licence or service…', icon: 'pi pi-id-card', command: () => (assigningLicence.value = true) }]
+    : []),
+  ...(canWrite.value ? [{ label: 'Delete host…', icon: 'pi pi-trash', class: 'danger', command: remove }] : []),
 ])
 </script>
 
@@ -138,7 +146,7 @@ const more = computed(() => [
             size="small"
             @click="router.push({ name: 'sensor-new', params: { id: host.id } })"
           />
-          <MoreMenu v-if="canWrite" :items="more" label="More actions for the host" />
+          <MoreMenu v-if="more.length" :items="more" label="More actions for the host" />
         </template>
       </PageHeader>
       <TabNav :items="tabs" :active="tab" label="Host" />
@@ -229,6 +237,8 @@ const more = computed(() => [
           </section>
           <!-- Responsibilities that link this host, only when one does (docs/responsibilities-plan.md §8). -->
           <ResponsibilitiesPanel :host-id="host.id" />
+          <!-- Its licences & services, only when it has any and the feature is on (docs/licences-plan.md §8.8). -->
+          <LicencesPanel :host-id="host.id" />
           <CookieNotesPanel
             :notes="cookieNotes.notes.value"
             :can-remove="cookieNotes.canRemove.value"
@@ -311,6 +321,7 @@ const more = computed(() => [
       </template>
     </template>
     <AddServerDialog v-if="host" v-model:visible="addingServer" :host-id="host.id" />
+    <AssignToHostDialog v-if="host" v-model:visible="assigningLicence" :host-id="host.id" :host-name="host.name" />
   </div>
 </template>
 

@@ -202,8 +202,10 @@ public sealed class MonitoringApiTests
         // case book (docs/cookie-plan.md §19.3), the MCP tokens' expiry (docs/mcp-plan.md §4.3), the certificate checks
         // (docs/ssl-certificate-plan.md §5.2), the advanced sensors' evaluator (docs/advanced-sensor-plan.md §7.3), the
         // connectors' worker (docs/connectors-plan.md §9.1), the network map's schedule (docs/network-map-plan.md §7.3), and the
-        // notification task's second timer for notifications to people (docs/knowledge-base-extensions-plan.md §10.5).
-        Assert.AreEqual(21, tasks.Count);
+        // notification task's second timer for notifications to people (docs/knowledge-base-extensions-plan.md §10.5), and the licence
+        // checks (docs/licences-plan.md §5.5), off with Licenses__Enabled too.
+        Assert.AreEqual(22, tasks.Count);
+        Assert.IsTrue(tasks.Any(t => t.Key == "last_license_evaluation" && t.Name == "Licence checks" && t.State == "off"));
         Assert.IsTrue(tasks.Any(t => t.Key == "last_user_notification_run" && t.IntervalSeconds == 30));
         Assert.IsTrue(tasks.All(t => t.State == "off"), string.Join(",", tasks.Select(t => t.State)));
         Assert.IsTrue(tasks.Any(t => t.Key == "last_heartbeat_task_run" && t.IntervalSeconds == 10));
@@ -224,7 +226,10 @@ public sealed class MonitoringApiTests
         CollectionAssert.IsSubsetOf(new[] { 295, 296, 495, 496 }, codes.Select(c => c.Code).ToArray());
         CollectionAssert.AreEquivalent(new[] { 295, 296 }, codes.Where(c => c.Name.StartsWith("ADVANCED_") && c.Success).Select(c => c.Code).ToArray());
         CollectionAssert.AreEquivalent(new[] { 285, 286 }, codes.Where(c => c.Code is >= 285 and <= 489 && c.Name.StartsWith("SSL_") && c.Success).Select(c => c.Code).ToArray());
-        Assert.AreEqual(Enum.GetValues<SensorType>().Length, types.GetArrayLength());
+        // Every type, but LICENSE while Licences & services is off, as it is by default (docs/licences-plan.md §13.2); LicenseFeatureTests has it on.
+        Assert.AreEqual(Enum.GetValues<SensorType>().Length - 1, types.GetArrayLength());
+        Assert.IsFalse(types.EnumerateArray().Any(t => t.GetProperty("type").GetString() == "LICENSE"));
+        Assert.IsFalse(codes.Any(c => c.Code is 245 or 246 or >= 445 and <= 449));
         Assert.IsTrue(types.EnumerateArray().Any(t => t.GetProperty("type").GetString() == "DNS" && !t.GetProperty("canCreate").GetBoolean()));
         Assert.AreEqual(Enum.GetValues<NotificationRuleType>().Length, ruleTypes.Count);
     }

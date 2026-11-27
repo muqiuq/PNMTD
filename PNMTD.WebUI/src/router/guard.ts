@@ -6,6 +6,8 @@ export interface GuardState {
   signedIn: boolean
   flags: SessionFlags | null
   allows: (right: Right) => boolean
+  /** Whether a feature is on (GET /system/info); without, every one is. */
+  has?: (feature: 'licenses') => boolean
 }
 
 /** What the guard needs to know about the target route. */
@@ -15,9 +17,11 @@ export interface GuardTarget {
   public?: boolean
   /** What the route needs (docs/audit-redmine-zabbix-plan.md §5.4). */
   right?: Right
+  /** What the deployment must have turned on: Licences & services (docs/licences-plan.md §13.2). */
+  feature?: 'licenses'
 }
 
-export type GuardResult = true | { name: string; query?: Record<string, string> }
+export type GuardResult = true | { name: string; query?: Record<string, string>; params?: Record<string, string[]> }
 
 /**
  * A return URL that stays inside the app (§4.5): a path of the router (which lives under
@@ -56,6 +60,10 @@ export function decide(to: GuardTarget, state: GuardState): GuardResult {
   }
   if (state.flags?.totpSetupRequired) {
     return to.name === 'setup-2fa' ? true : { name: 'setup-2fa', query: safeReturnUrl(to.fullPath) ? returnUrl : {} }
+  }
+  // A feature that is off (docs/licences-plan.md §13.2): its pages are as unknown paths are, not found.
+  if (to.feature && state.has && !state.has(to.feature)) {
+    return { name: 'not-found', params: { pathMatch: to.fullPath.split('?')[0].split('/').filter(Boolean) } }
   }
   if (to.right && !state.allows(to.right)) {
     return { name: 'dashboard' }
