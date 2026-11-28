@@ -35,9 +35,19 @@
   the global search (by number, name, product, reference, customer number, or a key's last five characters), and three MCP tools
   for MCP and Cookie: `licenses_list`, `license_get`, `licenses_costs` (never keys or documents).
 
+## 1.30.1
+
+- **A test of the MCP tools no longer fails on a busy build machine.** It checked that one can't cancel someone else's RouterOS
+  command on a command that was waiting to run, and PNMT's job runner sometimes took that command before the check. The test now
+  uses a running command.
+- **A Redmine test no longer fails since 2026-11-28.** Its recorded tickets were last changed on 2026-11-14, and 14 days later
+  they counted as *no update for 14 days*. The test now gives every ticket it doesn't set itself a change a day ago.
+- PNMT itself is unchanged: both fixes are in the tests.
+- **Updating from 1.30.0:** `./update.sh --tag v1.30.1`. No migration, nothing to configure.
+
 ## Updating from 1.29
 
-In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.30.0`. It takes a backup first.
+In the `deploy/` folder: `git pull`, then `./update.sh --tag v1.30.1`. It takes a backup first.
 
 - **One migration:** eight tables for licences & services, and a column on the file uses. It runs whatever the switch says, and
   adds the eleven categories (*Software*, *Cloud & SaaS*, *Connectivity*, …). Nothing else changes until you turn the feature on.

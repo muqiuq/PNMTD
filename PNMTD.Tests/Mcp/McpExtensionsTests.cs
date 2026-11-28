@@ -298,10 +298,16 @@ public sealed class McpExtensionsTests
                 {
                     Id = jobId, BatchId = Guid.NewGuid(), Kind = kind, SensorId = sensorId, RouterName = "core-gw", State = state, RequestedBy = by,
                     RequestedByName = "someone", CreatedAt = Clock.UtcNow, Command = kind == MikrotikJobKind.Command ? "/system identity print" : null,
-                    RunAs = kind == MikrotikJobKind.Command ? "pnmt" : null, FromVersion = "7.19", ToVersion = "7.20", FinishedAt = Clock.UtcNow,
+                    RunAs = kind == MikrotikJobKind.Command ? "pnmt" : null, FromVersion = "7.19", ToVersion = "7.20",
+                    FinishedAt = state == MikrotikJobState.Running ? null : Clock.UtcNow,
                 };
+                // Someone else's command running, at a step one could cancel one's own: a queued one would be the job runner's, which
+                // starts it within seconds and skips it (no host key pinned) before the check below on a busy CI runner.
+                var running = Job(theirs, MikrotikJobKind.Command, MikrotikJobState.Running, Guid.NewGuid());
+                running.Step = MikrotikJobStep.Run;
+                running.StartedAt = Clock.UtcNow;
                 db.MikrotikJobs.AddRange(Job(update, MikrotikJobKind.Update, MikrotikJobState.Succeeded, id),
-                    Job(mine, MikrotikJobKind.Command, MikrotikJobState.Succeeded, id), Job(theirs, MikrotikJobKind.Command, MikrotikJobState.Queued, Guid.NewGuid()));
+                    Job(mine, MikrotikJobKind.Command, MikrotikJobState.Succeeded, id), running);
                 await db.SaveChangesAsync();
                 db.MikrotikJobLog.Add(new MikrotikJobLogEntity { JobId = update, At = Clock.UtcNow, Step = MikrotikJobStep.Done, Outcome = MikrotikJobOutcome.Ok, Message = "Updated to 7.20" });
                 await db.SaveChangesAsync();
@@ -314,10 +320,12 @@ public sealed class McpExtensionsTests
             var commands = await OkAsync(client, "mikrotik_commands_list", new { sensorId });
             CollectionAssert.IsSubsetOf(new[] { mine, theirs }, commands.GetProperty("items").EnumerateArray().Select(c => c.GetProperty("id").GetGuid()).ToList());
             Assert.AreEqual("job_finished", await ErrorAsync(client, "mikrotik_command_cancel", new { id = mine }));
-            await ErrorAsync(client, "mikrotik_command_cancel", new { id = theirs });
+            Assert.AreEqual("forbidden_role", await ErrorAsync(client, "mikrotik_command_cancel", new { id = theirs }));
             await using (var db = app.NewDb())
             {
-                Assert.AreEqual(MikrotikJobState.Queued, (await db.MikrotikJobs.AsNoTracking().SingleAsync(j => j.Id == theirs)).State, "not someone else's");
+                Assert.AreEqual(MikrotikJobState.Running, (await db.MikrotikJobs.AsNoTracking().SingleAsync(j => j.Id == theirs)).State, "not someone else's");
+                // No running job left for the next test app's start to fail.
+                await db.MikrotikJobs.Where(j => j.Id == theirs).ExecuteDeleteAsync();
             }
 
             Assert.AreEqual("invalid_argument", await ErrorAsync(client, "router_difference_acknowledge", new { sensorId, action = "acknowledge" }),

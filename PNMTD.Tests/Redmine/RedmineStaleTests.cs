@@ -38,6 +38,18 @@ public sealed class RedmineStaleTests
         issue["updated_on"] = journals.Length == 0 ? Ago(createdDaysAgo) : Ago(journals.Min(j => j.DaysAgo));
     }
 
+    /// <summary>
+    /// Every other ticket changed a day ago: the recorded ones carry the day they were recorded (2026-11-14), and were stale for
+    /// everyone from 14 days later on.
+    /// </summary>
+    private static void TheOthersFresh(FakeRedmine redmine, params int[] set)
+    {
+        foreach (var id in redmine.Issues.Keys.Except(set).ToList())
+        {
+            Ticket(redmine, id, 1);
+        }
+    }
+
     [TestMethod]
     public async Task AnyChangeCountsExceptCookiesNotes()
     {
@@ -47,6 +59,7 @@ public sealed class RedmineStaleTests
         Ticket(redmine, 11, 40, (7, 30), (FakeRedmine.CookieUserId, 5), (7, 2));            // Anna answered after Cookie's note: not stale
         Ticket(redmine, 12, 3);                                                             // new: not stale
         Ticket(redmine, 13, 40, (7, 3));                                                    // Anna 3 days ago: not stale
+        TheOthersFresh(redmine, 9, 10, 11, 12, 13);
         using var app = new TestApp(settings: FakeRedmine.WritableSettings, services: redmine.Install);
         var user = app.Client(Roles.User);
 
@@ -75,6 +88,7 @@ public sealed class RedmineStaleTests
         var redmine = new FakeRedmine();
         Ticket(redmine, 9, 31);
         Ticket(redmine, 10, 40, (7, 30), (FakeRedmine.CookieUserId, 1));
+        TheOthersFresh(redmine, 9, 10);
         using var app = new TestApp(settings: FakeRedmine.Settings, services: redmine.Install);
         var overview = await (await app.Client(Roles.User).GetAsync("/api/v1/redmine/overview")).ReadAsync<RedmineOverview>();
         CollectionAssert.AreEqual(new[] { 9 }, overview.Stale.Select(i => i.Id).ToArray(), "no write key: Redmine's own date decides");
